@@ -1,0 +1,279 @@
+{
+  "version": "1.0",
+  "description": "Sample dataset for testing authenticity scoring engine. Contains 5 representative job postings with expected outputs.",
+  "last_updated": "2025-12-07",
+  "jobs": [
+    {
+      "job_id": "EXAMPLE_HIGH_1",
+      "title": "Software Engineer, Backend",
+      "company_name": "Stripe",
+      "platform": "LinkedIn",
+      "location": "San Francisco, CA",
+      "url": "https://linkedin.com/jobs/view/12345",
+      "jd_text": "We are looking for a Software Engineer to join the Payments team at Stripe. You will design, build, and maintain scalable backend services in Ruby and Java, working closely with product and operations teams. Our team builds the core payment processing infrastructure that handles billions of dollars in transactions. Responsibilities include: designing APIs, optimizing database queries, ensuring system reliability, and collaborating with engineers across the company. Requirements: 2+ years of backend development experience, strong CS fundamentals, experience with Ruby or Java, and familiarity with distributed systems. Stripe offers competitive compensation ($150k-$200k), equity, and comprehensive benefits.",
+      "poster_info": {
+        "name": "Jane Doe",
+        "title": "Engineering Manager",
+        "company": "Stripe",
+        "location": "San Francisco, CA",
+        "account_age_months": 48,
+        "recent_job_count_7d": 1
+      },
+      "company_info": {
+        "website_domain": "stripe.com",
+        "domain_matches_name": true,
+        "size_employees": 7000,
+        "glassdoor_rating": 4.3,
+        "has_layoffs_recent": false
+      },
+      "platform_metadata": {
+        "posted_days_ago": 3,
+        "repost_count": 0,
+        "applicants_count": 120,
+        "views_count": 2000,
+        "actively_hiring_tag": true,
+        "easy_apply": true
+      },
+      "derived_signals": {
+        "company_domain_mismatch": false,
+        "poster_no_company": false,
+        "poster_job_location_mismatch": false,
+        "company_poster_mismatch": false,
+        "no_poster_identity": false
+      },
+      "expected_output": {
+        "authenticity_score": 92,
+        "level": "likely real",
+        "confidence": "High",
+        "red_flags_count": 0,
+        "positive_signals_contains": [
+          "Named hiring manager from actual company",
+          "Recent posting within 7 days",
+          "Company domain matches company name",
+          "Specific team and tech stack mentioned"
+        ],
+        "notes": "High-quality posting from well-known company with detailed JD and legitimate poster"
+      }
+    },
+    {
+      "job_id": "EXAMPLE_MEDIUM_1",
+      "title": "Full Stack Developer",
+      "company_name": "Acme Analytics",
+      "platform": "LinkedIn",
+      "location": "New York, NY",
+      "url": "https://linkedin.com/jobs/view/67890",
+      "jd_text": "Acme Analytics is seeking a Full Stack Developer to help us build internal dashboards and customer-facing tools. The ideal candidate has experience with React, Node.js, and PostgreSQL. You will work in a small engineering team reporting to the CTO. Responsibilities include building new features, maintaining existing code, and working with our product team. We're a 25-person startup focused on data analytics for retail companies. Requirements: 2+ years of full-stack experience, strong JavaScript skills, and comfort with both frontend and backend work.",
+      "poster_info": {
+        "name": "John Smith",
+        "title": "CTO",
+        "company": "Acme Analytics",
+        "location": "New York, NY",
+        "account_age_months": 18,
+        "recent_job_count_7d": 2
+      },
+      "company_info": {
+        "website_domain": "acmeanalytics.com",
+        "domain_matches_name": true,
+        "size_employees": 25,
+        "glassdoor_rating": 3.5,
+        "has_layoffs_recent": false
+      },
+      "platform_metadata": {
+        "posted_days_ago": 14,
+        "repost_count": 0,
+        "applicants_count": 40,
+        "views_count": 300,
+        "actively_hiring_tag": false,
+        "easy_apply": false
+      },
+      "derived_signals": {
+        "company_domain_mismatch": false,
+        "poster_no_company": false,
+        "poster_job_location_mismatch": false,
+        "company_poster_mismatch": false,
+        "no_poster_identity": false
+      },
+      "expected_output": {
+        "authenticity_score": 73,
+        "level": "uncertain",
+        "confidence": "Medium",
+        "red_flags_count": 0,
+        "positive_signals_contains": [
+          "Direct hiring by CTO",
+          "Company domain present and matches name",
+          "Specific tech stack mentioned"
+        ],
+        "notes": "Legitimate small company posting but less established than FAANG, no major red flags but fewer strong positive signals"
+      }
+    },
+    {
+      "job_id": "EXAMPLE_LOW_BODYSHOP_1",
+      "title": "Software Engineer (Multiple Openings)",
+      "company_name": "XYZ Solutions LLC",
+      "platform": "LinkedIn",
+      "location": "United States (Remote)",
+      "url": "https://linkedin.com/jobs/view/11111",
+      "jd_text": "Our client is looking for multiple Software Engineers to join their team. Responsibilities include coding, testing, and deployment. Candidates should be flexible and willing to relocate anywhere in the US. Must have strong programming skills and be able to work independently. Experience with various programming languages is preferred. Please send your resume to hiring2025@gmail.com for immediate consideration.",
+      "poster_info": {
+        "name": "Rahul Verma",
+        "title": "Technical Recruiter",
+        "company": "XYZ Solutions LLC",
+        "location": "Hyderabad, India",
+        "account_age_months": 5,
+        "recent_job_count_7d": 16
+      },
+      "company_info": {
+        "website_domain": "xyzsolutions-usa.com",
+        "domain_matches_name": true,
+        "size_employees": 50,
+        "glassdoor_rating": 2.7,
+        "has_layoffs_recent": false
+      },
+      "platform_metadata": {
+        "posted_days_ago": 37,
+        "repost_count": 3,
+        "applicants_count": 12,
+        "views_count": 900,
+        "actively_hiring_tag": false,
+        "easy_apply": true
+      },
+      "derived_signals": {
+        "company_domain_mismatch": false,
+        "poster_no_company": false,
+        "poster_job_location_mismatch": true,
+        "company_poster_mismatch": false,
+        "no_poster_identity": false
+      },
+      "expected_output": {
+        "authenticity_score": 34,
+        "level": "likely fake",
+        "confidence": "High",
+        "red_flags_count": 6,
+        "red_flags_contains": [
+          "Posted by external recruiter (uses 'our client' language)",
+          "Posted by known staffing/outsourcing firm",
+          "Contact email uses free email provider",
+          "Job posted more than 30 days ago",
+          "Poster is hiring for many roles simultaneously",
+          "Poster location differs significantly from job location"
+        ],
+        "notes": "Classic body shop / staffing firm posting with multiple high-confidence red flags"
+      }
+    },
+    {
+      "job_id": "EXAMPLE_STALE_1",
+      "title": "Junior Software Engineer",
+      "company_name": "BetaSoft",
+      "platform": "LinkedIn",
+      "location": "Austin, TX",
+      "url": "https://linkedin.com/jobs/view/22222",
+      "jd_text": "We are looking for a Junior Software Engineer to join our team. Responsibilities include collaborating with senior developers, writing clean code, and fixing bugs. Must have knowledge of software development principles and be eager to learn.",
+      "poster_info": {
+        "name": "HR Team",
+        "title": "People Operations",
+        "company": "BetaSoft",
+        "location": "Austin, TX",
+        "account_age_months": 36,
+        "recent_job_count_7d": 1
+      },
+      "company_info": {
+        "website_domain": "betasoft.io",
+        "domain_matches_name": true,
+        "size_employees": 120,
+        "glassdoor_rating": 3.1,
+        "has_layoffs_recent": true
+      },
+      "platform_metadata": {
+        "posted_days_ago": 94,
+        "repost_count": 2,
+        "applicants_count": 300,
+        "views_count": 5000,
+        "actively_hiring_tag": false,
+        "easy_apply": true
+      },
+      "derived_signals": {
+        "company_domain_mismatch": false,
+        "poster_no_company": false,
+        "poster_job_location_mismatch": false,
+        "company_poster_mismatch": false,
+        "no_poster_identity": false
+      },
+      "expected_output": {
+        "authenticity_score": 49,
+        "level": "likely fake",
+        "confidence": "High",
+        "red_flags_count": 4,
+        "red_flags_contains": [
+          "Job posted more than 30 days ago",
+          "Job has been reposted 3+ times",
+          "Company has recent layoffs",
+          "No specific technologies or tools listed"
+        ],
+        "notes": "Stale posting that's been open for months with recent layoffs - likely not actively hiring"
+      }
+    },
+    {
+      "job_id": "EXAMPLE_SCAM_1",
+      "title": "Work From Home Software Engineer (No Experience Needed)",
+      "company_name": "Global Tech Innovations",
+      "platform": "Indeed",
+      "location": "Remote, United States",
+      "url": "https://indeed.com/viewjob?jk=33333",
+      "jd_text": "We are seeking motivated individuals to join our global remote team. No prior experience required. Earn up to $200,000 per year working from home. All you need is a laptop and internet connection. Apply now and start immediately. This is a great opportunity for anyone looking to work from home.",
+      "poster_info": {
+        "name": "Hiring Manager",
+        "title": "HR",
+        "company": "Global Tech Innovations",
+        "location": "Unknown",
+        "account_age_months": 2,
+        "recent_job_count_7d": 25
+      },
+      "company_info": {
+        "website_domain": "global-tech-innovations-job.com",
+        "domain_matches_name": false,
+        "size_employees": 5,
+        "glassdoor_rating": null,
+        "has_layoffs_recent": false
+      },
+      "platform_metadata": {
+        "posted_days_ago": 5,
+        "repost_count": 4,
+        "applicants_count": 5,
+        "views_count": 1000,
+        "actively_hiring_tag": false,
+        "easy_apply": false
+      },
+      "derived_signals": {
+        "company_domain_mismatch": true,
+        "poster_no_company": true,
+        "poster_job_location_mismatch": true,
+        "company_poster_mismatch": false,
+        "no_poster_identity": false
+      },
+      "expected_output": {
+        "authenticity_score": 12,
+        "level": "likely fake",
+        "confidence": "High",
+        "red_flags_count": 8,
+        "red_flags_contains": [
+          "Company website domain doesn't match company name",
+          "Poster account created recently (< 6 months)",
+          "Poster is hiring for many roles simultaneously",
+          "Job has been reposted 3+ times",
+          "Uses generic template language",
+          "No specific technologies or tools listed",
+          "Expects immediate start",
+          "Very short JD"
+        ],
+        "notes": "Obvious scam posting - unrealistic salary for no experience, suspicious company domain, new poster account"
+      }
+    }
+  ],
+  "testing_notes": {
+    "score_tolerance": "Allow ±5 points variance in authenticity_score",
+    "level_matching": "Level classification must match exactly",
+    "confidence_matching": "Confidence level must match exactly",
+    "red_flags_validation": "Should contain at least 50% of listed red_flags_contains items",
+    "usage": "Use these samples for unit tests, integration tests, and manual validation of scoring algorithm"
+  }
+}
