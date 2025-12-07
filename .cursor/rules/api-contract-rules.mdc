@@ -1,0 +1,20 @@
+---
+alwaysApply: true
+---
+
+# API Contract Rules
+
+The Python backend API schema defined in:
+- specs/backend-api-contract.md
+
+is LAW.
+
+Cursor must NOT:
+- change request/response schema
+- change field names
+- change status codes
+- change error format
+- change routes
+
+If backend-api-contract.md contradicts implementation →
+Cursor must ask for resolution BEFORE coding.

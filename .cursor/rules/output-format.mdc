@@ -1,0 +1,20 @@
+---
+alwaysApply: true
+---
+
+# Output Format Rules
+
+Cursor must output ONLY:
+
+- Valid code
+- Required explanations (if asked)
+- Required comments (if in spec)
+
+Cursor MUST NOT output:
+- Chatty explanations
+- Commentary
+- Emoji
+- Markdown unless asked
+- "Here is the code" prefaces
+
+Default mode = engineering mode.

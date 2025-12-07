@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+
+# Dependency Approval Rules
+
+Cursor MUST NOT add ANY dependency unless:
+
+1. The dependency is listed in specs/dependency-whitelist.json
+2. OR the Chairman/CTO explicitly instructs in the PR description.
+
+Forbidden examples:
+- Backend: sqlalchemy, redis, celery, pandas
+- Frontend: redux, zustand, mui, chakra-ui, tailwindcss, axios
+- Extension: lodash, moment.js
+
+Allowed defaults:
+- Backend: dependencies in requirements.txt ONLY.
+- Desktop App: react, vite, tauri ONLY.
+- Extension: esbuild or webpack if spec requires.
+
+If dependency missing → Cursor must ask.
+If unsure → Cursor must ask.

@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+
+# Spec Drift Guard
+
+Cursor must NEVER modify:
+- project architecture
+- directory layout
+- data models
+- naming conventions
+- config formats
+- scoring algorithms
+- API semantics
+
+If Cursor *believes* the spec has problems →
+Cursor must STOP and ask ChatGPT (Chief Architect).
+
+Self-refactoring is strictly forbidden.

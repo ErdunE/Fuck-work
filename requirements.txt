@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+numpy
+scipy
+scikit-learn
+sentence-transformers
+pdfplumber
+PyPDF2
+python-dotenv
+joblib

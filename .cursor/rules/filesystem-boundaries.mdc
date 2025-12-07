@@ -1,0 +1,31 @@
+---
+alwaysApply: true
+---
+
+# Cursor Filesystem Boundary Rules
+
+You must NOT create any new top-level directories besides:
+
+- apps/
+- specs/
+- tests/
+- .github/
+- .cursor/
+- scripts/ (only if explicitly requested)
+
+Inside apps/:
+- apps/backend/** → Python FastAPI only
+- apps/desktop_app/** → Tauri + React only
+- apps/browser_extension/** → Chrome MV3 only
+
+Forbidden directories:
+- src/
+- src-tauri/ (unless inside desktop_app)
+- services/
+- utils/
+- helpers/
+- components/ outside desktop_app/src/
+- api/ (backend only inside apps/backend)
+- scripts/ (unless instructed)
+
+Cursor MUST obey the structure defined in fuck_work_structure.md.
