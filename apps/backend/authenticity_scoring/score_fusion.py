@@ -82,6 +82,12 @@ class ScoreFusion:
 
         confidence_score = (0.5 * min(1.0, strong_count / 3.0)) + (0.5 * coverage)
 
+        if strong_count == 0 and coverage >= 0.75:
+            max_weight = max((self._safe_weight(r) for r in activated_rules), default=0.0)
+            if not activated_rules or max_weight < 0.05:
+                return "High"
+            if len(activated_rules) >= 5 and max_weight < 0.2:
+                return "High"
         if confidence_score >= 0.66:
             return "High"
         if confidence_score >= 0.33:
