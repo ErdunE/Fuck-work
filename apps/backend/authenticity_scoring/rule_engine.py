@@ -102,6 +102,9 @@ class RuleEngine:
                 return bool(value)
             return self._boolean_match(value, pattern_value, job_data)
 
+        if pattern_type == "body_shop_pattern_check":
+            return self._check_body_shop_pattern(value, job_data)
+
         if pattern_type == "action_verb_check":
             return self._check_missing_action_verbs(value)
 
@@ -195,6 +198,76 @@ class RuleEngine:
             return False
         values = list(company_info.values())
         return any(v not in (None, "", [], {}) for v in values)
+
+    def _check_body_shop_pattern(self, company_name: Any, job_data: Dict[str, Any]) -> bool:
+        """
+        Detect generic body-shop company name patterns.
+
+        A company is flagged if:
+        1. Name contains generic keywords + legal suffix
+        2. AND has additional suspicious signals (small size, domain issues, etc.)
+
+        This prevents false positives on legitimate companies like:
+        - Adobe Systems, Cisco Systems, Nvidia Technologies, etc.
+
+        Returns True if company matches body-shop pattern.
+        """
+        name = str(company_name).lower()
+
+        generic_keywords = [
+            "consulting",
+            "solutions",
+            "systems",
+            "technologies",
+            "staffing",
+            "recruiting",
+            "talent",
+            "services",
+            "global",
+        ]
+
+        legal_suffixes = ["llc", "inc", "corp", "ltd", "limited", "incorporated"]
+
+        has_generic_keyword = any(keyword in name for keyword in generic_keywords)
+        if not has_generic_keyword:
+            return False
+
+        domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+        company_size = self._get_nested_value(job_data, "company_info.size_employees")
+        glassdoor = self._get_nested_value(job_data, "company_info.glassdoor_rating")
+
+        has_legal_suffix = any(suffix in name for suffix in legal_suffixes)
+        generic_count = sum(1 for keyword in generic_keywords if keyword in name)
+
+        # If no legal suffix and only one generic keyword, allow trigger only when small and domain mismatch.
+        if not has_legal_suffix and generic_count < 2:
+            if domain_matches is False and isinstance(company_size, (int, float)) and company_size < 100:
+                return True
+            return False
+
+        if domain_matches is True and isinstance(company_size, (int, float)) and company_size >= 500:
+            return False
+
+        if (
+            domain_matches is True
+            and isinstance(company_size, (int, float))
+            and company_size >= 100
+            and isinstance(glassdoor, (int, float))
+            and glassdoor >= 3.5
+        ):
+            return False
+
+        if domain_matches is False:
+            return True
+
+        if isinstance(company_size, (int, float)) and company_size < 50:
+            return True
+
+        words = name.split()
+        if len(words) <= 3 and generic_count >= 2:
+            return True
+
+        return False
 
     @staticmethod
     def _check_missing_action_verbs(jd_text: Any) -> bool:

@@ -255,3 +255,80 @@ def test_B20_single_minor_issue(rule_engine: RuleEngine) -> None:
     job["jd_text"] = "Software      Engineer"
     ids = _activated_ids(rule_engine, job)
     assert "B20" not in ids
+
+
+# ---------------------------------------------------------------------
+# A7 (Body-shop pattern) tests
+# ---------------------------------------------------------------------
+
+
+def test_A7_triggers_on_generic_llc(rule_engine: RuleEngine) -> None:
+    """Generic name like 'ABC Solutions LLC' should trigger A7."""
+    job = base_job()
+    job["company_name"] = "ABC Solutions LLC"
+    job["company_info"]["domain_matches_name"] = False
+    job["company_info"]["size_employees"] = 30
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" in ids
+
+
+def test_A7_triggers_on_xyz_systems_inc(rule_engine: RuleEngine) -> None:
+    """Generic name like 'XYZ Systems Inc' should trigger A7."""
+    job = base_job()
+    job["company_name"] = "XYZ Systems Inc"
+    job["company_info"]["domain_matches_name"] = False
+    job["company_info"]["size_employees"] = 45
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" in ids
+
+
+def test_A7_not_trigger_on_cafe_technologies(rule_engine: RuleEngine) -> None:
+    """Legitimate company 'Café Technologies' should NOT trigger A7."""
+    job = base_job()
+    job["company_name"] = "Café Technologies"
+    job["company_info"]["domain_matches_name"] = True
+    job["company_info"]["size_employees"] = 120
+    job["company_info"]["glassdoor_rating"] = 3.8
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" not in ids, "A7 should not trigger on legitimate tech company"
+
+
+def test_A7_not_trigger_on_adobe_systems(rule_engine: RuleEngine) -> None:
+    """Large established company 'Adobe Systems' should NOT trigger A7."""
+    job = base_job()
+    job["company_name"] = "Adobe Systems"
+    job["company_info"]["domain_matches_name"] = True
+    job["company_info"]["size_employees"] = 25000
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" not in ids
+
+
+def test_A7_not_trigger_on_nvidia_technologies(rule_engine: RuleEngine) -> None:
+    """'Nvidia Technologies' should NOT trigger A7."""
+    job = base_job()
+    job["company_name"] = "Nvidia Technologies"
+    job["company_info"]["domain_matches_name"] = True
+    job["company_info"]["size_employees"] = 30000
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" not in ids
+
+
+def test_A7_triggers_on_small_generic_no_domain(rule_engine: RuleEngine) -> None:
+    """Small company with generic name and no domain match should trigger A7."""
+    job = base_job()
+    job["company_name"] = "IT Solutions"
+    job["company_info"]["domain_matches_name"] = False
+    job["company_info"]["size_employees"] = 20
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" in ids
+
+
+def test_A7_not_trigger_on_established_medium_company(rule_engine: RuleEngine) -> None:
+    """Medium company (100-499) with good rating should NOT trigger A7."""
+    job = base_job()
+    job["company_name"] = "DataTech Solutions"
+    job["company_info"]["domain_matches_name"] = True
+    job["company_info"]["size_employees"] = 250
+    job["company_info"]["glassdoor_rating"] = 4.0
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" not in ids
