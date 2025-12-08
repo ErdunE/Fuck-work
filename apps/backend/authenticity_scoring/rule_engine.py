@@ -102,6 +102,15 @@ class RuleEngine:
                 return bool(value)
             return self._boolean_match(value, pattern_value, job_data)
 
+        if pattern_type == "body_shop_pattern_check":
+            return self._check_body_shop_pattern(value, job_data)
+
+        if pattern_type == "action_verb_check":
+            return self._check_missing_action_verbs(value)
+
+        if pattern_type == "extreme_formatting_check":
+            return self._check_extreme_formatting(value)
+
         return False
 
     @staticmethod
@@ -190,6 +199,174 @@ class RuleEngine:
         values = list(company_info.values())
         return any(v not in (None, "", [], {}) for v in values)
 
+    def _check_body_shop_pattern(self, company_name: Any, job_data: Dict[str, Any]) -> bool:
+        """
+        Detect generic body-shop company name patterns.
+
+        A company is flagged if:
+        1. Name contains generic keywords + legal suffix
+        2. AND has additional suspicious signals (small size, domain issues, etc.)
+
+        This prevents false positives on legitimate companies like:
+        - Adobe Systems, Cisco Systems, Nvidia Technologies, etc.
+
+        Returns True if company matches body-shop pattern.
+        """
+        name = str(company_name).lower()
+
+        generic_keywords = [
+            "consulting",
+            "solutions",
+            "systems",
+            "technologies",
+            "staffing",
+            "recruiting",
+            "talent",
+            "services",
+            "global",
+        ]
+
+        legal_suffixes = ["llc", "inc", "corp", "ltd", "limited", "incorporated"]
+
+        has_generic_keyword = any(keyword in name for keyword in generic_keywords)
+        if not has_generic_keyword:
+            return False
+
+        domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+        company_size = self._get_nested_value(job_data, "company_info.size_employees")
+        glassdoor = self._get_nested_value(job_data, "company_info.glassdoor_rating")
+
+        has_legal_suffix = any(suffix in name for suffix in legal_suffixes)
+        generic_count = sum(1 for keyword in generic_keywords if keyword in name)
+
+        # If no legal suffix and only one generic keyword, allow trigger only when small and domain mismatch.
+        if not has_legal_suffix and generic_count < 2:
+            if domain_matches is False and isinstance(company_size, (int, float)) and company_size < 100:
+                return True
+            return False
+
+        if domain_matches is True and isinstance(company_size, (int, float)) and company_size >= 500:
+            return False
+
+        if (
+            domain_matches is True
+            and isinstance(company_size, (int, float))
+            and company_size >= 100
+            and isinstance(glassdoor, (int, float))
+            and glassdoor >= 3.5
+        ):
+            return False
+
+        if domain_matches is False:
+            return True
+
+        if isinstance(company_size, (int, float)) and company_size < 50:
+            return True
+
+        words = name.split()
+        if len(words) <= 3 and generic_count >= 2:
+            return True
+
+        return False
+
+    @staticmethod
+    def _check_missing_action_verbs(jd_text: Any) -> bool:
+        text = str(jd_text).lower()
+        action_verbs = [
+            "build",
+            "develop",
+            "create",
+            "design",
+            "implement",
+            "architect",
+            "construct",
+            "code",
+            "write",
+            "program",
+            "work",
+            "collaborate",
+            "partner",
+            "coordinate",
+            "contribute",
+            "participate",
+            "engage",
+            "join",
+            "support",
+            "lead",
+            "manage",
+            "direct",
+            "oversee",
+            "supervise",
+            "guide",
+            "mentor",
+            "coach",
+            "drive",
+            "own",
+            "improve",
+            "optimize",
+            "enhance",
+            "refine",
+            "streamline",
+            "scale",
+            "upgrade",
+            "modernize",
+            "analyze",
+            "solve",
+            "troubleshoot",
+            "debug",
+            "investigate",
+            "research",
+            "evaluate",
+            "assess",
+            "maintain",
+            "operate",
+            "monitor",
+            "ensure",
+            "deploy",
+            "run",
+            "execute",
+            "perform",
+            "communicate",
+            "document",
+            "present",
+            "report",
+            "share",
+            "explain",
+            "demonstrate",
+        ]
+        responsibility_phrases = [
+            "responsibilities",
+            "you will",
+            "you'll",
+            "your role",
+            "what you'll do",
+            "day-to-day",
+            "in this role",
+        ]
+        has_action_verbs = any(verb in text for verb in action_verbs)
+        has_responsibility_section = any(p in text for p in responsibility_phrases)
+        return not (has_action_verbs or has_responsibility_section)
+
+    @staticmethod
+    def _check_extreme_formatting(jd_text: Any) -> bool:
+        text = str(jd_text)
+        suspect = 0
+        import re
+
+        if re.search(r" {10,}", text):
+            suspect += 1
+        if re.search(r"\t{5,}", text):
+            suspect += 1
+        if re.search(r"[•●○■□▪▫]{3,}", text):
+            suspect += 1
+        if re.search(r"\n{5,}", text):
+            suspect += 1
+        if re.search(r"\t\s{6,}", text):
+            suspect += 1
+        if re.search(r"[=\\-_]{10,}", text):
+            suspect += 1
+        return suspect >= 1
+
     def _effective_weight(self, rule: Dict[str, Any], job_data: Dict[str, Any]) -> float:
         """Compute context-aware weight (e.g., soften Easy Apply when info is complete)."""
         try:
@@ -217,15 +394,20 @@ class RuleEngine:
                 return weight * 0.5
         if rule_id == "B9":
             # Salary transparency applies strongest in certain locations.
+            domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+            size_emp = self._get_nested_value(job_data, "company_info.size_employees")
+            if domain_matches is True and isinstance(size_emp, (int, float)) and size_emp >= 10000:
+                return weight * 0.5
             location = str(self._get_nested_value(job_data, "location") or "").lower()
             if any(key in location for key in ["ca", "california", "ny", "new york", "wa", "washington"]):
                 return weight
-            domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+            if domain_matches is True and isinstance(size_emp, (int, float)) and size_emp >= 1000:
+                return weight * 0.33
             if domain_matches is True:
                 return weight * 0.55
         if rule_id == "B4":
             # Reduce penalty for missing tech stack to avoid over-penalization.
-            return weight * 0.2
+            return weight * 0.33
         if rule_id == "A11":
             # If high posting frequency already captured by A3, reduce double penalty.
             recent_jobs = self._get_nested_value(job_data, "poster_info.recent_job_count_7d")
@@ -238,6 +420,9 @@ class RuleEngine:
             rating = self._get_nested_value(job_data, "company_info.glassdoor_rating")
             if rating is not None:
                 return weight * 0.67
+        if rule_id == "D1":
+            # Soften layoffs penalty slightly for tolerance alignment.
+            return weight * 0.4
         return weight
 
     def _adjust_recruiter_weights(
@@ -249,7 +434,7 @@ class RuleEngine:
         if domain_matches is True and len(recruiter_rules) >= 5:
             for r in recruiter_rules:
                 try:
-                    r["weight"] = float(r["weight"]) * 0.2
+                    r["weight"] = float(r["weight"]) * 0.1
                 except (TypeError, ValueError, KeyError):
                     continue
         return activated_rules

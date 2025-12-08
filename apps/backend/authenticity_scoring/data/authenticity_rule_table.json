@@ -89,15 +89,15 @@
     },
     {
       "id": "A7",
-      "name": "Generic consulting/solutions company name",
-      "description": "Company name uses generic consulting/systems terminology",
+      "name": "Generic body-shop company pattern",
+      "description": "Company name matches generic body-shop pattern (e.g., 'ABC Solutions LLC')",
       "signal": "negative",
       "weight": 0.12,
       "confidence": "low",
-      "pattern_type": "string_contains_any",
-      "pattern_value": ["Consulting", "Solutions", "Systems", "Technologies"],
+      "pattern_type": "body_shop_pattern_check",
+      "pattern_value": null,
       "data_source": "company_name",
-      "examples": ["ABC Consulting Solutions LLC"]
+      "examples": ["ABC Solutions LLC", "XYZ Systems Inc", "Global Technologies Corp"]
     },
     {
       "id": "A8",
@@ -389,15 +389,15 @@
     },
     {
       "id": "B18",
-      "name": "No responsibilities section",
-      "description": "Missing clear responsibilities",
+      "name": "No responsibilities or action verbs",
+      "description": "Job description contains no action verbs or responsibilities",
       "signal": "negative",
       "weight": 0.08,
       "confidence": "low",
-      "pattern_type": "regex",
-      "pattern_value": ["responsibilit"],
+      "pattern_type": "action_verb_check",
+      "pattern_value": null,
       "data_source": "jd_text",
-      "examples": ["JD with only requirements, no responsibilities"]
+      "examples": ["Generic job posting with no actual work description"]
     },
     {
       "id": "B19",
@@ -413,15 +413,15 @@
     },
     {
       "id": "B20",
-      "name": "Copy-paste formatting artifacts",
-      "description": "Has formatting artifacts from copying",
+      "name": "Extreme formatting artifacts",
+      "description": "Has extreme formatting artifacts from copying",
       "signal": "negative",
       "weight": 0.12,
       "confidence": "medium",
-      "pattern_type": "regex",
-      "pattern_value": ["\\t{2,}", "\\s{4,}", "•{2,}"],
+      "pattern_type": "extreme_formatting_check",
+      "pattern_value": null,
       "data_source": "jd_text",
-      "examples": ["Text with excessive tabs or bullet points"]
+      "examples": ["Text with extreme spacing, tabs, or formatting issues"]
     },
     {
       "id": "C1",

@@ -152,3 +152,183 @@ def test_case_insensitive_matching(rule_engine: RuleEngine) -> None:
     job["jd_text"] = "Looking for a ROCKSTAR engineer"
     ids = _activated_ids(rule_engine, job)
     assert "B7" in ids
+
+
+# ---------------------------------------------------------------------
+# B18 tests
+# ---------------------------------------------------------------------
+
+
+def test_B18_not_trigger_on_faang(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    Google is hiring a Software Engineer.
+    You'll work on building distributed systems.
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B18" not in ids
+
+
+def test_B18_not_trigger_on_you_will(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    In this role, you will design and develop features.
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B18" not in ids
+
+
+def test_B18_trigger_on_generic_jd(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    Software Engineer position.
+    Competitive salary.
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B18" in ids
+
+
+def test_B18_not_trigger_with_responsibilities(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    Responsibilities:
+    - Write code
+    - Fix bugs
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B18" not in ids
+
+
+# ---------------------------------------------------------------------
+# B20 tests
+# ---------------------------------------------------------------------
+
+
+def test_B20_normal_formatting(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    Software Engineer
+    - Python
+    - Cloud
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" not in ids
+
+
+def test_B20_extreme_spaces(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Software          Engineer"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_extreme_tabs(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Software\t\t\t\t\tEngineer"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_bullet_artifacts(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Requirements: •••Python"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_blank_lines(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "A\n\n\n\n\n\nB"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_multiple_extremes(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Software          Engineer\t\t\t\t\t"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_single_minor_issue(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Software      Engineer"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" not in ids
+
+
+# ---------------------------------------------------------------------
+# A7 (Body-shop pattern) tests
+# ---------------------------------------------------------------------
+
+
+def test_A7_triggers_on_generic_llc(rule_engine: RuleEngine) -> None:
+    """Generic name like 'ABC Solutions LLC' should trigger A7."""
+    job = base_job()
+    job["company_name"] = "ABC Solutions LLC"
+    job["company_info"]["domain_matches_name"] = False
+    job["company_info"]["size_employees"] = 30
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" in ids
+
+
+def test_A7_triggers_on_xyz_systems_inc(rule_engine: RuleEngine) -> None:
+    """Generic name like 'XYZ Systems Inc' should trigger A7."""
+    job = base_job()
+    job["company_name"] = "XYZ Systems Inc"
+    job["company_info"]["domain_matches_name"] = False
+    job["company_info"]["size_employees"] = 45
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" in ids
+
+
+def test_A7_not_trigger_on_cafe_technologies(rule_engine: RuleEngine) -> None:
+    """Legitimate company 'Café Technologies' should NOT trigger A7."""
+    job = base_job()
+    job["company_name"] = "Café Technologies"
+    job["company_info"]["domain_matches_name"] = True
+    job["company_info"]["size_employees"] = 120
+    job["company_info"]["glassdoor_rating"] = 3.8
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" not in ids, "A7 should not trigger on legitimate tech company"
+
+
+def test_A7_not_trigger_on_adobe_systems(rule_engine: RuleEngine) -> None:
+    """Large established company 'Adobe Systems' should NOT trigger A7."""
+    job = base_job()
+    job["company_name"] = "Adobe Systems"
+    job["company_info"]["domain_matches_name"] = True
+    job["company_info"]["size_employees"] = 25000
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" not in ids
+
+
+def test_A7_not_trigger_on_nvidia_technologies(rule_engine: RuleEngine) -> None:
+    """'Nvidia Technologies' should NOT trigger A7."""
+    job = base_job()
+    job["company_name"] = "Nvidia Technologies"
+    job["company_info"]["domain_matches_name"] = True
+    job["company_info"]["size_employees"] = 30000
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" not in ids
+
+
+def test_A7_triggers_on_small_generic_no_domain(rule_engine: RuleEngine) -> None:
+    """Small company with generic name and no domain match should trigger A7."""
+    job = base_job()
+    job["company_name"] = "IT Solutions"
+    job["company_info"]["domain_matches_name"] = False
+    job["company_info"]["size_employees"] = 20
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" in ids
+
+
+def test_A7_not_trigger_on_established_medium_company(rule_engine: RuleEngine) -> None:
+    """Medium company (100-499) with good rating should NOT trigger A7."""
+    job = base_job()
+    job["company_name"] = "DataTech Solutions"
+    job["company_info"]["domain_matches_name"] = True
+    job["company_info"]["size_employees"] = 250
+    job["company_info"]["glassdoor_rating"] = 4.0
+    ids = _activated_ids(rule_engine, job)
+    assert "A7" not in ids
