@@ -174,3 +174,53 @@ def test_scam_job_scores_poorly(scorer: AuthenticityScorer, sample_jobs: Dict) -
     assert result["level"] == "likely fake"
     assert len(result["red_flags"]) >= 3
 
+
+def test_faang_job_scores_high(scorer: AuthenticityScorer) -> None:
+    job = {
+        "job_id": "faang_job",
+        "jd_text": """
+        Google is hiring a Software Engineer for our Cloud Infrastructure team.
+        You'll work on building distributed systems using Go and Python.
+        """,
+        "title": "Software Engineer, Cloud Infrastructure",
+        "company_name": "Google",
+        "platform": "LinkedIn",
+        "location": "Mountain View, CA",
+        "poster_info": {
+            "name": "Sarah Chen",
+            "title": "Engineering Manager",
+            "company": "Google",
+            "location": "Mountain View, CA",
+            "account_age_months": 48,
+            "recent_job_count_7d": 1,
+        },
+        "company_info": {
+            "website_domain": "google.com",
+            "domain_matches_name": True,
+            "size_employees": 150000,
+            "glassdoor_rating": 4.4,
+            "has_layoffs_recent": False,
+        },
+        "platform_metadata": {
+            "posted_days_ago": 2,
+            "repost_count": 0,
+            "applicants_count": 85,
+            "views_count": 1200,
+            "actively_hiring_tag": True,
+            "easy_apply": False,
+        },
+        "derived_signals": {
+            "company_domain_mismatch": False,
+            "poster_no_company": False,
+            "poster_job_location_mismatch": False,
+            "company_poster_mismatch": False,
+            "no_poster_identity": False,
+        },
+    }
+    result = scorer.score_job(job)
+    assert 85 <= result["authenticity_score"] <= 95
+    assert result["level"] == "likely real"
+    activated_ids = [r["id"] for r in result["activated_rules"]]
+    assert "B18" not in activated_ids
+    assert "B20" not in activated_ids
+

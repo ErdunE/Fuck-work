@@ -152,3 +152,106 @@ def test_case_insensitive_matching(rule_engine: RuleEngine) -> None:
     job["jd_text"] = "Looking for a ROCKSTAR engineer"
     ids = _activated_ids(rule_engine, job)
     assert "B7" in ids
+
+
+# ---------------------------------------------------------------------
+# B18 tests
+# ---------------------------------------------------------------------
+
+
+def test_B18_not_trigger_on_faang(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    Google is hiring a Software Engineer.
+    You'll work on building distributed systems.
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B18" not in ids
+
+
+def test_B18_not_trigger_on_you_will(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    In this role, you will design and develop features.
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B18" not in ids
+
+
+def test_B18_trigger_on_generic_jd(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    Software Engineer position.
+    Competitive salary.
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B18" in ids
+
+
+def test_B18_not_trigger_with_responsibilities(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    Responsibilities:
+    - Write code
+    - Fix bugs
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B18" not in ids
+
+
+# ---------------------------------------------------------------------
+# B20 tests
+# ---------------------------------------------------------------------
+
+
+def test_B20_normal_formatting(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = """
+    Software Engineer
+    - Python
+    - Cloud
+    """
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" not in ids
+
+
+def test_B20_extreme_spaces(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Software          Engineer"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_extreme_tabs(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Software\t\t\t\t\tEngineer"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_bullet_artifacts(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Requirements: •••Python"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_blank_lines(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "A\n\n\n\n\n\nB"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_multiple_extremes(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Software          Engineer\t\t\t\t\t"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" in ids
+
+
+def test_B20_single_minor_issue(rule_engine: RuleEngine) -> None:
+    job = base_job()
+    job["jd_text"] = "Software      Engineer"
+    ids = _activated_ids(rule_engine, job)
+    assert "B20" not in ids

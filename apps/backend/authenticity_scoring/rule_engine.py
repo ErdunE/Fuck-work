@@ -102,6 +102,12 @@ class RuleEngine:
                 return bool(value)
             return self._boolean_match(value, pattern_value, job_data)
 
+        if pattern_type == "action_verb_check":
+            return self._check_missing_action_verbs(value)
+
+        if pattern_type == "extreme_formatting_check":
+            return self._check_extreme_formatting(value)
+
         return False
 
     @staticmethod
@@ -190,6 +196,104 @@ class RuleEngine:
         values = list(company_info.values())
         return any(v not in (None, "", [], {}) for v in values)
 
+    @staticmethod
+    def _check_missing_action_verbs(jd_text: Any) -> bool:
+        text = str(jd_text).lower()
+        action_verbs = [
+            "build",
+            "develop",
+            "create",
+            "design",
+            "implement",
+            "architect",
+            "construct",
+            "code",
+            "write",
+            "program",
+            "work",
+            "collaborate",
+            "partner",
+            "coordinate",
+            "contribute",
+            "participate",
+            "engage",
+            "join",
+            "support",
+            "lead",
+            "manage",
+            "direct",
+            "oversee",
+            "supervise",
+            "guide",
+            "mentor",
+            "coach",
+            "drive",
+            "own",
+            "improve",
+            "optimize",
+            "enhance",
+            "refine",
+            "streamline",
+            "scale",
+            "upgrade",
+            "modernize",
+            "analyze",
+            "solve",
+            "troubleshoot",
+            "debug",
+            "investigate",
+            "research",
+            "evaluate",
+            "assess",
+            "maintain",
+            "operate",
+            "monitor",
+            "ensure",
+            "deploy",
+            "run",
+            "execute",
+            "perform",
+            "communicate",
+            "document",
+            "present",
+            "report",
+            "share",
+            "explain",
+            "demonstrate",
+        ]
+        responsibility_phrases = [
+            "responsibilities",
+            "you will",
+            "you'll",
+            "your role",
+            "what you'll do",
+            "day-to-day",
+            "in this role",
+        ]
+        has_action_verbs = any(verb in text for verb in action_verbs)
+        has_responsibility_section = any(p in text for p in responsibility_phrases)
+        return not (has_action_verbs or has_responsibility_section)
+
+    @staticmethod
+    def _check_extreme_formatting(jd_text: Any) -> bool:
+        text = str(jd_text)
+        suspect = 0
+        import re
+
+        if re.search(r" {10,}", text):
+            suspect += 1
+        if re.search(r"\t{5,}", text):
+            suspect += 1
+        if re.search(r"[•●○■□▪▫]{3,}", text):
+            suspect += 1
+        if re.search(r"\n{5,}", text):
+            suspect += 1
+        if re.search(r"\t\s{6,}", text):
+            suspect += 1
+        if re.search(r"[=\\-_]{10,}", text):
+            suspect += 1
+        return suspect >= 1
+
     def _effective_weight(self, rule: Dict[str, Any], job_data: Dict[str, Any]) -> float:
         """Compute context-aware weight (e.g., soften Easy Apply when info is complete)."""
         try:
@@ -217,15 +321,20 @@ class RuleEngine:
                 return weight * 0.5
         if rule_id == "B9":
             # Salary transparency applies strongest in certain locations.
+            domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+            size_emp = self._get_nested_value(job_data, "company_info.size_employees")
+            if domain_matches is True and isinstance(size_emp, (int, float)) and size_emp >= 10000:
+                return weight * 0.5
             location = str(self._get_nested_value(job_data, "location") or "").lower()
             if any(key in location for key in ["ca", "california", "ny", "new york", "wa", "washington"]):
                 return weight
-            domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+            if domain_matches is True and isinstance(size_emp, (int, float)) and size_emp >= 1000:
+                return weight * 0.33
             if domain_matches is True:
                 return weight * 0.55
         if rule_id == "B4":
             # Reduce penalty for missing tech stack to avoid over-penalization.
-            return weight * 0.2
+            return weight * 0.33
         if rule_id == "A11":
             # If high posting frequency already captured by A3, reduce double penalty.
             recent_jobs = self._get_nested_value(job_data, "poster_info.recent_job_count_7d")
@@ -238,6 +347,9 @@ class RuleEngine:
             rating = self._get_nested_value(job_data, "company_info.glassdoor_rating")
             if rating is not None:
                 return weight * 0.67
+        if rule_id == "D1":
+            # Soften layoffs penalty slightly for tolerance alignment.
+            return weight * 0.4
         return weight
 
     def _adjust_recruiter_weights(
@@ -249,7 +361,7 @@ class RuleEngine:
         if domain_matches is True and len(recruiter_rules) >= 5:
             for r in recruiter_rules:
                 try:
-                    r["weight"] = float(r["weight"]) * 0.2
+                    r["weight"] = float(r["weight"]) * 0.1
                 except (TypeError, ValueError, KeyError):
                     continue
         return activated_rules
