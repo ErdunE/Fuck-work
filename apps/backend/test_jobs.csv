@@ -1,0 +1,1746 @@
+id,site,job_url,job_url_direct,title,company,location,date_posted,job_type,salary_source,interval,min_amount,max_amount,currency,is_remote,job_level,job_function,listing_type,emails,description,company_industry,company_url,company_logo,company_url_direct,company_addresses,company_num_employees,company_revenue,company_description,skills,experience_range,company_rating,company_reviews_count,vacancy_count,work_from_home_type
+in-bbe361c34900b86a,indeed,https://www.indeed.com/viewjob?jk=bbe361c34900b86a,https://cg.sandia.gov/psc/applicant/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_JBPST_FL&Action=U&FOCUS=Applicant&SiteId=1&JobOpeningId=696086&PostingSeq=1,"Senior/Principal R&D RFIC Design Engineer, Remote",Sandia National Laboratories,"Albuquerque, NM, US",2025-12-12,fulltime,direct_data,yearly,114000.0,227500.0,USD,True,,,,,"**About Sandia**
+----------------
+
+  
+
+
+Sandia National Laboratories is the nation’s premier science and engineering lab for national security and technology innovation, with teams of specialists focused on cutting\-edge work in a broad array of areas. Some of the main reasons we love our jobs:
+
+* Challenging work with amazing impact that contributes to security, peace, and freedom worldwide
+* Extraordinary co\-workers
+* Some of the best tools, equipment, and research facilities in the world
+* Career advancement and enrichment opportunities
+* Flexible work arrangements for many positions include 9/80 (work 80 hours every two weeks, with every other Friday off) and 4/10 (work 4 ten\-hour days each week) compressed workweeks, part\-time work, and telecommuting (a mix of onsite work and working from home)
+* Generous vacation, strong medical and other benefits, competitive 401k, learning opportunities, relocation assistance and amenities aimed at creating a solid work/life balance\*
+
+
+World\-changing technologies. Life\-changing careers. Learn more about Sandia at: http://www.sandia.gov
+
+* These benefits vary by job classification.
+
+**What Your Job Will Be Like**
+------------------------------
+
+  
+
+
+Are you looking for an opportunity to contribute to a highly motivated team focused on delivering qualified electronic components to a national security mission? The RF Microsystems department (5255\) seeks an R\&D Microwave and Sensor Engineer to design, fabricate, and test extreme environment RF components that exhibit low noise and low power consumption. Our team seeks a driven RF engineer capable of fundamental multiphysics modeling and understanding quantum phenomena. The successful candidate will also possess a working understanding of electronic die characterization, vacuum technology, electrical test equipment, solder assembly, PCB development, and fabrication.
+
+
+On any given day, you may be called on to:
+
+* Model and build custom RF circuits components such as: electromagnetic filters, transmission lines, and/or antennas using dielectrics and/or lithographically defined metals.
+* Use Multiphysics software tools to build representative electromagnetic, thermodynamic, piezoelectric, and/or ferromagnetic models
+* Characterize RF components and modules over extreme environmental stresses.
+* Team to design, prototype, analyze, and evaluate microsystems that achieve increased performances.
+* Communicate results and findings to co\-workers and customers.
+* Identify, develop, and pursue new technology opportunities in areas that support Sandia mission activities.
+* Contribute to several areas ranging from fundamental semiconductor devices, through circuit and components, and up to sub\-system architecture.
+
+
+The selected applicant can be a remote worker located in any U.S. State or District of Columbia. Regular or periodic travel to your assigned work location may be required.
+
+  
+
+**Salary Range**
+----------------
+
+  
+
+
+$114,000 \- $227,500
+
+* Salary range is estimated, and actual salary will be determined after consideration of the selected candidate's experience and qualifications, and application of any approved geographic salary differential.
+
+
+**Qualifications We Require**
+-----------------------------
+
+
+
+* Bachelor's degree in a relevant discipline and five (5\) years of directly relevant experience, or an equivalent combination of directly relevant education and engineering or scientific experience that demonstrates the knowledge, skills, and ability to perform independent research and development.
+* Ability to obtain and maintain a DOE Q\-level security clearance.
+
+
+**Qualifications We Desire**
+----------------------------
+
+  
+
+
+The ideal R\&D Microwave and Sensor Engineering candidate for Sandia National Laboratories will in addition possess the following:
+
+* Graduate degree in Electrical Engineering or a highly related field where an independent research project was a graduation requirement (e.g., independent project, thesis, or dissertation).
+* Laboratory skills and knowledge of RF and digital test equipment.
+* Knowledge of RF, Digital Communications, Electronic Warfare, and Cyber Security systems and principles.
+* Ability to work successfully in a dynamic, interdisciplinary, teaming environment.
+
+
+Also, for this posting we are seeking individuals with the following experience:
+
+* Experience with nano\- or micro\-scale, piezoelectric, ferroelectric, and/or semiconductor device technologies
+* Experience in radio frequency design including electromagnet modeling and analysis, frequency analysis, noise analysis, power matching analysis, radiation hardening by design and/or link budget analysis
+* Interest in enabling next\-generation advances in quantum information, ultra\-low\-power RF microsystems, electromagnetic interference mitigation, and high\-speed heterogeneous integration.
+* Understanding of electronic die characterization, working knowledge of solder assembly, PCB development and fabrication.
+* Adaptability and flexibility to address rapidly advancing technologies and evolving customer needs
+* Proficiency with software for data analysis and instrument control in C\#, LabVIEW, MATLAB, or Python
+* Familiarity with microscale packaging and integration techniques as well as approaches for microsystem rapid prototyping and integration
+* Experience with/in: Analog and RF modeling using commercially available simulation tools in semiconductor, electromagnetic, and/or optical Integrated circuit design using Cadence, Mentor Graphics, Synopsis, ADS, HFSS, EMX
+* Design and characterization of analog, high\-speed digital, RF, or microwave devices or circuits
+* Microelectronics realization including requirements definition, device behavior, circuit design, mask layout, fabrication, testing, and documentation
+* Laboratory test and measurement of analog and RF components using tools such as high\-speed oscilloscopes, network analyzers, parameter analyzers, and probe stations
+* Strong oral, written, and technical writing skills to provide sponsors and vendors convincing evidence of quality designs.
+* Active DOD TS or DOE Q security clearance with SCI
+
+
+**About Our Team**
+------------------
+
+  
+
+
+The Advanced RF ICs and Microsystems department performs research, design, modeling, characterization, and qualification of RF microelectronics. We have a focus on efficient, high performance RF component design, electromagnetic modeling, as well as novel wireless sensor development. We have capabilities for developing between prototypes to fully qualified hardware. We provide unique solutions to our customers in nuclear weapons, DoD, non\-proliferation agencies, and subsystem departments (SAR, surety, \& ISR). Our research interests include advanced RF sensors, low power communication devices, quantum computing electromagnetics, advanced radar component design, and next generation resonators for clocks unique to national security applications. Join this team to make a difference for our nation and work toward your individual goals.
+
+
+**Posting Duration**
+--------------------
+
+  
+
+
+This posting will be open for application submissions for a minimum of seven (7\) calendar days, including the ‘posting date’. Sandia reserves the right to extend the posting date at any time.
+
+
+**Security Clearance**
+----------------------
+
+  
+
+
+Sandia is required by DOE to conduct a pre\-employment drug test and background review that includes checks of personal references, credit, law enforcement records, and employment/education verifications. Applicants for employment need to be able to obtain and maintain a DOE Q\-level security clearance, which requires U.S. citizenship. If you hold more than one citizenship (i.e., of the U.S. and another country), your ability to obtain a security clearance may be impacted.
+
+
+Applicants offered employment with Sandia are subject to a federal background investigation to meet the requirements for access to classified information or matter if the duties of the position require a DOE security clearance. Substance abuse or illegal drug use, falsification of information, criminal activity, serious misconduct or other indicators of untrustworthiness can cause a clearance to be denied or terminated by DOE, resulting in the inability to perform the duties assigned and subsequent termination of employment.
+
+
+**EEO**
+-------
+
+  
+
+
+All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, or veteran status and any other protected class under state or federal law.
+
+
+**NNSA Requirements for MedPEDs**
+---------------------------------
+
+  
+
+
+If you have a Medical Portable Electronic Device (MedPED), such as a pacemaker, defibrillator, drug\-releasing pump, hearing aids, or diagnostic equipment and other equipment for measuring, monitoring, and recording body functions such as heartbeat and brain waves, if employed by Sandia National Laboratories you may be required to comply with NNSA security requirements for MedPEDs.
+
+
+If you have a MedPED and you are selected for an on\-site interview at Sandia National Laboratories, there may be additional steps necessary to ensure compliance with NNSA security requirements prior to the interview date.",,https://www.indeed.com/cmp/Sandia-National-Laboratories,,http://www.sandia.gov,"Albuquerque, NM","10,000+",$1B to $5B (USD),Sandia National Laboratories is the nation’s premier science and engineering lab for national security and technology innovation. World-changing technologies. Life-changing careers.,,,,,,
+in-bbf9679264ae52a9,indeed,https://www.indeed.com/viewjob?jk=bbf9679264ae52a9,https://cg.sandia.gov/psc/applicant/EMPLOYEE/HRMS/c/HRS_HRAM_FL.HRS_CG_SEARCH_FL.GBL?Page=HRS_APP_JBPST_FL&Action=U&FOCUS=Applicant&SiteId=1&JobOpeningId=696085&PostingSeq=1,"R&D RFIC Design Engineer, Hybrid",Sandia National Laboratories,"Albuquerque, NM, US",2025-12-12,fulltime,direct_data,yearly,99400.0,193600.0,USD,False,,,,,"**About Sandia**
+----------------
+
+  
+
+
+Sandia National Laboratories is the nation’s premier science and engineering lab for national security and technology innovation, with teams of specialists focused on cutting\-edge work in a broad array of areas. Some of the main reasons we love our jobs:
+
+* Challenging work with amazing impact that contributes to security, peace, and freedom worldwide
+* Extraordinary co\-workers
+* Some of the best tools, equipment, and research facilities in the world
+* Career advancement and enrichment opportunities
+* Flexible work arrangements for many positions include 9/80 (work 80 hours every two weeks, with every other Friday off) and 4/10 (work 4 ten\-hour days each week) compressed workweeks, part\-time work, and telecommuting (a mix of onsite work and working from home)
+* Generous vacation, strong medical and other benefits, competitive 401k, learning opportunities, relocation assistance and amenities aimed at creating a solid work/life balance\*
+
+
+World\-changing technologies. Life\-changing careers. Learn more about Sandia at: http://www.sandia.gov
+
+* These benefits vary by job classification.
+
+**What Your Job Will Be Like**
+------------------------------
+
+  
+
+
+Are you looking for an opportunity to contribute to a highly motivated team focused on delivering qualified electronic components to a national security mission? The Advanced RF ICs and Microsystems department (5255\) seeks an R\&D Microwave and Sensor Engineer to design, fabricate, test, qualify, and deliver custom\-designed microwave components. These components enable military communication systems, SAR imaging, doppler radar, and tagging, tracking, and locating hardware. Our team seeks a driven RF engineer capable of fundamental electromagnetic modeling, transistor\-level circuit simulation, and distributed element microwave PCB design. It is also important for the candidate to understand electronic die characterization, RF test equipment, solder assembly, PCB development, and fabrication.
+
+
+On any given day, you may be called on to:
+
+* Use circuit modeling tools to design analog or RF integrated circuit components for transceivers.
+* Use circuit and electromagnetic modeling tools to design high sensitivity radio frequency components.
+* Run Monte Carlo simulations over voltage, temperature, and process corners
+* Model active circuit components: AC, Transient, Harmonic Balance, EM
+* Characterize RF components and modules over extreme environmental stresses.
+* Troubleshoot analog or RF circuits in a modern, well\-equipped electronics lab
+* Use of electronic equipment to measure slew rate, gain, stability, phase noise, jitter, s\-parameters, power output, P1dB, PSat, noise figure, modulation quality (EVM), or sensitivity.
+* Ability to effectively collaborate with technologists and engineers to test and characterize new devices in a variety of technology nodes/processes.
+* Team to design, prototype, analyze, and evaluate microsystems that achieve increased performances.
+* Communicate results and findings to co\-workers and potential customers.
+* Identify, develop, and pursue new technology opportunities in areas that support Sandia mission activities.
+* Contribute to several areas ranging from fundamental semiconductor devices, through circuit and components, and up to sub\-system architecture.
+
+
+The selected applicant can work a combination of onsite and offsite work. The selected applicant must live within a reasonable distance for commuting to the assigned work location when necessary.
+
+  
+
+**Salary Range**
+----------------
+
+  
+
+
+$99,400 \- $193,600
+
+* Salary range is estimated, and actual salary will be determined after consideration of the selected candidate's experience and qualifications, and application of any approved geographic salary differential.
+
+
+**Qualifications We Require**
+-----------------------------
+
+
+
+* Bachelor's degree in a relevant discipline, or an equivalent combination of directly relevant education and engineering or scientific experience that demonstrates the knowledge, skills, and ability to perform independent research and development.
+* Ability to obtain and maintain a DOE Q\-level security clearance.
+
+
+**Qualifications We Desire**
+----------------------------
+
+  
+
+
+The ideal R\&D Microwave \& Sensor Engineer candidate for Sandia National Laboratories will in addition possess the following:
+
+* Graduate degree in Electrical Engineering or a highly related field where an independent research project was a graduation requirement (e.g., independent project, thesis, or dissertation).
+* Laboratory skills and knowledge of RF and digital test equipment.
+* Knowledge of RF, Digital Communications, Electronic Warfare, and Cyber Security systems and principles.
+* Ability to work successfully in a dynamic, interdisciplinary, teaming environment.
+
+
+Also, for this posting we are seeking individuals with the following experience:
+
+* Experience with nano\- or micro\-scale, semiconductor device technologies.
+* RF or high\-speed integrated circuit design using Cadence Virtuoso, Synopsis, or Siemens products.
+* Use of RF test equipment such as spectrum analyzers, vector network analyzers, pulsed signal generators, oscilloscopes, and precision power supplies.
+* Electrical test and measure practices to protect sensitive devices and equipment to troubleshooting high frequency circuitry .
+* Understanding of electronic die characterization, RF test equipment, working knowledge of solder assembly, PCB development and fabrication.
+* Adaptability and flexibility to address rapidly advancing technologies and evolving customer needs.
+* Proficiency with software for data analysis and instrument control in C\#, LabVIEW, MATLAB, or Python.
+* Familiarity with microscale packaging and integration techniques as well as approaches for microsystem rapid prototyping and integration.
+* Design and characterization of analog, high\-speed digital, RF, or microwave devices or circuits.
+* Microelectronics realization including requirements definition, device behavior, circuit design, mask layout, fabrication, testing, and documentation.
+* Recent Laboratory test and measurement of analog and RF components using tools such as high\-speed oscilloscopes, network analyzers, parameter analyzers, and probe stations.
+* Experience with/in: Analog and RF modeling using commercially available simulation tools in semiconductor, electromagnetic, and/or circuit design using Cadence, Mentor Graphics, EMX.
+* Strong oral, written, and technical writing skills to provide sponsors and vendors convincing evidence of quality designs.
+* LabVIEW, MATLAB, and C\+\+ programming experience.
+* Active DOD TS or DOE Q level clearance.
+
+
+**About Our Team**
+------------------
+
+  
+
+
+The Advance RF ICs and Microsystems department performs research, design, modeling, characterization, and qualification of RF microelectronics. We have a focus on efficient, high performance RF component design, electromagnetic modeling, as well as novel wireless sensor development. We have capabilities for developing between prototypes to fully qualified hardware. We provide unique solutions to our customers in nuclear weapons, DoD, non\-proliferation agencies, and subsystem departments (SAR, surety, \& ISR). Our research interests include advanced RF sensors, low power communication devices, quantum computing electromagnetics, advanced radar component design, and next generation resonators for clocks unique to national security applications. Join this team to make a difference for our nation and work toward your individual goals.
+
+
+**Posting Duration**
+--------------------
+
+  
+
+
+This posting will be open for application submissions for a minimum of seven (7\) calendar days, including the ‘posting date’. Sandia reserves the right to extend the posting date at any time.
+
+
+**Security Clearance**
+----------------------
+
+  
+
+
+Sandia is required by DOE to conduct a pre\-employment drug test and background review that includes checks of personal references, credit, law enforcement records, and employment/education verifications. Applicants for employment need to be able to obtain and maintain a DOE Q\-level security clearance, which requires U.S. citizenship. If you hold more than one citizenship (i.e., of the U.S. and another country), your ability to obtain a security clearance may be impacted.
+
+
+Applicants offered employment with Sandia are subject to a federal background investigation to meet the requirements for access to classified information or matter if the duties of the position require a DOE security clearance. Substance abuse or illegal drug use, falsification of information, criminal activity, serious misconduct or other indicators of untrustworthiness can cause a clearance to be denied or terminated by DOE, resulting in the inability to perform the duties assigned and subsequent termination of employment.
+
+
+**EEO**
+-------
+
+  
+
+
+All qualified applicants will receive consideration for employment without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, or veteran status and any other protected class under state or federal law.
+
+
+**NNSA Requirements for MedPEDs**
+---------------------------------
+
+  
+
+
+If you have a Medical Portable Electronic Device (MedPED), such as a pacemaker, defibrillator, drug\-releasing pump, hearing aids, or diagnostic equipment and other equipment for measuring, monitoring, and recording body functions such as heartbeat and brain waves, if employed by Sandia National Laboratories you may be required to comply with NNSA security requirements for MedPEDs.
+
+
+If you have a MedPED and you are selected for an on\-site interview at Sandia National Laboratories, there may be additional steps necessary to ensure compliance with NNSA security requirements prior to the interview date.",,https://www.indeed.com/cmp/Sandia-National-Laboratories,,http://www.sandia.gov,"Albuquerque, NM","10,000+",$1B to $5B (USD),Sandia National Laboratories is the nation’s premier science and engineering lab for national security and technology innovation. World-changing technologies. Life-changing careers.,,,,,,
+in-9608ed80d736e089,indeed,https://www.indeed.com/viewjob?jk=9608ed80d736e089,https://jobs.commscope.com/job/Virtual-Manager%2C-Systems-Engineering-Othe/1317213700/?feedId=221800&utm_source=Indeed&utm_campaign=Commscope_Indeed,"Manager, Systems Engineering",CommScope,"Remote, US",2025-12-12,,direct_data,yearly,176600.0,265000.0,USD,True,,,,talentacquisition@commscope.com,"In our ‘always on’ world, we believe it’s essential to have a genuine connection with the work you do.
+
+
+Our RUCKUS One Cloud and Edge services, AI/ML solutions, Wi\-Fi 7 access points, ICX multigigabit switching, IoT Suite, secure policy user/device onboarding software, and broader portfolio of network management and control all redefine what’s possible in wireless connectivity and network performance with flexibility, reliability, and affordability. RUCKUS has an unbeaten track record of “it just works,” compared to alternative solutions, in the verticals and market segments we serve. Don’t just take our word for it. We can prove it!  
+
+This leadership position is remote, requires roughly 50% or more travel and located in the Western states of WA, AZ, CO, NV, UT or CA. **Job Description: “How You'll help us to connect the world:”**
+The Manager, Systems Engineering, West will lead a team of territory focused Systems Engineers (SE) and provide customer and partner technical sales leadership support. These items include mentorship, technical sales strategies, sales and technical enablement guidance, influencing end customers, process improvement and efficiencies, technical management, and case escalations. This role will interface with cross\-functional group resources and leadership to define strategies and execute them along with your team.  
+
+The West SE team will perform consultative solutions\-based discussions to all levels of decision makers and targets the customer and partner business initiatives. System Engineers are trusted advisors responsible for pre\-sales, customer technical engagements, network architecture evolution planning, solution standardization, providing knowledge transfer of best practices deployment and operation, presenting and thought leadership, and demonstrating our solutions. You will attract, recruit, and develop talented SEs and support the team’s efforts to successfully position, influence and grow the RUCKUS product portfolio to net new and existing installed base customers and channel partners. **Responsibilities:*** Support the West region sales leader, sales teams, and systems engineers in the achievement of revenue goals, customer growth and business planning, product portfolio expansion and new customer acquisition
+* Develop leadership level relationships with responsibilities for customers, partners, vendors, and internal service organizations to manage successful network implementations that allow customers a competitive advantage with RUCKUS solutions
+* Deliver technical presentations and lead discussions as a regional/group leader
+* Review formal technical account plans, RFx proposals, and sales strategies of your team
+* Recruit, hire, and retain top talent for permanent assignments
+* Coach and develop staff. Provide performance management, development planning, salary planning, technical training, reward and recognition, and team building
+* Plan, organize and direct the activities of a variety of cross functional teams and non\-sales support groups to ensure highest customer satisfaction
+* Collect customer feedback from the SE team and collaborate with Product Line Management to influence products and services roadmaps
+* Leverage industry knowledge, technology and vertical trends, and awareness of the business economics to aid systems engineers to grow and build their account plans
+* Preferred working knowledge of RUCKUS Networks management, wireless, wired and software solutions
+
+ **Qualifications: “Required qualifications for consideration:”*** + - Undergraduate or graduate degree (BS/BA minimum) in Electrical engineering; Networking Engineering; Information Technology; Management Information Systems; Computer Science; OR equivalent proven work\-related experience
+		- Minimum 10 years pre\-sales or equivalent experience working with route, switch, and Wi\-Fi technologies
+		- 5\+ years management experience of demonstrated leadership of technical teams
+		- 5\+ years demonstratable hands\-on experience supporting channel partners and customers including selling of Wi\-Fi, switching, Analytics, SaaS, other network solutions, deployments, managed services, etc.
+		- A professional or associate level project/program management certification OR equivalent experience is preferred
+		- Strong leadership qualities through inspiration, positive reinforcement and recognition, personnel growth, support and manage complex situations, relationships, behaviors and remove roadblock items for your SE team
+		- Highly effective technical, business and industry related presentation skills
+		- Strong verbal and written communications skills
+
+ **Requirements: “You will excite us if you have:”*** + - A proficient understanding of pre\-sales engineering including new customer acquisition strategies, technical influencing, objecting handling, how to develop technical and business skillsets of your team, program and case management, hardware and software networking solutions in IT infrastructures, channel partner engagements for growth, and critical account management
+		- Strong understanding and experience with mid to large enterprise business models and technical requirements for verticals that include MDU, K\-12, SLED, higher education, hospitality, manufacturing, warehouse, logistics, large public venues and others
+		- Advanced understanding of customer business drivers and how to map these to customer requirements and network environments, migrations, and network refresh decision making strategies including identification of improvement areas in network design
+		- Multi\-tasker with strong ability to manage under pressure to address deadlines, program manage development of deliverables, and logistical champion when supporting multiple projects and events
+		- Working knowledge or understanding of networking technical skills; specifically, 802\.11 Wi\-Fi technology evolution releases (Wi\-Fi 5, 6, 7\), best practices design and assessment, wireless troubleshooting, RF tools used for pre and post site surveys, wireless network optimization, IP routing and switching WAN/LAN design, setup and configuration, Layer 4\-7 application services, security authentication methods and products, SASE, SD\-WAN, RADIUS, AD, Virtualization environments/deployments, VM installations, (any of VM Ware, KVM, Hyper\-V, GCE, Azure, AWS), secure device/user onboarding solutions, etc.
+		- General knowledge of the following areas of specialization: Cloud services (SaaS); VLAN; network segmentation, personal identity networking, security (SASE); SD\-WAN; wireless controller architectures; indoor and outdoor wireless deployments; general routing and switching
+		- Strong program management experience, technical relationship building, verbal and written communications skills, presenting and thought leadership, and commanding a room of executive level decision makers
+
+**Perks \& Benefits**
+
+
+Our salary ranges consider a wide variety of factors, including but not limited to benchmarking by independent third\-party consultants, skill sets, years of experience, training, education, geography, and other business needs. Depending on experience, the range can be higher for candidates with exceptional experience and a demonstrated history of successful performance. This position's expected total compensation (base salary and commission range) is $176,600\.00\-$265,000\.00
+
+  
+
+The candidate will be rewarded with a comprehensive benefits package, including medical, dental, and vision plans, life and accidental death insurance, a 401(k) plan, and participation in the Company’s Incentive Plan. Candidates starting with the Company will be eligible for eleven paid holidays in a full calendar year, two weeks of paid vacation (prorated based on start date), as well as other leave options.
+
+  
+
+Why CommScope:
+
+
+CommScope is on a quest to deliver connectivity that empowers how we live, work, and learn. Our employees push the boundaries of communications technology that enables game\-changing discoveries like 5G, the Internet of Things, and gigabit speeds for everyone, everywhere. With our unmatched expertise in copper, fiber, and wireless infrastructure, our global clients rely on us to outperform today and be ready for the needs of tomorrow.  
+
+  
+
+If you want to grow your career alongside bright, passionate, and caring people who strive to create what's next…..come connect to your future at CommScope.  
+
+  
+
+CommScope is an Equal Opportunity Employer (EEO), including people with disabilities and veterans. If you are seeking an accommodation for the application or interview process, please contact us to submit your request at talentacquisition@commscope.com. You can also learn more about CommScope’s accommodation process and EEO policy at https://jobs.commscope.com/eeo  
+
+**\#LI\-REMOTE**  
+
+**\#LI\-CB1**",Telecommunications,https://www.indeed.com/cmp/Commscope,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/e36a51fed07ccc68003f91bb5c3c2175,https://careers.commscope.com/,"Hickory, NC","10,000+",$1B to $5B (USD),"We are pushing the boundaries of communications technology. We are leaders in innovating 5G, private networks & Gigabit speeds everywhere – we're always anticipating what’s next. Join us!",,,,,,
+in-a79a1dc7888d4412,indeed,https://www.indeed.com/viewjob?jk=a79a1dc7888d4412,https://hdjq.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1/requisitions/preview/25030049,Major Account Manager,Emerson,"Cedar Rapids, IA, US",2025-12-12,fulltime,direct_data,yearly,190000.0,210000.0,USD,True,,,,idisability.administrator@emerson.com,"**Strategic Account Manager – Cedar Rapids, Iowa**
+
+IA, United States (Remote)
+
+
+**Job Description**
+
+**Job Description:**
+
+We are seeking an experienced and dynamic Strategic Account Manager specializing in Aerospace and Defense to join our team. As a key member of our sales organization, you will be responsible for leading and growing relationships with our premier customers in the ADG sector. The ideal candidate will possess a deep understanding of the industry, a strong technical background, a consistent track record of successful account management, and the ability to drive business growth through strategic partnerships.
+
+
+The role is a high\-impact opportunity to further develop our premier strategic enterprise accounts within our ADG sector and enable continued success and growth in NI’s overall Aerospace/Defense/Government Strategy.
+
+
+The successful candidate will have responsibility for developing and driving an Account Growth Plan in partnership with key partners and leads a cross functional team to establish NI as a trusted advisor and partner to our customers success.  
+
+
+
+**Responsibilities:**
+
+**Customer Relationship Management:**
+
+* Cultivate and maintain positive relationships with key decision\-makers and customers within assigned aerospace and defense accounts at both the engineering and leadership levels.
+* Understand customer’s needs, challenges, and goals to provide tailored solutions and ensure customer success.
+
+**Account Growth and Retention:**
+
+* Develop and implement account plans to achieve and exceed revenue targets.
+* Proactively address any issues or concerns to ensure customer retention and dedication.
+* Collaborate with internal teams, including sales, marketing, and product development, to develop and implement strategic account plans.
+* Stay informed about industry trends, competitive landscape, and customer needs to identify new business opportunities.
+
+**Forecasting and Reporting:**
+
+* Provide accurate and timely sales forecasts, reports, and updates to senior management.
+* Use CRM systems to maintain detailed account records and supervise sales activities.
+
+**Requirements:**
+
+* Bachelor’s degree or equivalent experience in Engineering, Business, Sales, Marketing, or a related field.
+* **US Citizenship**
+* Proven experience in senior\-level account management within the aerospace and defense industry or experience as a design or test engineer using NI products.
+* Have, or be willing to take, residence near assigned accounts.
+
+**Preferred Qualifications:**
+
+* Strong understanding of aerospace and defense technologies, products, and market dynamics.
+* Experience selling to engineering leadership, including directors and VPs.
+* Excellent communication, negotiation, and social skills.
+* Strategic problem solver with the ability to develop and implement effective account plans.
+* Results\-oriented with a track record of achieving and exceeding sales targets.
+Prior hands\-on experience with NI Software and Hardware products  
+* 
+
+**Our Culture \& Commitment to You**At Emerson, we prioritize a workplace where every employee is valued, respected, and empowered to grow. We foster an environment that encourages innovation, collaboration, and diverse perspectives—because we know that great ideas come from great teams. Our commitment to ongoing career development and growing an inclusive culture ensures you have the support to thrive. Whether through mentorship, training, or leadership opportunities, we invest in your success so you can make a lasting impact. We believe diverse teams, working together are key to driving growth and delivering business results.  
+
+We recognize the importance of employee wellbeing. We prioritize providing flexible, competitive benefits plans to meet you and your family’s physical, mental, financial, and social needs. We provide a variety of medical insurance plans, with dental and vision coverage, Employee Assistance Program, 401(k), tuition reimbursement, employee resource groups, recognition, and much more. Our culture offers flexible time off plans, including paid parental leave (maternal and paternal), vacation and holiday leave.  
+
+Optional Compensation Statement (take out if not required): Our compensation philosophy is simple: we pay a competitive base salary, within the local market in which we operate, and reward performance during our annual merit review process. The salary range for this role is $190,000 \- $210,000 annually, commensurate with the skills, talent, capabilities, and experience each candidate brings to a role.
+  
+**WHY EMERSON**
+
+**Our Commitment to Our People**
+
+At Emerson, we are motivated by a spirit of collaboration that helps our diverse, multicultural teams across the world drive innovation that makes the world healthier, safer, smarter, and more sustainable. And we want you to join us in our bold aspiration.
+
+
+We have built an engaged community of inquisitive, dedicated people who thrive knowing they are welcomed, trusted, celebrated, and empowered to solve the world’s most complex problems — for our customers, our communities, and the planet. You’ll contribute to this vital work while further developing your skills through our award\-winning employee development programs. We are a proud corporate citizen in every city where we operate and are committed to our people, our communities, and the world at large. We take this responsibility seriously and strive to make a positive impact through every endeavor.
+
+
+At Emerson, you’ll see firsthand that our people are at the center of everything we do. So, let’s go. Let’s think differently. Learn, collaborate, and grow. Seek opportunity. Push boundaries. Be empowered to make things better. Speed up to break through. Let’s go, together.
+
+
+**Work Authorization**
+
+Emerson will only employ those who are legally authorized to work in the United States. This is not a position for which sponsorship will be provided. Individuals with temporary visas such as E, F\-1(including those with OPT or CPT) , H\-1, H\-2, L\-1, B, J or TN, or who need sponsorship for work authorization now or in the future, are not eligible for hire.
+
+
+**Equal Opportunity Employer**
+
+Emerson is an Equal Opportunity/Affirmative Action employer. All qualified applicants will receive consideration for employment without regard to sex, race, color, religion, national origin, age, marital status, political affiliation, sexual orientation, gender identity, genetic information, disability or protected veteran status. We are committed to providing a workplace free of any discrimination or harassment.
+
+
+**Accessibility Assistance or Accommodation**
+
+If you have a disability and are having difficulty accessing or using this website to apply for a position, please contact: idisability.administrator@emerson.com .  
+
+
+
+  
+
+**ABOUT EMERSON**
+
+Emerson is a global leader in automation technology and software. Through our deep domain expertise and legacy of flawless execution, Emerson helps customers in critical industries like life sciences, energy, power and renewables, chemical and advanced factory automation operate more sustainably while improving productivity, energy security and reliability.
+
+
+With global operations and a comprehensive portfolio of software and technology, we are helping companies implement digital transformation to measurably improve their operations, conserve valuable resources and enhance their safety.
+
+
+We offer equitable opportunities, celebrate diversity, and embrace challenges with confidence that, together, we can make an impact across a broad spectrum of countries and industries. Whether you’re an established professional looking for a career change, an undergraduate student exploring possibilities, or a recent graduate with an advanced degree, you’ll find your chance to make a difference with Emerson. Join our team – let’s go!
+
+
+**No calls or agencies please.**",,https://www.indeed.com/cmp/Emerson,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/f6239ae51e3eb8b432eb5ee446c9b9ea,https://www.emerson.com/en-us/global,"Saint Louis, MO","10,000+",more than $10B (USD),"Emerson combines industry knowledge, manufacturing expertise, and technological innovation to offer a broad range of products and services.",,,,,,
+in-5580ea2363008c87,indeed,https://www.indeed.com/viewjob?jk=5580ea2363008c87,https://wd1.myworkdaysite.com/en-US/recruiting/snapchat/snap/job/Los-Angeles-California/Software-Engineer-C----3D-Graphics--Level-4_R0043620-1,"Software Engineer C++, 3D Graphics, Level 4",Snap Inc.,"Los Angeles, CA, US",2025-12-12,fulltime,direct_data,yearly,133000.0,235000.0,USD,False,,,,,"Snap Inc is a technology company. We believe the camera presents the greatest opportunity to improve the way people live and communicate. Snap contributes to human progress by empowering people to express themselves, live in the moment, learn about the world, and have fun together. The Company’s three core products are Snapchat, a visual messaging app that enhances your relationships with friends, family, and the world; Lens Studio, an augmented reality platform that powers AR across Snapchat and other services; and its AR glasses, Spectacles.
+Snap’s Augmented Reality team invents the immersive (and fun!) camera experiences that are at the core of our products. From developing creative new Lens features for Snapchat, to supporting the continuous growth and evolution of Lens Studio (our platform for an ever\-increasing community of AR creators), to designing the cutting\-edge computer vision and machine learning technology that makes face transformation Lenses possible — our Augmented Reality team is working hard on their mission to bring AR to more people, places, and moments, every day.
+We’re looking for a 3D Rendering Engineer to join our Augmented Reality team in Santa Monica!
+What you’ll do:* Implement the engine and rendering features used across Lenses, Games, Spectacles, Jumbotrons, Bitmoji, and many other surfaces
+* Collaborate with rendering and core engineers to incorporate new algorithms into the Lens engine
+* Work on the 3D engine and advanced algorithms utilizing the cutting edge capabilities of modern mobile GPUs
+* Research advanced rendering effects to adopt for mobile GPUs and perform as efficiently as possible
+* Develop new rendering materials and techniques for the 3D artist team to achieve the highest quality visuals on the mobile market
+* Optimize the renderer for maximum performance by leveraging your deep knowledge of rendering techniques, GPU hardware and profilers
+* Make an impact on the future of AR rendering technology \- the sky’s the limit
+
+
+Knowledge, Skills \& Abilities:* Strong 3D math and trigonometry skills
+* Strong computer science fundamentals and C\+\+ coding skills
+* Proven knowledge of software and hardware rendering pipeline (Mobile, Console or PC)
+* Excellent verbal and written communication skills, with high attention to detail
+* Ability to prioritize tasks and work independently
+
+
+Minimum Qualifications:* BS in a technical field such as computer science or equivalent years of experience
+* 2\+ years of post\-Bachelor’s software development experience; or Master’s degree in a technical field \+ 1\+ year of post\-grad software development experience; or PhD in a relevant technical field
+* Industry C\+\+ development experience
+
+
+Preferred Qualifications:* Experience with OpenGL, Metal, Vulkan, or DirectX APIs
+* Experience with GLSL, MSL, HLSL, Compute shaders
+* Experience in optimization for mobile/console GPUs
+* Experience in creating rendering engines
+* Experience in creating unique/custom graphics algorithms and techniques
+* Experience with PBR
+* Personal 3D rendering related projects
+
+
+If you have a disability or special need that requires accommodation, please don’t be shy and provide us some information.
+""Default Together"" Policy at Snap: At Snap Inc. we believe that being together in person helps us build our culture faster, reinforce our values, and serve our community, customers and partners better through dynamic collaboration. To reflect this, we practice a “default together” approach and expect our team members to work in an office 4\+ days per week.
+At Snap, we believe that having a team of diverse backgrounds and voices working together will enable us to create innovative products that improve the way people live and communicate. Snap is proud to be an equal opportunity employer, and committed to providing employment opportunities regardless of race, religious creed, color, national origin, ancestry, physical disability, mental disability, medical condition, genetic information, marital status, sex, gender, gender identity, gender expression, pregnancy, childbirth and breastfeeding, age, sexual orientation, military or veteran status, or any other protected classification, in accordance with applicable federal, state, and local laws. EOE, including disability/vets.
+We are an Equal Opportunity Employer and will consider qualified applicants with criminal histories in a manner consistent with applicable law (by example, the requirements of the San Francisco Fair Chance Ordinance and the Los Angeles Fair Chance Initiative for Hiring, where applicable).
+Our Benefits: Snap Inc. is its own community, so we’ve got your back! We do our best to make sure you and your loved ones have everything you need to be happy and healthy, on your own terms. Our benefits are built around your needs and include paid parental leave, comprehensive medical coverage, emotional and mental health support programs, and compensation packages that let you share in Snap’s long\-term success!
+Compensation
+In the United States, work locations are assigned a pay zone which determines the salary range for the position. The successful candidate’s starting pay will be determined based on job\-related skills, experience, qualifications, work location, and market conditions. The starting pay may be negotiable within the salary range for the position. These pay zones may be modified in the future.
+Zone A (CA, WA, NYC):
+The base salary range for this position is $157,000\-$235,000 annually.  
+
+Zone B:
+The base salary range for this position is $149,000\-$223,000 annually.
+Zone C:
+The base salary range for this position is $133,000\-$200,000 annually.
+This position is eligible for equity in the form of RSUs.",,https://www.indeed.com/cmp/Snap-Inc.,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/65296e79da384e515d26dff586dd841d,https://www.snap.com,"Santa Monica, CA","5,001 to 10,000",Decline to state,We believe the camera presents the greatest opportunity to improve the way people live and communicate.,,,,,,
+in-8e88d511ee015ed7,indeed,https://www.indeed.com/viewjob?jk=8e88d511ee015ed7,https://jobs.intuit.com/job/new-york/senior-university-recruiter/27595/87369444368,Senior University Recruiter,Intuit,"New York, NY, US",2025-12-12,fulltime,direct_data,yearly,122500.0,166000.0,USD,False,,,,,"Category Human Resources
+
+
+Location New York, New York
+
+
+Job ID 16456
+
+
+  
+Company Overview
+
+
+Intuit is the global financial technology platform that powers prosperity for the people and communities we serve. With approximately 100 million customers worldwide using products such as TurboTax, Credit Karma, QuickBooks, and Mailchimp, we believe that everyone should have the opportunity to prosper. We never stop working to find new, innovative ways to make that possible.
+
+
+Job Overview
+
+
+As members of the People \& Places organization, we are stewards of Intuit's greatest strategic asset: Our People. Our mission is to drive a high performing organization in a growth oriented global company. Our vision is to inspire the world’s top talent to innovate and make a difference.
+
+
+Intuit’s Talent Delivery organization is a cutting\-edge recruiting team that provides innovative, scalable talent delivery solutions to assess and acquire the right talent globally. We're made up of the best in our industry and we thrive in a very fast paced environment with an agile team of recruiting professionals deeply focused on identifying, assessing, hiring and mobilizing talent so that Intuit wins and our employees can do the best work of their lives. If you love the end\-to\-end orchestration, consultation, and the execution it takes to deliver great talent and exceptional experiences, then come to Intuit!
+
+
+As the Senior University Recruiter for the US you'll own all parts of the university recruiting life cycle, including participating in running on\-campus and virtual events, driving a robust candidate pool, building the Intuit brand, and overseeing all candidate engagement. You will partner with all business units across the Tech ecosystem to help drive their intern, co\-op and new grad hiring goals and initiatives. You will be the face of the UR in the US and part of the larger University Recruitment Team and report to the Talent Acquisition Manager for UR. You will provide full lifecycle execution of campus recruitment activities for multiple undergraduate and/or graduate programs to effectively build a talent pipeline that meets the needs of workforce plans, managing on\-campus and final interview schedules, as well as consulting on final selection of candidates and extending offers. You will assist hiring managers throughout the employment process and provide feedback/measurement reporting to hiring managers. You should be passionate about university recruiting and have a strong ability to multi\-task all while supporting the overall university Recruitment strategy for the organization.
+
+ **Responsibilities**
+
+* Drive the end to end university recruiting lifecycle for our Tech Ecosystem across the US, partnering with both internal and external partners
+* Develop detailed recruiting plans for intern, co\-op and full time hires through clearly defined objectives, outcomes, and sourcing strategies and then execute on those plans
+* Manage the end to end recruitment cycle from sourcing, assessment and offering for our growing Summer intern program
+* Collaborate with key partners and early talent\-hiring managers to develop and drive recruiting strategies and results
+* Employ data analytics to improve processes, identify bottlenecks, measure candidate funnel and conversion rate at scale, and predict future performance
+* Leverages internet recruiting resources and internal Applicant Tracking System (ATS) to identify, recruit and network for candidates.
+* Maintains accurate and well\-ordered documentation on candidates, searches, hiring manager interactions and other recruiting activities to ensure compliance with employment practices, policies and processes.
+* Uses the full functionality of iCIMS (ATS) to manage the selection, offer, negotiation and closing involved in full lifecycle recruiting.
+* Strengthen relationships and support branding events at targeted schools, organizations, and conferences
+* Work with hiring managers, local HR staff, appropriate senior management and University Programs team to identify and prioritize staffing needs, workforce planning strategies and search assignments.
+* Up to 30% travel (peak travel period September \- November)
+* Collaborate and partner across, Professional Recruitment team, UR Non\-Tech team \& University Programs
+* Create best in class experiences that delight candidates and managers while being a multiplier for your team through sharing best practices
+
+ **Qualifications**
+
+* Experience and proven success in full cycle recruitment in the technical space (Software Engineer, AI Scientists, Data Science, CyberSecurity) with a focus on early career/university talent
+* A senior level of knowledge in full lifecycle campus recruiting components including successfully sourcing, qualifying, interviewing, networking, assessing, salary negotiation, relationship management with business partners across the Tech Ecosystem
+* Prior experience in a high\-volume setting that requires a sense of immediacy, with demonstrated ability to manage competing demands, maintain adaptability and flexibility
+* Strong organizational, time management and process management skills
+* Strong written and oral communication skills necessary to effectively work with hiring managers, applicants and candidates
+* Comfortable acting as the face of Intuit, showcasing our values and opportunities to external candidates as well as internal contacts and internal business partners
+* Demonstrated willingness to take initiative and be inspired to contribute to all aspects of the student experience
+* Experience and comfort partnering \& consulting at all levels of leadership
+* Desire and capability to work with other Talent Partners to drive recruitment solutions across a wide variety of openings
+* Possess an ability to be flexible and provide the right solution at the right time
+* Growth mindset and an ability to adapt to changing dynamics as needed
+* Success in guiding, consulting and educating hiring managers on hiring best practices
+* Prior experience with ATS systems
+* BA/BS or equivalent experience
+
+  
+
+Intuit provides a competitive compensation package with a strong pay for performance rewards approach. This position will be eligible for a cash bonus, equity rewards and benefits, in accordance with our applicable plans and programs (see more about our compensation and benefits at Intuit®: Careers \| Benefits). Pay offered is based on factors such as job\-related knowledge, skills, experience, and work location. To drive ongoing fair pay for employees, Intuit conducts regular comparisons across categories of ethnicity and gender. The expected base pay range for this position is:
+  
+
+  
+
+New York, NY: 122,500 \- 166,000",,https://www.indeed.com/cmp/Intuit,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/6c1869cd42e02618a68942718a56b46a,http://www.intuit.com/careers/glassdoor,"Mountain View, CA","10,000+",more than $10B (USD),"Intuit is the global financial technology platform that powers prosperity for the people and communities we serve with TurboTax, Credit Karma, QuickBooks, and Mailchimp.",,,,,,
+in-8afdba589e95edc0,indeed,https://www.indeed.com/viewjob?jk=8afdba589e95edc0,https://jobs.intuit.com/job/mountain-view/software-engineer-1/27595/87369448720,Software Engineer 1,Intuit,"New York, NY, US",2025-12-12,,direct_data,hourly,55.0,75.0,USD,False,,,,,"Category Software Engineering, New College Grad
+
+
+Location Mountain View, California; Atlanta, Georgia; New York, New York; San Diego, California
+
+
+Job ID 14930
+
+
+  
+Company Overview
+
+
+Intuit is the global financial technology platform that powers prosperity for the people and communities we serve. With approximately 100 million customers worldwide using products such as TurboTax, Credit Karma, QuickBooks, and Mailchimp, we believe that everyone should have the opportunity to prosper. We never stop working to find new, innovative ways to make that possible.
+
+
+Job Overview
+
+
+This role is ideal for those at the start of their professional journey, with less than two years of industry experience who are eager to learn, grow, and make an immediate impact. As this is a general posting, we’ll align you with a team based on your skills, interests, and career aspirations to set you up for success.
+
+
+We're cultivating a culture that prioritizes innovators, risk\-takers, and imaginative thinkers. You’ll help create solutions that transform how millions of consumers and small businesses manage their finances in cloud, platform, mobile, and SaaS environments. Working in a culture that embraces experimentation and rapid prototyping, you’ll collaborate closely with customers and cross\-functional teams, turning ideas into real impact while building the skills to launch a rewarding career.
+
+ **Responsibilities**
+
+
+Frontend Engineering:
+
+* Experience developing scalable, responsive, and dynamic web\-based applications
+* Familiarity with modern frontend tools and frameworks such as React, AngularJS, or Vue.js
+* Knowledge of HTML, CSS, and JavaScript standards
+* Strong ability to collaborate with designers, UX specialists, and backend engineers
+
+
+Backend Engineering:
+
+* Experience developing web applications using server\-side languages, such as Java, Python, or Node.js.
+* Familiarity with database technologies such as MySQL, PostgreSQL, or MongoDB
+* Understanding of RESTful API design principles and ability to work with API integrations
+* Experience with server frameworks such as Express, Spring MVC or Django
+
+
+Fullstack Engineering:
+
+* Familiarity with both frontend and backend development
+* Ability to work effectively with developers and designers, discussing application and API architectures
+* Understanding of Agile methodologies and ability to work with Scrum teams
+* Familiarity with tools such as Git, Jenkins, or Travis
+
+
+Mobile Engineering:
+
+* Experience developing applications for one or more platforms such as Android and iOS
+* Familiarity with mobile application development frameworks such as React Native or Flutter
+* Understanding of development tools such as XCode, Android Studio and SDK languages such as Objective\-C, Swift or Java
+* Ability to work with designers and backend engineers to integrate mobile applications with cloud\-based APIs
+
+
+Across all tech stacks:
+
+
+* Contribute to our core products and services, as well as systems that power critical engineering operations.
+* See your work launched and help solve meaningful problems for customers.
+* Learn and apply proven best practices in designing, building, and supporting software projects.
+* Receive hands\-on guidance, detailed feedback, and mentorship from experienced team members.
+* Collaborate closely with peers across disciplines and build strong, supportive working relationships.
+
+ **Qualifications**
+
+**Qualifications**
+
+* Bachelor’s or Master’s degree in Computer Science, a related technical field, or equivalent practical experience.
+* Foundational understanding of Agile development, object\-oriented design, and programming principles.
+* Coursework, internships, personal projects, or academic experience with one or more programming languages (e.g., Java, Python, JavaScript, C\+\+, etc.).
+* Basic knowledge of front\-end web technologies (e.g., HTML, CSS, JavaScript) and familiarity with frameworks or tools is a plus.
+* Strong written, verbal, and collaboration skills with the ability to work effectively in a team environment.
+* Awareness of AI concepts and a basic understanding of capabilities like Generative AI.
+* Willingness to learn and adapt to new priorities, tools, and technologies in a fast\-paced, dynamic environment.
+
+  
+
+Intuit provides a competitive compensation package with a strong pay for performance rewards approach. This position will be eligible for a cash bonus, equity rewards and benefits, in accordance with our applicable plans and programs (see more about our compensation and benefits at Intuit®: Careers \| Benefits). Pay offered is based on factors such as job\-related knowledge, skills, experience, and work location. To drive ongoing fair pay for employees, Intuit conducts regular comparisons across categories of ethnicity and gender. The expected base pay range for this position is:
+
+
+Bay Area California $55\.50 \- 75",,https://www.indeed.com/cmp/Intuit,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/6c1869cd42e02618a68942718a56b46a,http://www.intuit.com/careers/glassdoor,"Mountain View, CA","10,000+",more than $10B (USD),"Intuit is the global financial technology platform that powers prosperity for the people and communities we serve with TurboTax, Credit Karma, QuickBooks, and Mailchimp.",,,,,,
+in-89117e642fc2e7c2,indeed,https://www.indeed.com/viewjob?jk=89117e642fc2e7c2,https://statestreet.wd1.myworkdayjobs.com/en-US/Global/job/Burlington-Massachusetts/Software-Engineer-I---Web-Frameworks--Officer_R-779734-1,"Software Engineer I - Web Frameworks, Officer",State Street,"Burlington, MA, US",2025-12-12,fulltime,direct_data,yearly,70000.0,118750.0,USD,False,,,,,"Who We are:
+Charles River Development empowers investment firms worldwide with a cloud\-based platform that streamlines and automates the investment process across asset classes. As part of State Street Alpha®, we bring together data, technology, and services to help clients make confident decisions and scale with agility. Our open ecosystem and global support model enable investment professionals—from portfolio managers to private markets specialists—to navigate complexity and drive innovation. At Charles River, we thrive on collaboration, continuous improvement, and a shared commitment to shaping the future of financial technology.
+CRD / Alpha® Platform Engineering organization is innovating and transforming the platform by moving away from monolithic software to utilizing next generation cloud\-based technology that leverages Microsoft Azure, Kafka, Snowflake, etc.
+As a part of our talent growth strategy, CRD Engineering is partnering with leading universities in North America to develop new talent. We are looking to hire recent university graduates and graduating seniors majoring in Software Engineering or other technical field of study for the Full Stack, UX/UI, Quality and Performance Engineering roles. Junior engineers will receive coaching and guidance from senior engineers and leadership as they develop their skills and will become an integral part of an agile organization contributing to the development of the CRD/Alpha Platform.
+Position Summary:
+Be an integral part of an agile organization and contribute to the development of one or more CRD/Alpha Platform modules. Junior engineers will receive coaching and guidance from senior engineers and leadership as they develop their skills and contribute to the team.
+We will match candidate’s existing knowledge and career interest to the company’s priorities to help you build knowledge and practical hands\-on experience in one or several of the areas below:* Full Stack Development
+* Front\-end UI/UX development
+* DevOps
+* Database Engineering
+
+
+Responsibilities:* Under guidance of senior engineers contribute to analysis, design, development, testing, and debugging large and complex software enhancements and solutions within the CRD/Alpha Platform domains including modifications to core frameworks and other primary facilities critical to system operation
+* Collaborate with Business Analysts to create simple and sustainable software solutions for complex problems
+* Participate in the agile software development process including attending all daily standups, sprint planning, backlog grooming, and retrospectives
+* Participate in on\-the\-job and formal trainings to develop your career
+
+
+What would give you a hands\-on experience and growth in the following technologies:* Implementing Single Page Application (SPAs) using React and Angular with major cloud vendors (e.g., Azure)
+* Building React packages and best practices, including Redux and RxJs
+* NodeJS ecosystem, including NPM and/or Yarn.
+* JavaScript, ReactJS and Typescript
+* Develop practical experience with object\-oriented programming (JAVA and/or C\#), compiler or interpreter technologies, embedded systems, operating systems, relational databases (RDBMS), scripting and new/advanced programming languages
+* Learn how to build an event driven architectures
+* Build knowledge of Kafka and /or Kubernetes
+* Learn to develop cloud native services on one or more of the major cloud providers (Azure, AWS, Google Cloud) and using Java and Spring
+* Learn Snowflake and SQL Server
+* Learn to develop observable, operable cloud native software that horizontally scales and is aligned with the modern architectural principles
+* Develop business acumen in Portfolio Management, Trading, Compliance, Post\-Trade, IBOR or Wealth Management
+* Build knowledge of test standard and popular supporting frameworks such as Jest, Cypress, and Jasmine
+
+
+Qualifications:* B.S. or master’s degree in computer science, Engineering, Mathematics, and Physics or other technical course of study
+* 0 – 2 years of professional experience or equivalent college project experience
+* Interest and passion about building high quality software in FinTech space
+* I Ideally, you already have initial experience with Java, PowerShell and batch scripts and have knowledge of C\#
+* You are familiar with concepts such as DevOps, continuous delivery, clean code, TDD and agile methods
+* You have worked with tools like Jira and Confluence
+* You are eager to learn and challenge status quo and are characterized by a very analytical and solution\-oriented way of thinking
+* You have effective written and verbal communication
+* Able to work well with peers in a collaborative team environment
+* Our employees are expected to work from our office locations per country\-specific guidelines
+
+
+Salary Range:
+$70,000 \- $118,750 Annual
+The range quoted above applies to the role in the primary location specified. If the candidate would ultimately work outside of the primary location above, the applicable range could differ.*Employees are eligible to participate in State Street’s comprehensive benefits program, which includes: our retirement savings plan (401K) with company match; insurance coverage including basic life, medical, dental, vision, long\-term disability, and other optional additional coverages; paid\-time off including vacation, sick leave, short term disability, and family care responsibilities; access to our Employee Assistance Program; incentive compensation including eligibility for annual performance\-based awards (excluding certain sales roles subject to sales incentive plans); and, eligibility for certain tax advantaged savings plans.**For a full overview, visit* *https://hrportal.ehr.com/statestreet/Home**.*
+About State Street
+Across the globe, institutional investors rely on us to help them manage risk, respond to challenges, and drive performance and profitability. We keep our clients at the heart of everything we do, and smart, engaged employees are essential to our continued success.
+We are committed to fostering an environment where every employee feels valued and empowered to reach their full potential. As an essential partner in our shared success, you’ll benefit from inclusive development opportunities, flexible work\-life support, paid volunteer days, and vibrant employee networks that keep you connected to what matters most. Join us in shaping the future.
+As an Equal Opportunity Employer, we consider all qualified applicants for all positions without regard to race, creed, color, religion, national origin, ancestry, ethnicity, age, disability, genetic information, sex, sexual orientation, gender identity or expression, citizenship, marital status, domestic partnership or civil union status, familial status, military and veteran status, and other characteristics protected by applicable law.
+Discover more information on jobs at StateStreet.com/careers
+Read our CEO Statement
+Job Application Disclosure:
+It is unlawful in Massachusetts to require or administer a lie detector test as a condition of employment or continued employment. An employer who violates this law shall be subject to criminal penalties and civil liability.",,https://www.indeed.com/cmp/State-Street-1,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/9c2dca0a49c82be52147419984903dc3,http://www.statestreet.com,"Boston, MA","10,000+",more than $10B (USD),"A State Street career means a chance to grow your skills, make your mark on your community, and impact the strength of the world economy.",,,,,,
+in-4c4accab0158b061,indeed,https://www.indeed.com/viewjob?jk=4c4accab0158b061,https://wgu.wd5.myworkdayjobs.com/en-US/External/job/WGU-North-Carolina/Staff-Machine-Learning-Operations-Engineer_JR-023833,Staff Machine Learning Operations Engineer,Western Governors University,"NC, US",2025-12-12,fulltime,direct_data,yearly,175900.0,272600.0,USD,False,,,,recruiting@wgu.edu,"If you’re passionate about building a better future for individuals, communities, and our country—and you’re committed to working hard to play your part in building that future—consider WGU as the next step in your career.
+Driven by a mission to expand access to higher education through online, competency\-based degree programs, WGU is also committed to being a great place to work for a diverse workforce of student\-focused professionals. The university has pioneered a new way to learn in the 21st century, one that has received praise from academic, industry, government, and media leaders. Whatever your role, working for WGU gives you a part to play in helping students graduate, creating a better tomorrow for themselves and their families.
+The salary range for this position takes into account the wide range of factors that are considered in making compensation decisions including but not limited to skill sets; experience and training; licensure and certifications; and other business and organizational needs.
+At WGU, it is not typical for an individual to be hired at or near the top of the range for their position, and compensation decisions are dependent on the facts and circumstances of each case. A reasonable estimate of the current range is:  
+
+Grade: Technical 412
+Pay Range: $175,900\.00 \- $272,600\.00
+Job Description
+Essential Functions and Responsibilities:* Designs and develops web/backend and cicd services.
+* Manages multiple tasks and responsibilities in high\-pressure environments; excelling at pinpointing and resolving problems in early project stages to avoid cost/time expenses.
+* Delivers high quality projects on time, through ability to design architecture.
+* Writes high quality code, and effective unit tests establishing and enforcing standards for the other engineers.
+* Monitors and optimizes performance for high utilization 24x7 service.
+* Reduces incident occurrence by eliminating the root cause and continually improving and advocating for organizational best practices and standards.
+* Researches and integrates third party products with existing infrastructure.
+* Anticipates future state of the ml ops platform and continuously updates architecture.
+* Evaluates technology over mid to long term time horizon and considers business and technical trade\-offs.
+* Works with product to gather business processes and project requirements.
+* Researches, designs, and develops computer software systems, in conjunction with hardware product development applying principles and techniques of computer science, engineering, and mathematical analysis.
+* As a subject matter master, analyzes software requirements to determine feasibility of design within time and cost constraints.
+* Consults with hardware engineers and other engineering staff to evaluate and recommend interface between hardware and software, and operational and performance requirements of overall system.
+* Formulates and designs complex software systems, using scientific analysis and mathematical models to predict and measure outcome and consequences of design.
+* Develops and directs software system testing procedures, programming, and documentation.
+* Ensures work area is clean, secure, and well maintained.
+* Performs miscellaneous projects as assigned.
+* Updates technical skills as required.
+* Performs other related duties as assigned.
+
+
+Knowledge, Skill and Abilities:* Experience with operating high\-availability, fault\-tolerant, scalable, distributed software/infrastructure in production utilizing Dev Ops best practices.
+* Excellent understanding of issue troubleshooting and performance tuning
+* Commitment to quality through the ability to translate complex technical requirements into functional software using best practices to write high quality code.
+* Ability to work in a self\-managed team\-based Agile projects providing technical guidance and leadership to other team members.
+* Excellent Experience with software engineering standard methodologies (unit testing, code reviews, design document, continuous delivery).
+* Develop and deploy production\-grade services, SDK’s, and data infrastructure emphasizing performance, scalability, and self\-service.
+* Excellent experience with existing MLOps frameworks (Databricks, Seldon, Sagemaker, DVC, etc.).
+* Strong background with either Scala (Java), Go, or Python programming experience.
+* Solid Experience operating big data infrastructure in a cloud\-based ecosystem (AWS preferred).
+* Solid understanding of traffic management and networking concepts.
+* Experience with stream\-processing systems (ksqlDB, Spark Streaming, Apache Beam/Flink, etc.).
+
+
+Competencies:
+Organizational or Student Impact:* Follows technical/ business processes; helps support change when necessary.
+* Executes complex, specialized technical projects/assignments.
+* Responsible for major or many components in the area of expertise.
+* Limit errors to prevent impact to client operations, costs, or schedules.
+
+
+Problem Solving \& Decision Making:* Individual meets department and personal goals with little direction/ supervision.
+* Leads key technical projects, programs and may facilitate leadership and development of technical teams.
+* Drives project methods, techniques, and procedures.
+
+
+Communication \& Influence:* Communicates with parties within and outside of the university (e.g., customers, vendors, etc.)
+* Works to influence parties within and outside of the job function at an operational level regarding policies, procedures, and practices.
+
+
+Leadership \& Talent Management:* Responsible for providing guidance, coaching, and training to other employees within the technical area.
+* Responsible for managing significant/complex technical projects at this level, involving delegation of work and review of work products.
+
+
+Job Qualifications:
+Minimum Qualifications:* Bachelor of Science Degree in Computer Science, Information Technology, or related field.
+* Minimum of 9 years' experience and a proven track record in developing web\-based applications and web services using Java, SOAP, REST, XML, and other web technologies, including experience interfacing with Oracle databases, and integrating third party products with existing infrastructure
+* Subject matter expert in area of responsibility or has extensive knowledge of several technical areas.
+* Advanced degrees (Master’s or PhD) may be required for certain disciplines and reduce the experience requirement by 2\-4 years.
+
+
+Department Specific Minimum Qualifications:* Bachelor of Science Degree in Computer Science, Information Technology, or related field.
+* Minimum of 6 years' experience and a proven track record in developing web\-based applications and web services using Java, SOAP, REST, XML, and other web technologies, including experience interfacing with Oracle databases, and integrating third party products with existing infrastructure.
+
+
+Preferred Qualifications:* Other Technical Experience That Would be a Plus
+	+ NetBeans
+	+ Subversion
+	+ Jira
+	+ Agile/Scrum project development
+	+ IDM/OSSO
+	+ ASP/.Net
+	+ DRUPAL
+	+ Groovy/Grails
+	+ Ruby/Rails
+	+ PHP
+	+ Hibernate/Seam
+	+ Banner
+	+ DROOLS, JBOSS
+	+ Technical Certification
+	+ Application Integration with legacy systems
+	+ JSF, J2EE, Java EE, jQuery, JavaScript
+	+ SQL
+	+ Oracle or another database interface
+
+
+Position \& Application Details
+Full\-Time Regular Positions (classified as regular and working 40 standard weekly hours): This is a full\-time, regular position (classified for 40 standard weekly hours) that is eligible for bonuses; medical, dental, vision, telehealth and mental healthcare; health savings account and flexible spending account; basic and voluntary life insurance; disability coverage; accident, critical illness and hospital indemnity supplemental coverages; legal and identity theft coverage; retirement savings plan; wellbeing program; discounted WGU tuition; and flexible paid time off for rest and relaxation with no need for accrual, flexible paid sick time with no need for accrual, 11 paid holidays, and other paid leaves, including up to 12 weeks of parental leave.
+How to Apply: If interested, an application will need to be submitted online. Internal WGU employees will need to apply through the internal job board in Workday.
+Additional Information
+Disclaimer: The job posting highlights the most critical responsibilities and requirements of the job. It’s not all\-inclusive.
+Accommodations: Applicants with disabilities who require assistance or accommodation during the application or interview process should contact our Talent Acquisition team at recruiting@wgu.edu.
+Equal Employment Opportunity: All qualified applicants will receive consideration for employment without regard to any protected characteristic as required by law.",,https://www.indeed.com/cmp/Western-Governors-University,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/a9b4651e94a6f2cc4ca08a0ff2f0feb6,https://www.wgu.edu,"Salt Lake City, UT","5,001 to 10,000",$500M to $1B (USD),"We’re looking for people who want to make a difference, at a university that’s making a difference by rewriting the rules of higher education to put students’ lives first.",,,,,,
+in-24fb9b08d9ef6915,indeed,https://www.indeed.com/viewjob?jk=24fb9b08d9ef6915,https://jsv3.recruitics.com/redirect?rx_cid=3658&rx_jobId=R10217010&rx_url=https%3A%2F%2Fjobs.northropgrumman.com%2Fcareers%2Fjob%2F1340069068044%3Fcode%3DJB-17946%26rx_a%3D0%26rx_c%3D%26rx_ch%3Djobp4p%26rx_group%3D288254%26rx_id%3D1a74f7d0-d764-11f0-ba1b-fba7d2c78b00%26rx_job%3DR10217010%26rx_medium%3Dcpc%26rx_r%3Dnone%26rx_source%3Dindeed%26rx_ts%3D20251212T200434Z%26rx_vp%3Dcpc%26source%3DJB-17946%26utm_audience%3Dprospectivetalentemployees%26utm_campaign%3Dta-general%26utm_content%3Djobfeed%26utm_format%3Dcpl%26utm_medium%3Djobboard%26utm_source%3Dindeed,2026 Quality Engineer Intern - Charlottesville VA,Northrop Grumman,"Charlottesville, VA, US",2025-12-10,"fulltime, internship",direct_data,hourly,22.0,34.0,USD,False,,,,,"RELOCATION ASSISTANCE: No relocation assistance available
+CLEARANCE TYPE: None
+TRAVEL: Yes, 10% of the Time**Description**
+---------------
+
+
+At Northrop Grumman, our employees have incredible opportunities to work on revolutionary systems that impact people's lives around the world today, and for generations to come. Our pioneering and inventive spirit has enabled us to be at the forefront of many technological advancements in our nation's history \- from the first flight across the Atlantic Ocean, to stealth bombers, to landing on the moon. We look for people who have bold new ideas, courage and a pioneering spirit to join forces to invent the future, and have fun along the way. Our culture thrives on intellectual curiosity, cognitive diversity and bringing your whole self to work — and we have an insatiable drive to do what others think is impossible. Our employees are not only part of history, they're making history.
+At the heart of Defining Possible is our commitment to missions. In rapidly changing global security environments, Northrop Grumman brings informed insights and software\-secure technology to enable strategic planning. We’re looking for innovators who can help us keep building on our wide portfolio of secure, affordable, integrated, and multi\-domain systems and technologies that fuel those missions. By joining in our shared mission, we’ll support yours of expanding your personal network and developing skills, whether you are new to the field or an industry thought leader. At Northrop Grumman, you’ll have the resources, support, and team to do some of the best work of your career.
+
+
+An internship at Northrop Grumman is unique. Sure, you’ll learn new skills, explore our enterprise, network with experts, connect with thought leaders, and finish with a resume that opens doors. But you’ll gain something even more valuable: pride in what you’ve done. Join us and launch your career. We’ll support you with training, employee resource groups, and our shared vision of global security.
+
+**Northrop Grumman is seeking** **Quality Engineers** **for an internship opportunity.** This position will be located at our Mission Systems Sector in Salt Lake City.
+
+
+The qualified candidate will become part of Northrop Grumman’s Quality and Mission Assurance (QMA) department. The QMA department oversees all aspects of program and site Quality within Salt Lake City from inspection to Quality Engineering, to Quality system compliance.
+
+**Basic Qualifications**
+
+**A candidate must meet ALL of the below criteria. The candidate must:**
+
+* Be a student who is enrolled full\-time and pursuing an undergraduate or graduate degree from an accredited college/university and will be enrolled full time in Fall 2026\.
+* Be majoring in Science, Technology, Engineering, or Math (STEM)
+* Be available to work full\-time (40 hours per week) for at least 10 weeks during **summer** **2026****.**
+* Be able to obtain a U.S. Government security clearance (U.S. citizenship is a pre\-requisite)
+* The ability to obtain Special Access Program within a reasonable period of time, as determined by the company to meet its business needs
+
+ **Preferred Qualifications:**
+
+* Have an overall cumulative GPA of 3\.0/4\.0 or higher
+* Strong analytical and problem\-solving skills
+* Attention to detail and a commitment to quality
+* Good communication and teamwork abilities
+
+
+At Northrop Grumman, our internship pay rates are standardized and take into account three main factors: the anticipated graduation date of the individual, the cost of labor of the geographic location, and whether the internship is considered technical or administrative.
+
+**Intern Pay Range:**
+
+
+Bachelors \- $22\.25 to $28\.25
+
+
+Masters \- $32\.00 to $34\.75
+
+
+campusjobs
+
+
+The application period for the job is estimated to be 20 days from the job posting date. However, this timeline may be shortened or extended depending on business needs and the availability of qualified candidates.
+Northrop Grumman is an Equal Opportunity Employer, making decisions without regard to race, color, religion, creed, sex, sexual orientation, gender identity, marital status, national origin, age, veteran status, disability, or any other protected class. For our complete EEO and pay transparency statement, please visit http://www.northropgrumman.com/EEO. U.S. Citizenship is required for all positions with a government clearance and certain other restricted positions.",,https://www.indeed.com/cmp/Northrop-Grumman,https://d2q79iu7y748jz.cloudfront.net/s/_squarelogo/256x256/840ef038663bcfde1befff5745fded3e,http://www.northropgrumman.com,"Falls Church, VA","10,000+",more than $10B (USD),"Northrop Grumman solves the toughest problems in space, aeronautics, defense and cyberspace. Our careers give you opportunities to push the boundary of possible in science, technology and engineering.",,,,,,
+li-4343442734,linkedin,https://www.linkedin.com/jobs/view/4343442734,https://jobs.ashbyhq.com/sentra/3c9729ca-67b3-4f9f-9c64-5e1e10be1719&urlHash=0EmS,Software Engineer - New Grad,Sentra,,,fulltime,,,,,,False,entry level,Engineering and Information Technology,,,"**Software Engineer \- New Grad** 
+
+
+
+
+
+ At
+ 
+**Sentra** 
+
+ we embarked on an exciting journey to build a one\-of\-a\-kind company memory to help growing startups overcome scaling challenges. At
+ 
+ Sentra
+ 
+ , we've developed a true AI teammate that understands an organization's context, goals, and culture \- offering both ICs and leaders unprecedented transparency into what's happening across the company and strategic alignment. 
+ 
+
+
+
+
+  
+
+
+
+
+
+
+ Sentra is backed by
+ 
+**a16z** 
+
+ and
+ 
+**Together Fund** 
+
+ , working with leaders from the top tech companies in the valley. Our goal? To never let a company lose itself as it gets bigger.
+ 
+
+
+
+
+  
+
+
+
+
+
+**What you’ll do** 
+
+
+
+* Build and ship production features across the stack: frontend, backend, or both, depending on your interests and strengths
+* Design and implement scalable systems that power core product experiences
+* Iterate and ship code with AI coding tools (cursor, claude code, etc)
+* Design and ship beautiful, high\-performance user experiences for Sentra’s desktop and web app
+* Own features end\-to\-end: from scoping → implementation → iteration and improvement
+* Operate in a fast\-paced, early\-stage environment with real ownership and outsized impact
+* Learn quickly, take initiative, and grow alongside the product and company
+
+
+
+  
+
+
+
+
+
+**What we’re looking for** 
+
+
+
+* Recent graduate or early\-career engineer with strong fundamentals in computer science and software engineering
+* Interest in
+ 
+**frontend, backend, or full\-stack development** 
+
+ (we’re open to all three)
+* Ability to work independently, learn quickly, and move fast in an ambiguous, early\-stage environment
+ 
+**(we are a startup)**
+
+
+
+  
+
+
+
+
+
+**Backend / Full\-Stack:** 
+
+
+
+* Experience with Python and building APIs
+* Familiarity with SQL databases and cloud platforms (e.g., AWS)
+* Interest in scalable systems and platform engineering
+* Bonus: exposure to LLMs, agentic frameworks, or retrieval\-augmented generation (RAG)
+
+
+
+  
+
+
+
+
+
+**Frontend / Full\-Stack:** 
+
+
+
+* Experience building modern web UIs with React and TypeScript
+* Familiarity with component\-based architecture, state management, and performance best practices
+* Strong product and visual sensibility (layout, spacing, typography, interaction states)
+* Experience with modern frontend tooling (e.g., Vite, Tailwind, testing frameworks)
+* Interest in simplifying complex workflows and data into interfaces that feel intuitive
+
+
+
+  
+
+
+
+
+
+**What we offer** 
+
+
+
+* Competitive salary and equity
+* Free meals on in\-office days
+* UberEats credits
+* Health insurance coverage (medical, dental, and vision)
+* Equinox and other fitness/wellness memberships
+* Transportation stipend
+* Flexible time off
+
+
+
+  
+
+
+
+
+
+
+ Compensation: 120k to 250k \+ 0\.3 to 0\.6%",Software Development,https://www.linkedin.com/company/sentra-app,https://media.licdn.com/dms/image/v2/D4E0BAQEJKlLqY7hXuA/company-logo_100_100/B4EZnWoGw7HMAQ-/0/1760242462073/sentra_app_logo?e=2147483647&v=beta&t=IzEmVJ0f8YXyKs279E8z2Glwx3du7GBlnkukeghN27k,,,,,,,,,,,
+li-4319446471,linkedin,https://www.linkedin.com/jobs/view/4319446471,,Early Software Engineer,TechTree,"San Francisco, CA",,fulltime,,,,,,False,entry level,Engineering and Information Technology,,,"**About The Company**
+ Delve automates compliance for hundreds of fast\-growing startups — companies like Lovable, 11x, and Wispr Flow rely on Delve to eliminate busywork and ship securely. Backed by Insight Partners, General Catalyst, and Y Combinator, Delve recently raised a $32M Series A and is rapidly scaling its engineering team. Our founders and engineers come from OpenAI, Stanford, MIT, and Berkeley, united by the goal of automating tedious work at scale.
+   
+
+  
+
+**About The Role**
+ Seeking a New Grad/Early Software Engineer to ship features, contribute to AI systems, and work across the stack with mentorship from senior engineers. Must relocate to SF and work in\-person.
+   
+
+  
+
+ We’re looking for a New Grad/Early Software Engineer — someone technically sharp, hungry, and ready to learn fast. You’ll ship production\-grade features alongside senior engineers, contribute to AI\-powered systems, and work across the stack (React, TypeScript, Node.js).
+   
+
+  
+
+ Expect autonomy, live mentorship from ex\-OpenAI engineers, and the chance to build impactful products from day one.
+   
+
+  
+
+**What You’ll Do**
+* Ship features across the stack with mentorship from senior engineers
+* Contribute to AI\-driven product features in production
+* Rapidly prototype ideas, test with users, and iterate fast
+* Write clean, maintainable code and own small projects end\-to\-end
+* Work in\-person daily with a high\-context, fast\-moving team
+
+
+**Requirements**
+* Bachelor’s in CS or related field from Stanford, MIT, Berkeley, Harvard, or Northeastern
+* Strong coding skills in Python or TypeScript
+* Evidence of independent projects, hackathon wins, or open\-source contributions
+* SF\-based or willing to relocate (in\-person, 5 days/week)
+* Green\-carpet GitHub candidates / “cracked” engineers
+
+
+**Required Skills**
+* Python
+* TypeScript
+* React
+* Node.js
+* AI\-driven product development
+* Prototyping
+* Clean code writing
+* Project ownership
+
+
+**Benefits**
+* 100% medical, dental \& vision coverage (for you; partial for dependents)
+* 401(k) with employer match
+* Unlimited PTO \+ federal holidays
+* GrubHub stipend \+ all meals covered in\-office
+* Gym membership covered
+* Frequent team dinners, events, and off\-sites
+* The opportunity to eliminate busywork for humanity
+
+
+**Team members**
+* founders and engineers from OpenAI, Stanford, MIT, and Berkeley
+
+
+**Salary:** 
+ 150000 \- 250000 USD",Software Development,https://www.linkedin.com/company/techtreehq,https://media.licdn.com/dms/image/v2/D4D0BAQFMatIv93cR3w/company-logo_100_100/B4DZY57fKYHwAQ-/0/1744728618059/techtreehq_logo?e=2147483647&v=beta&t=plSycNWP7fM2rMtpep9yvCAv_Q82SeG7msB1Uxu3fvI,,,,,,,,,,,
+li-4349791489,linkedin,https://www.linkedin.com/jobs/view/4349791489,,"Software Engineer New Grad (MSc/BSc: AI, Core, Apps)",Eluvio,"Berkeley, CA",,fulltime,,,,,,False,entry level,Engineering and Information Technology,,,"**About Us**
+ At Eluvio ((url removed)), we’re tackling one of the Internet’s biggest challenges: video. Our Content Fabric is a decentralized platform reimagining how premium media is delivered, processed, and monetized. Unlike traditional cloud and CDN workflows, it enables real\-time routing, just\-in\-time transcoding, personalized playback, and secure ledger\-based rights management — all inline with the video stream itself.
+   
+
+  
+
+ Global leaders in entertainment and sports — including Amazon Studios/MGM, Sony, Warner Bros., NBA, UEFA, and WWE — use Eluvio to deliver richer, faster, and more efficient experiences. Recognized with awards from NAB, SEICON, and HPA, and protected by 15\+ US patents, Eluvio is building the infrastructure for the future of Internet video.
+   
+
+  
+
+ Our Team
+   
+
+  
+
+ We’re led by the founders of Aspera — an Emmy Award–winning technology company acquired by IBM — and joined by engineers and leaders who have built, scaled, and successfully exited multiple other startups. Our headquarters are in Berkeley, CA, near the UC Berkeley campus, and we’re proud alumni of the UC Berkeley Blockchain Xcelerator.
+   
+
+  
+
+ The Role
+   
+
+  
+
+ We’re looking for exceptional new graduates who are ready to jump in as full\-time Software Engineers. If you have a strong academic background, solid fundamentals, and a hunger to learn and make an impact, we want to hear from you. BSc is required; MSc or PhD is a plus.
+   
+
+  
+
+ Depending on your skills and interests, you’ll join one of three areas:
+   
+
+  
+
+* Core Systems – Work with Go, Rust, and C/C\+\+, WebAssembly on backend systems, and our full video/audio transcoding, packaging, and processing stack (ffmpeg fork). You’ll also be able to contribute to our decentralized content routing and storage protocol.
+* Applications \& Frontend – Build experiences across backend, web, mobile, and TV. Our stack includes Go, JavaScript, Typescript, WebAssembly, Swift (iOS/tvOS), and Kotlin (Android/GoogleTV). You’ll help shape streaming, download, and viewing products used by a wide audience.
+* AI/ML – Develop and apply models for content description, summarization, search, retrieval, and personalization. Our work spans LLMs, VLMs, RAG, reinforcement learning, optimization, and data science.
+
+
+ Our main office is located in Berkeley, CA and we prefer collaborating in\-person, with lots of flexibility around exact hours.
+   
+
+  
+
+**Requirements**
+* Education: BSc in EECS or related field (MSc/PhD encouraged)
+* Proven ability: Excellence shown through coursework, internships, research, or open\-source contributions
+* Core fundamentals: Strong grounding in algorithms, concurrency, networking, security, and/or machine learning; research experience in new problem areas a plus
+
+
+ By Track
+   
+
+  
+
+* Core Systems: Proficiency in Go, Rust, and/or C/C\+\+; experience with testing; knowledge of video codecs (H.264, H.265, AV1\) and/or WebRTC a plus
+* Applications: JavaScript/React and full\-stack development; experience with mobile (iOS/Android) or TV apps a plus
+* AI/ML: Python and ML/DL frameworks (PyTorch, TensorFlow, scikit\-learn); familiarity with Transformers, RAG, LoRA, RESUME/NLP
+
+
+ Soft Skills
+   
+
+  
+
+* Clear and collaborative communicator
+* Detail\-oriented but able to move fast
+* Creative problem solver with a team\-first mindset
+
+
+ Nice to Have
+   
+
+  
+
+* Core: Applied cryptography (e.g., SEC 256, proxy re\-encryption, threshold ciphers), media standards (HLS/DASH, H.264, H.265, AV1, WebRTC), ffmpeg, and JavaScript\-based media players
+* AI/ML: Experience building fine\-tuned or multi\-stage ML pipelines, including advanced techniques (LoRA, mixture\-of\-experts, advanced RAG, statistical optimization)
+
+
+**Benefits**
+* Market competitive salary
+* Employee stock option program
+* Medical, Dental, Vision, 401K with match
+* Culture: We celebrate our accomplishments with two major parties a year, have occasional events to coincide with adjacent SF conferences, and we have a warm and casual working environment. Lunch is provided every day!
+* Industry Interaction: We publish in our field, give talks, attend/present at product conferences, and interface with our customers regularly. A bunch of the team attend the international and national broadcaster's conferences every year, IBC (Amsterdam) and NAB (Las Vegas), and media conferences such as SXSW, which are all a blast.",IT Services and IT Consulting and Civil Engineering,https://www.linkedin.com/company/eluv-io,https://media.licdn.com/dms/image/v2/D560BAQH0Uf7zW-azkA/company-logo_100_100/company-logo_100_100/0/1730742490865/eluv_io_logo?e=2147483647&v=beta&t=8QXzqVMqiFehdTerV6I7ShTRiq6VyqDpHf-bfCH3UVU,,,,,,,,,,,
+li-4326874206,linkedin,https://www.linkedin.com/jobs/view/4326874206,,Software Engineer (New Grad),Atris,,,fulltime,,,,,,False,entry level,Engineering and Information Technology,,,"**Overview** 
+
+
+
+
+
+ AI is changing how we build, sell, and operate. At Atris, we want to empower the next generation of workers with new tools and frameworks. Old new grad roles had you fixing bugs in a codebase you'd never fully understand. This one has you shipping products, running experiments, and talking to customers. You'll build things that matter and manage a team of agents.
+ 
+
+
+
+
+  
+
+
+
+
+
+**Candidate Profile** 
+
+
+
+* Strong understanding of data, statistics, and experimentation. Business problems are just optimization problems with messier inputs.
+* Clear communicator who actually enjoys talking to people. Customers, teammates, strangers at events. You turn vague complaints into concrete solutions.
+* Proficient in Python, JavaScript, SQL, and whatever else gets the job done. Ships things that run reliably without constant oversight.
+* Experienced with AI code\-assist tools like Cursor, Claude Code, and Windsurf. Uses them to punch above your weight and tackle projects that would've taken a team a year ago.
+* Give you a problem and some autonomy and you'll figure it out.
+* Must possess one of the following: a portfolio of personal projects, significant open\-source contributions, relevant work experience, or a technical degree.
+
+
+
+  
+
+
+
+
+
+**Areas of Focus** 
+
+
+
+
+  
+
+
+
+
+
+**Build** 
+
+
+
+* Ship entire applications from zero. Full products that solve real problems.
+* Design, develop, and maintain technical infrastructure like workflows, dashboards, data pipelines, automations.
+* Write reliable code and build integrations that make everything else more efficient.
+* Turn messy processes into clean, repeatable systems. If it's manual and repetitive, you automate it.
+
+
+
+**Grow** 
+
+
+
+* Own the systems that drive customer acquisition. Lead generation, email, analytics, attribution.
+* Design and run structured experiments across channels. Apply statistical rigor to figure out what's actually working.
+* Identify the highest leverage opportunities and focus resources there. Cut what isn't working.
+
+
+
+**Engage** 
+
+
+
+* Get in front of customers and partners. Host events. Build community. Know what users want because you talked to them yesterday.
+* Attend industry events to gather market insights and build relationships.
+* Support early sales cycles with product and technical expertise. Help new users succeed.",Software Development,https://www.linkedin.com/company/atrislabs,https://media.licdn.com/dms/image/v2/D560BAQH5yQM_iel8kA/company-logo_100_100/company-logo_100_100/0/1737154198873/atrislabs_logo?e=2147483647&v=beta&t=3tmJ3gRNxTLbdCw8VNXXgjGL4beON30QkpQTr2eWEUk,,,,,,,,,,,
+li-4343491512,linkedin,https://www.linkedin.com/jobs/view/4343491512,https://lensa.com/cgw/41324bef01a149c0bb55b61614206168tjo1?jpsi=directemployers&publisher_preference=easier_apply&utm_campaign=Computer%20Occupations&utm_medium=slot&utm_source=linkedin&utm_term=jse&urlHash=YH57,"Deep Learning Software Engineer, Inference - New College Grad 2026",Lensa,"Santa Clara, CA",,fulltime,,,,,,False,internship,Engineering and Information Technology,,support@lensa.com,"Lensa is a career site that helps job seekers find great jobs in the US. We are not a staffing firm or agency. Lensa does not hire directly for these jobs, but promotes jobs on LinkedIn on behalf of its direct clients, recruitment ad agencies, and marketing partners. Lensa partners with DirectEmployers to promote this job for NVIDIA. Clicking ""Apply Now"" or ""Read more"" on Lensa redirects you to the job board/employer site. Any information collected there is subject to their terms and privacy notice.
+   
+
+  
+
+ NVIDIA seeks a Software Engineer specializing in Deep Learning Inference for our growing team. As a key contributor, you will help design, build, and optimize the GPU\-accelerated software that powers today’s most sophisticated AI applications. Our team is responsible for developing and maintaining high\-performance open\-source frameworks, which are at the forefront of efficient large\-scale model serving and inference. You will play a central role in improving these platforms, facilitating smooth deployment and serving of groundbreaking language models.
+   
+
+  
+
+ You’ll work closely with the deep learning community to implement the latest algorithms for public release in inference frameworks. Your work will focus on identifying and driving performance improvements for state\-of\-the\-art LLM and Generative AI models across NVIDIA accelerators, from datacenter GPUs to edge SoCs. You'll bring to bear open\-source tools and plugins—including CUTLASS, OAI Triton, NCCL, and CUDA kernels—to implement and optimize model serving pipelines.
+   
+
+  
+
+**What You'll Be Doing**
+* Performance optimization, analysis, and tuning of DL models in various domains like LLM, Multimodal and Generative AI.
+* Scale performance of DL models across different architectures and types of NVIDIA accelerators.
+* Contribute features and code to NVIDIA’s inference libraries, vLLM and SGLang, FlashInfer and LLM software solutions.
+* Work with cross\-collaborative teams across frameworks, NVIDIA libraries and inference optimization innovative solutions.
+
+
+**What We Need To See**
+* Pursuing a Masters or PhD or equivalent experience in relevant field (Computer Engineering, Computer Science, EECS, AI).
+* C/C\+\+ programming and software design skills. SW Agile skills are helpful and Python experience is a plus.
+* Experience with training, deploying or optimizing the inference of DL models in production is a plus.
+* Modeling, profiling, debug, and code optimization or architectural knowledge of CPU and GPU is a plus.
+* GPU programming experience (CUDA, OAI TRITON or CUTLASS) is a plus.
+
+
+ Ways to Stand out from The Crowd
+   
+
+  
+
+* Contribute to deep learning software projects, such as PyTorch, vLLM, and SGLang to drive advancements in the field.
+* Experience with Multi GPU Communications (NCCL, NVSHMEM)
+
+
+ With highly competitive salaries and a comprehensive benefits package, NVIDIA is widely considered to be one of the technology world's most desirable employers. We have some of the most forward\-thinking and hardworking people in the world working for us and, due to outstanding growth, our special engineering teams are growing fast. If you're a creative and autonomous engineer with a genuine passion for technology, we want to hear from you!
+   
+
+  
+
+ Your base salary will be determined based on your location, experience, and the pay of employees in similar positions. The base salary range is 120,000 USD \- 189,750 USD for Level 2, and 148,000 USD \- 235,750 USD for Level 3\.
+   
+
+  
+
+ You will also be eligible for equity and benefits (https://www.nvidia.com/en\-us/benefits/) .
+   
+
+  
+
+ Applications for this job will be accepted at least until December 5, 2025\.
+   
+
+  
+
+ NVIDIA is committed to fostering a diverse work environment and proud to be an equal opportunity employer. As we highly value diversity in our current and future employees, we do not discriminate (including in our hiring and promotion practices) on the basis of race, religion, color, national origin, gender, gender expression, sexual orientation, age, marital status, veteran status, disability status or any other characteristic protected by law.
+   
+
+  
+
+ If you have questions about this posting, please contact support@lensa.com",Internet Publishing,https://www.linkedin.com/company/lensa,https://media.licdn.com/dms/image/v2/D4D0BAQEkHa-0Aki9XQ/company-logo_100_100/B4DZaKylu7GsAQ-/0/1746085240184/lensa_logo?e=2147483647&v=beta&t=vxuqQreX_wx1J2lugCeUKuGGZtbGyjhRRFeWyrBMnFQ,,,,,,,,,,,
+li-4349823075,linkedin,https://www.linkedin.com/jobs/view/4349823075,https://dsp.prng.co/uPGqQLb?source=LinkedIn&urlHash=ZToc,"Automation Software Engineer, New College Grad- Bachelor's (Austin, TX)",Applied Materials,"Austin, TX",,fulltime,,,,,,False,not applicable,Engineering and Information Technology,,_Program@amat.com,"**Who We Are**
+ Applied Materials is a global leader in materials engineering solutions used to produce virtually every new chip and advanced display in the world. We design, build and service cutting\-edge equipment that helps our customers manufacture display and semiconductor chips – the brains of devices we use every day. As the foundation of the global electronics industry, Applied enables the exciting technologies that literally connect our world – like AI and IoT. If you want to push the boundaries of materials science and engineering to create next generation technology, join us to deliver material innovation that changes the world.
+   
+
+  
+
+**What We Offer**
+ Salary:
+   
+
+  
+
+ $92,000\.00 \- $126,500\.00
+   
+
+  
+
+ Location:
+   
+
+  
+
+ Austin,TX
+   
+
+  
+
+ You’ll benefit from a supportive work culture that encourages you to learn, develop, and grow your career as you take on challenges and drive innovative solutions for our customers. We empower our team to push the boundaries of what is possible—while learning every day in a supportive leading global company. Visit our Careers website to learn more.
+   
+
+  
+
+ At Applied Materials, we care about the health and wellbeing of our employees. We’re committed to providing programs and support that encourage personal and professional growth and care for you at work, at home, or wherever you may go. Learn more about our benefits.
+   
+
+  
+
+ As a Software Engineer at Applied Materials, you’ll dive deep into ground\-breaking technologies—like machine learning and AI—to craft novel software solutions that solve our customers’ high\-value problems. Our Software Engineers are responsible for designing, prototyping, developing, and debugging software solutions for semiconductor equipment components and devices to ensure quality and functionality. You'll develop software documentation and test procedures, troubleshoot software problems, and communicate with internal customers to understand project requirements. As part of our team, you'll contribute your expertise in intricate systems, deciphering code, and anticipating software behaviors to ensure Applied remains the leader in the semiconductor and display sectors.
+   
+
+  
+
+**About The Role**
+ Join Applied Materials as an
+ **Automation Software Engineer** 
+ and help shape the future of advanced manufacturing. In this newly created role, you’ll design and implement cutting\-edge automation solutions—from collaborative robotics to intelligent inspection systems—that drive efficiency and scalability in our spares manufacturing operations.
+   
+
+  
+
+ Based in Austin, TX, you’ll work in a dynamic environment that blends hands\-on lab work with real\-world production challenges. You’ll collaborate with internal teams and external partners to deliver scalable automation solutions that enhance operational efficiency and throughput.
+   
+
+  
+
+**Key Responsibilities**
+**Design \& Development**
+* Create and configure collaborative robot (Cobot) solutions for assembly, disassembly, and inspection of complex modules (e.g., CMP heads, vacuum robots, RF Matches, Electrostatic chucks).
+* Customize robotic arm setups and end\-of\-arm tooling for diverse applications.
+* Design and develop scalable, reliable, and maintainable software solutions
+
+
+**Automation \& Integration**
+* Implement automated parts cleaning and optical inspection systems.
+* Develop machine vision and AI\-driven inspection for in\-process QA.
+* Conduct feasibility studies, prototyping, and validation testing.
+
+
+**Collaboration**
+* Partner with engineering, operations, and IT teams to integrate automation systems.
+* Coordinate with external vendors for solution development and deployment.
+
+
+**Performance \& Safety**
+* Ensure reliability, safety, and compliance in high\-volume environments.
+* Conduct risk assessments and ensure automated systems comply with industry and company standards.
+
+
+**Qualifications**
+**Education**
+* Bachelor’s Degree in Software Engineering, Robotics, Automation, Mechatronics, or related field.
+
+
+**Experience**
+* Hands\-on experience with robotic arms, end\-of\-arm tooling, and system integration.
+* Familiarity with PLCs, motion control, and industrial communication protocols.
+* Exposure to machine vision, AI/ML for inspection, and simulation tools.
+
+
+**Skills**
+* Strong analytical and problem\-solving abilities.
+* Ability to thrive in cross\-functional, collaborative environments.
+
+
+**Preferred Attributes**
+* Experience with collaborative robots (Cobots) in manufacturing.
+* Knowledge of robotics programming languages (e.g., Python, ROS) and simulation platforms.
+* Understanding of shop floor control systems and MES integration.
+* Knowledge of CAD software and technical drawings
+
+
+**Why Join Us?**
+ This is a rare chance to influence automation strategy in a global technology leader. You’ll work on high\-impact projects, gain exposure to advanced robotics, and help transform manufacturing operations for scalability and efficiency.
+   
+
+  
+
+ Applications will be reviewed on a rolling basis. Please apply by January 30, 2026\. Note: This position may close early based on application volume or candidate selection.
+   
+
+  
+
+**Additional Information**
+**Time Type:**
+ Full time
+   
+
+  
+
+**Employee Type:**
+ New College Grad
+   
+
+  
+
+**Travel:**
+ Yes, 10% of the Time
+   
+
+  
+
+**Relocation Eligible:**
+ Yes
+   
+
+  
+
+ The salary offered to a selected candidate will be based on multiple factors including location, hire grade, job\-related knowledge, skills, experience, and with consideration of internal equity of our current team members. In addition to a comprehensive benefits package, candidates may be eligible for other forms of compensation such as participation in a bonus and a stock award program, as applicable.
+   
+
+  
+
+ For all sales roles, the posted salary range is the Target Total Cash (TTC) range for the role, which is the sum of base salary and target bonus amount at 100% goal achievement.
+   
+
+  
+
+ Applied Materials is an Equal Opportunity Employer. Qualified applicants will receive consideration for employment without regard to race, color, national origin, citizenship, ancestry, religion, creed, sex, sexual orientation, gender identity, age, disability, veteran or military status, or any other basis prohibited by law.
+   
+
+  
+
+ In addition, Applied endeavors to make our careers site accessible to all users. If you would like to contact us regarding accessibility of our website or need assistance completing the application process, please contact us via e\-mail at Accommodations\_Program@amat.com, or by calling our HR Direct Help Line at 877\-612\-7547, option 1, and following the prompts to speak to an HR Advisor. This contact is for accommodation requests only and cannot be used to inquire about the status of applications.","Appliances, Electrical, and Electronics Manufacturing, Nanotechnology Research, and Semiconductor Manufacturing",https://www.linkedin.com/company/applied-materials,https://media.licdn.com/dms/image/v2/D560BAQELHSGDuP84wA/company-logo_100_100/B56ZfsvxUCIAAQ-/0/1752023635918?e=2147483647&v=beta&t=PfksXhNIEd3hp_i3yabxs5BD1--SbnmbTcSZtgeqsvk,,,,,,,,,,,
+li-4333157669,linkedin,https://www.linkedin.com/jobs/view/4333157669,,"Research Scientist, Robotics Research - New College Grad 2025",NVIDIA,"Seattle, WA",,fulltime,,,,,,False,entry level,Other,,,"NVIDIA is at the forefront of the AI and robotics revolution, and our robotics teams are on a mission to build the essential technology that can enable any company to become a robotics company. The Seattle Robotics Lab is passionate about fundamental and applied robotics research across the full robotics stack, including perception, planning, control, reinforcement learning, imitation learning, and simulation. This research strives to transform research paradigms, transfer into NVIDIA’s robotics and simulation products, and build new robotics markets for the world.
+   
+
+  
+
+ The Seattle Robotics Lab has led many influential works that have been presented at top robotics, AI, and computer vision conferences; these works include BayesSim , cuRobo , DeXtreme , DiSECT , Factory , GraspNet , ITPS , MimicGen , RVT , and SHAC . (See our publications page for a complete list.) The work has deeply impacted the research community and NVIDIA products, including Isaac Sim , Isaac Lab , and Isaac Manipulator . Furthermore, SRL collaborates closely with other research and engineering teams to advance and use the Cosmos and GR00T\-N foundation models, as well as the Newton physics simulation engine. The team is targeting several grand challenges in robotics and is aiming to achieve never\-before\-seen capabilities within 2\-3 years. We are looking for research scientists to play a pivotal role in these efforts. These scientists must have outstanding research and engineering skills, a proven research track record, strong supporting references, and a team\-first approach.
+   
+
+  
+
+**What You Will Be Doing**
+* Developing algorithms, models, and methods for robotic manipulation and loco\-manipulation, for both industrial and household applications;
+* Integrating these methods into real\-world robotic manipulation systems, including those consisting of collaborative robot arms, industrial robot arms, mobile manipulators, humanoids, and dexterous hands;
+* Contributing to multi\-person research projects that require a diverse set of skills across the robotics and machine learning stack;
+* Engaging with the academic community through high\-impact publications, conferences, workshops, and code releases;
+* Collaborating with product managers and engineering teams to transfer your research into NVIDIA products that will have real\-world impact;
+* Mentoring interns joining NVIDIA during their PhD programs.
+
+
+**What We Need To See**
+* Completing a PhD in Robotics, Machine Learning, Computer Science, Electrical Engineering, Mechanical Engineering, or a related field (or equivalent experience).
+* A strong research track record, with work published in top robotics and AI conferences and journals such as RSS, CoRL, ICRA, IROS, IJRR, T\-RO, NeurIPS, ICML, ICLR, CVPR, ICCV, ECCV, and EMNLP.
+* Exceptional programming skills in Python, as well as proficiency in modern deep learning frameworks (PyTorch or JAX), robotics frameworks (ROS or ROS2\), and physics simulation frameworks (Isaac Sim/Lab or MuJoCo). Familiarity with C\+\+, CUDA, and Warp is a plus.
+* Exceptional communication, collaboration, and interpersonal skills, with significant experience working on teams.
+* Comfort in working through the complexities of simulation and real\-world robotics, including debugging physics simulators and renderers under rapid development; selecting, setting up, maintaining, and enhancing complex robotics hardware; debugging real\-world communication systems; and designing robust workflows for model training and evaluation.
+
+
+ The following research areas and applications are of particular interest:
+   
+
+  
+
+* Bimanual and dexterous manipulation
+* Mobile manipulation and humanoid loco\-manipulation
+* Multisensory perception (e.g., vision, tactile, and force/torque sensing)
+* Simulation, sim\-to\-real, and real\-to\-sim
+* Vision\-language\-action (VLA) models, including architectural advancements, large\-scale training, and test\-time reasoning
+* Industrial applications, such as bin\-picking, kitting, and assembly
+
+
+ The Seattle Robotics Lab is currently located near the University of Washington and is moving to a new office in the vibrant Fremont neighborhood in 2026\.
+   
+
+  
+
+ Your base salary will be determined based on your location, experience, and the pay of employees in similar positions. The base salary range is 160,000 USD \- 258,750 USD.
+   
+
+  
+
+ You will also be eligible for equity and benefits .
+   
+
+  
+
+ Applications for this job will be accepted at least until July 29, 2025\.NVIDIA is committed to fostering a diverse work environment and proud to be an equal opportunity employer. As we highly value diversity in our current and future employees, we do not discriminate (including in our hiring and promotion practices) on the basis of race, religion, color, national origin, gender, gender expression, sexual orientation, age, marital status, veteran status, disability status or any other characteristic protected by law.
+   
+
+  
+
+ JR2001017","Computer Hardware Manufacturing, Software Development, and Computers and Electronics Manufacturing",https://www.linkedin.com/company/nvidia,https://media.licdn.com/dms/image/v2/D560BAQGV36q2EowSyw/company-logo_100_100/company-logo_100_100/0/1724881581208/nvidia_logo?e=2147483647&v=beta&t=oCxt8kGhi0AfLuVDY7D_jzkUIEe-fAV5Q5eLaRxXzOE,,,,,,,,,,,
+li-4337650150,linkedin,https://www.linkedin.com/jobs/view/4337650150,,"Research Scientist, Autonomous Vehicles - New College Grad 2026",NVIDIA,"Santa Clara, CA",,fulltime,,,,,,False,entry level,Other,,,"We are now recruiting top Research Scientists for Autonomous Vehicles! NVIDIA is recruiting top Research Scientists for Autonomous Vehicle Research! AI\-powered autonomous vehicles that can learn, reason, and interact with people are no longer science fiction. Self\-driving cars, autonomous delivery vehicles, and autonomous construction vehicles, among others, are getting increasingly close to widespread deployment. However, fundamental research questions still need to be addressed for us to achieve full vehicle autonomy. For instance, how can we: Enable novel training paradigms that leverage simulation to train AV policies in closed\-loop? Equip autonomous vehicles with online and offline assurances that meet the standards for safety\-critical systems? Ensure that autonomous vehicles work seamlessly in new places?
+   
+
+  
+
+ These are some of the exciting questions that the NVIDIA Autonomous Vehicle Research group is tackling. We bring together a diverse, interdisciplinary research team working on core topics in vehicle autonomy, including agent behavior models, end\-to\-end AV architectures, AI safety, closed\-loop training approaches, and AV foundation models (VLMs, reasoning models, etc.). Our focus is on basic and applied research; lab members are encouraged to publish their work and open\-source code as well as provide real\-world impact by deploying technology within production systems. NVIDIA is well known for its team culture, and lab researchers are able to closely interact with others within the company who are experts in perception systems, machine learning, and robotics. There is an opportunity to make a strong impact on products, while having the freedom and bandwidth to conduct ground\-breaking publishable research.
+   
+
+  
+
+**What You'll Be Doing**
+* Designing and implementing cutting\-edge techniques in the field of vehicle autonomy.
+* Publishing your original research.
+* Collaborating with other research team members, a diverse set of internal product teams, and external researchers.
+* Transferring technology you've developed to relevant product groups.
+
+
+**What We Need To See**
+* Completing or recently completed a PhD in Robotics, Computer Science, Computer Engineering or related field (or equivalent experience).
+* Relevant research experience in the field of vehicle / robot autonomy.
+* Strong knowledge of theory and practice of vehicle / robot autonomy, or a related area with a strong interest in connecting your work to autonomous vehicles.
+* A track record of research excellence with your work published in top conferences and journals such as RSS, ICRA, IJRR, NeurIPS, ICML, CVPR, TAC, etc, and other research artifacts such as software projects.
+* Exceptional programming skills in Python; C\+\+ and parallel programming (e.g., CUDA) are a plus.
+* Knowledge of common machine learning frameworks such as PyTorch and Tensorflow.
+* Strong communication and interpersonal skills are required along with the ability to work in a dynamic, research\-focused team.
+
+
+ Are you dedicated, upbeat and dynamic with excellent analytical ability? Are you an engineer passionate and highly motivated about solving complex problems? If so, you may be a perfect fit for NVIDIA!
+   
+
+  
+
+ Your base salary will be determined based on your location, experience, and the pay of employees in similar positions. The base salary range is 160,000 USD \- 258,750 USD.
+   
+
+  
+
+ You will also be eligible for equity and benefits .
+   
+
+  
+
+ Applications for this job will be accepted at least until November 23, 2025\.NVIDIA is committed to fostering a diverse work environment and proud to be an equal opportunity employer. As we highly value diversity in our current and future employees, we do not discriminate (including in our hiring and promotion practices) on the basis of race, religion, color, national origin, gender, gender expression, sexual orientation, age, marital status, veteran status, disability status or any other characteristic protected by law.
+   
+
+  
+
+ JR2008395","Computer Hardware Manufacturing, Software Development, and Computers and Electronics Manufacturing",https://www.linkedin.com/company/nvidia,https://media.licdn.com/dms/image/v2/D560BAQGV36q2EowSyw/company-logo_100_100/company-logo_100_100/0/1724881581208/nvidia_logo?e=2147483647&v=beta&t=oCxt8kGhi0AfLuVDY7D_jzkUIEe-fAV5Q5eLaRxXzOE,,,,,,,,,,,
+li-4349616562,linkedin,https://www.linkedin.com/jobs/view/4349616562,,Engineer 1 - New College Grad,Mechronix,"Richmond, VA",,fulltime,,,,,,False,entry level,Engineering and Information Technology,,,"**About the program:** 
+
+
+
+
+
+ We are seeking new college graduates driven to excellence and inspired to build a smarter, more sustainable, and connected future. Engineers who join the team will have access to a wide range of technical fields supporting mission\-critical projects that help our customers shape the modern world. 
+ 
+
+
+
+
+  
+
+
+
+
+
+**Essential Duties and Responsibilities:** 
+
+
+
+* Control Engineer: Design, develop, install, and maintain equipment used to monitor and control systems, machinery, and processes.
+* Design Engineer: Develop, integrate, and support project engineering deliverables through drawings, specifications, product selection, installation sequence planning, and commissioning.
+* Energy Engineer: Drive energy efficiency initiatives, reducing operational costs, and supporting our commitment to sustainability.
+* Software Engineer: Provide software development services such as programming for projects and infrastructure support required for the creation of enterprise software in Client and Web environments.
+* Systems Engineer: Provide system programming and management support for large scale networking infrastructures, including high performance computer configurations as well as other systems.
+* Telecommunications Engineer: Design, coordinate, and specify telecommunication distribution systems and infrastructure for medium to large projects.
+
+
+
+  
+
+
+
+
+
+**Qualifications** 
+
+
+
+* Bachelor’s degree or higher in Electrical, Mechanical, Systems, or Industrial Engineering, or similar discipline.
+* Professional or academic experience using technical solutions such as CAD, SolidWorks, Revit, Python, SCADA, MATLAB, VHDL, or similar.
+* Must be authorized to work in the U.S. without the need for employment\-based visa sponsorship now or in the future.
+
+
+
+  
+
+
+
+
+
+**Compensation** 
+**:** 
+
+
+
+
+
+ The compensation for this role is market competitive.
+ 
+
+
+
+
+  
+
+
+
+
+
+**About us:** 
+
+
+
+
+
+ We are an HR consultancy firm, and we help candidates match with the potential roles by using an Artificial Intelligence System which is free of cost. Our approach to matchmaking utilizes several different formats throughout the course of the recruiting process. In addition to speaking with our recruiters and client\-serving professionals, we also leverage the use of the Artificial Intelligence System to help you understand your strengths and strategize your career ahead. We can let you know better once you submit your resume.",Engineering Services,https://www.linkedin.com/company/mechronix,https://media.licdn.com/dms/image/v2/D4D0BAQENNDL1IBYAcA/company-logo_100_100/B4DZlrgO3OH0AQ-/0/1758445236120/neogate_fintech_logo?e=2147483647&v=beta&t=fEczepE3KYYZ3vyzOJatfkFH88-vZLux4cfvqkyIioA,,,,,,,,,,,
+li-4343296121,linkedin,https://www.linkedin.com/jobs/view/4343296121,,Engineer 1 - Clearable New College Grad,Everline Tech,"Richmond, VA",,fulltime,,,,,,False,entry level,Engineering and Information Technology,,,"Position Title: Graduate Engineer
+   
+
+ Position Overview:
+   
+
+ As an Engineering Grad, join us to build expertise through a combination of formal training
+   
+
+ programs and experiential, on\-the\-job learning to develop a broad and highly advanced skillset
+   
+
+ across the company's integrated business units.
+   
+
+ Position Essential Duties:
+   
+
+ ● Control Engineer: Design, develop, install, and maintain equipment used to monitor and
+   
+
+ control systems, machinery, and processes.
+   
+
+ ● Design Engineer: Develop, integrate, and support project engineering deliverables
+   
+
+ through drawings, specifications, product selection, installation sequence planning, and
+   
+
+ commissioning.
+   
+
+ ● Energy Engineer: Drive energy efficiency initiatives, reducing operational costs, and
+   
+
+ supporting our commitment to sustainability.
+   
+
+ ● Software Engineer: Provide software development services such as programming for
+   
+
+ projects and infrastructure support required for the creation of enterprise software in
+   
+
+ Client and Web environments.
+   
+
+ ● Systems Engineer: Provide system programming and management support for large
+   
+
+ scale networking infrastructures, including high performance computer configurations as
+   
+
+ well as other systems.
+   
+
+ ● Telecommunications Engineer: Design, coordinate, and specify telecommunication
+   
+
+ distribution systems and infrastructure for medium to large projects.
+   
+
+ Position Requirements:
+   
+
+ ● Bachelor’s degree or higher in Electrical, Mechanical, Systems, or Industrial
+   
+
+ Engineering, or similar discipline
+   
+
+ ● Professional or academic experience using technical solutions such as CAD,
+   
+
+ SolidWorks, Revit, Python, SCADA, MATLAB, VHDL, or similar.
+   
+
+ Compensation:
+   
+
+ The compensation for this role is $80,000 \- $90,000\.
+   
+
+ Important: The successful application submission for the above role(s) will be conditional to
+   
+
+ your profile evaluation by our Recruitment Specialists using the AI system.
+   
+
+ If you meet the eligibility criteria, please apply and our recruitment team will help you
+   
+
+ understand your strengths and strategize your career ahead.",Engineering Services,https://www.linkedin.com/company/everline-tech-solutions,https://media.licdn.com/dms/image/v2/D4D0BAQHZcJGipbOTag/company-logo_100_100/company-logo_100_100/0/1718273468980/everline_tech_solutions_logo?e=2147483647&v=beta&t=HM7NTtUHG_UPYLrSQrbJkULmFLIcZ6Od6zlXgLGThzU,,,,,,,,,,,

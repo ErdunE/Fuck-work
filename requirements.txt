@@ -9,3 +9,8 @@ pdfplumber
 PyPDF2
 python-dotenv
 joblib
+python-jobspy>=1.1.0
+pandas>=2.0.0
+sqlalchemy>=2.0.0
+psycopg2-binary
+apscheduler
