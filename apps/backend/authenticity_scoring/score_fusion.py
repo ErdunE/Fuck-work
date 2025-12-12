@@ -28,13 +28,19 @@ class ScoreFusion:
         Returns:
             Dictionary with score, level, confidence, and weight sums.
         """
+        # Extract collection metadata for platform-aware weight adjustment (Phase 2A)
+        collection_meta = {}
+        if job_data is not None:
+            collection_meta = job_data.get('collection_metadata', {})
+        
         negative_rules = [r for r in activated_rules if r.get("signal") == "negative"]
         positive_rules = [r for r in activated_rules if r.get("signal") == "positive"]
 
-        negative_sum = sum(self._safe_weight(r) for r in negative_rules)
+        # Apply platform-aware weight adjustment (Phase 2A Stage 7)
+        negative_sum = sum(self._adjust_weight_for_platform(r, collection_meta) for r in negative_rules)
         base_score = 100 * math.exp(-negative_sum * self.PENALTY_FACTOR)
 
-        positive_sum = sum(self._safe_weight(r) for r in positive_rules)
+        positive_sum = sum(self._adjust_weight_for_platform(r, collection_meta) for r in positive_rules)
         gain = min(self.MAX_GAIN, (1 + positive_sum) ** 0.25)
 
         final_score = base_score * gain
@@ -93,6 +99,40 @@ class ScoreFusion:
         if confidence_score >= 0.33:
             return "Medium"
         return "Low"
+
+    def _adjust_weight_for_platform(self, rule: Dict[str, Any], collection_meta: Dict[str, Any]) -> float:
+        """
+        Adjust rule weight based on platform capabilities.
+        
+        KEY LOGIC (Phase 2A Stage 7):
+        - A-series (Recruiter) rules: Only apply if poster expected AND present
+        - Other rules: Keep original weight
+        
+        Args:
+            rule: Rule dict with rule_id and weight
+            collection_meta: Platform metadata with poster_expected/present
+        
+        Returns:
+            Adjusted weight (0.0 if should skip rule)
+        """
+        rule_id = rule.get('rule_id', '')
+        base_weight = self._safe_weight(rule)
+        
+        # A-series rules (Recruiter signals)
+        if rule_id.startswith('A'):
+            poster_expected = collection_meta.get('poster_expected', False)
+            poster_present = collection_meta.get('poster_present', False)
+            
+            # If poster not expected (e.g., Indeed), skip rule entirely
+            if not poster_expected:
+                return 0.0
+            
+            # If poster expected but not present (extraction failure), reduce weight
+            if not poster_present:
+                return base_weight * 0.5
+        
+        # All other rules: keep original weight
+        return base_weight
 
     @staticmethod
     def _safe_weight(rule: Dict[str, Any]) -> float:
