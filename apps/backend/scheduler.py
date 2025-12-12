@@ -118,6 +118,39 @@ def start_scheduler(cron_hour: int = 8, cron_minute: int = 0):
         scheduler.shutdown()
 
 
+def scheduled_batch_collection():
+    """
+    Run batch collection on schedule (daily preset).
+    
+    Phase 2.6 - Coverage Expansion.
+    """
+    logger.info("=" * 70)
+    logger.info(f"Scheduled Batch Collection Started: {datetime.now()}")
+    logger.info("=" * 70)
+    
+    try:
+        from data_collection.batch_collector import run_preset_batch
+        stats = run_preset_batch(preset_name="daily")
+        
+        logger.info("=" * 70)
+        logger.info("Scheduled Batch Collection Complete")
+        logger.info("=" * 70)
+        logger.info(f"Summary:")
+        logger.info(f"  - Queries: {stats['successful_queries']}/{stats['total_queries']}")
+        logger.info(f"  - Jobs collected: {stats['total_jobs_collected']}")
+        logger.info(f"  - Jobs saved: {stats['total_jobs_saved']}")
+        logger.info(f"  - Duplicates: {stats['total_duplicates']}")
+        logger.info(f"Completed at: {datetime.now()}")
+        logger.info("=" * 70)
+        
+    except Exception as e:
+        logger.error("=" * 70)
+        logger.error(f"Scheduled Batch Collection FAILED: {e}")
+        logger.error("=" * 70)
+        import traceback
+        traceback.print_exc()
+
+
 def run_now():
     """
     Run the pipeline immediately (for testing).
@@ -132,9 +165,17 @@ if __name__ == "__main__":
     import sys
     
     # Check for command line arguments
-    if len(sys.argv) > 1 and sys.argv[1] == "--now":
-        # Run immediately for testing
-        run_now()
+    if len(sys.argv) > 1:
+        if sys.argv[1] == "--now":
+            # Run immediately for testing
+            run_now()
+        elif sys.argv[1] == "--batch":
+            # Run batch collection
+            scheduled_batch_collection()
+        else:
+            print(f"Unknown option: {sys.argv[1]}")
+            print("Usage: python3 scheduler.py [--now|--batch]")
+            sys.exit(1)
     else:
         # Start the scheduler
         start_scheduler()
