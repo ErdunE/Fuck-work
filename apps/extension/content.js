@@ -7,6 +7,7 @@ console.log('FuckWork content script loaded');
 
 // State variables
 let currentTask = null;
+let activeSession = null;
 let lastDetectionTime = 0;
 const DETECTION_THROTTLE_MS = 2000; // Max once per 2 seconds
 
@@ -26,16 +27,27 @@ if (document.readyState === 'loading') {
 async function init() {
   console.log('Initializing content script...');
   
-  // Get active task
-  const { activeTask, activeJob } = await chrome.storage.local.get(['activeTask', 'activeJob']);
+  // Load active apply session FIRST
+  activeSession = await getActiveSession();
   
+  if (!activeSession || !activeSession.active) {
+    console.log('[Content] No active apply session, skipping initialization');
+    return;
+  }
+  
+  console.log('[Content] Active apply session found:', activeSession);
+  
+  // Get task from session
+  const { activeTask } = await chrome.storage.local.get(['activeTask']);
   if (!activeTask) {
-    console.log('No active task, skipping initialization');
+    console.log('[Content] No active task in storage');
     return;
   }
   
   currentTask = activeTask;
-  console.log('Active task:', activeTask);
+  
+  // Update session with current URL
+  await updateActiveSession({ current_url: window.location.href });
   
   // Wait for page to settle
   await sleep(2000);
@@ -394,22 +406,41 @@ async function triggerRecheck(reason) {
  * @param {string} reason - Trigger reason
  */
 async function executeRecheck(reason) {
+  // Load active session
+  activeSession = await getActiveSession();
+  
+  if (!activeSession || !activeSession.active) {
+    console.log('[Recheck] No active session, skipping');
+    return;
+  }
+  
   // Guard: Don't recheck if no active task
   if (!currentTask) {
     console.log('[Recheck] No active task, skipping');
     return;
   }
   
-  // Guard: Don't recheck same URL repeatedly
-  const currentUrl = window.location.href;
-  if (reason === 'url_changed' && currentUrl === lastRecheckUrl) {
-    console.log('[Recheck] Same URL, skipping');
+  // Verify task matches session
+  if (currentTask.id !== activeSession.task_id) {
+    console.warn('[Recheck] Task/session mismatch!', {
+      task: currentTask.id,
+      session: activeSession.task_id
+    });
     return;
   }
-  lastRecheckUrl = currentUrl;
   
-  console.log(`[Recheck] Executing detection pipeline (reason: ${reason})`);
-  recheckCount++;
+  const currentUrl = window.location.href;
+  
+  // Update session state
+  await updateActiveSession({
+    current_url: currentUrl,
+    recheck_count: activeSession.recheck_count + 1
+  });
+  
+  // Reload updated session
+  activeSession = await getActiveSession();
+  
+  console.log(`[Recheck] Executing detection pipeline (reason: ${reason}, task: ${activeSession.task_id})`);
   
   // Show loading state in overlay if it exists
   const existingOverlay = document.getElementById('fw-needs-user-overlay');
@@ -418,6 +449,9 @@ async function executeRecheck(reason) {
   }
   
   try {
+    // Classify page type
+    const pageType = classifyPageType();
+    
     // Run full detection pipeline
     const atsResult = detectATS();
     const stageResult = detectApplyStage(atsResult.ats_kind);
@@ -427,28 +461,41 @@ async function executeRecheck(reason) {
       stage: stageResult
     });
     
+    // Update session with detected ATS
+    if (atsResult.ats_kind !== 'unknown' && !activeSession.ats_kind) {
+      await updateActiveSession({ ats_kind: atsResult.ats_kind });
+    }
+    
     // Detect intent if pausing
     let intentResult = null;
     let guidance = null;
     
     if (actionResult.action === 'pause_needs_user') {
       intentResult = detectUserActionIntent(atsResult, stageResult);
-      guidance = generateGuidance(intentResult.intent, atsResult, stageResult);
+      guidance = generateSessionAwareGuidance(
+        intentResult.intent,
+        atsResult,
+        stageResult,
+        activeSession
+      );
     }
     
-    // Add recheck evidence
+    // Add recheck evidence with session context
     const recheckEvidence = makeEvidence(
       'recheck_trigger',
       `Re-detection triggered by ${reason}`,
       { 
         reason,
-        recheck_count: recheckCount,
+        task_id: activeSession.task_id,
+        job_id: activeSession.job_id,
+        recheck_count: activeSession.recheck_count,
         url: currentUrl,
+        page_type: pageType,
         timestamp: new Date().toISOString()
       }
     );
     
-    // Update storage with recheck metadata
+    // Update storage with recheck metadata and session info
     await chrome.storage.local.set({
       detectionState: {
         ats: atsResult,
@@ -457,8 +504,15 @@ async function executeRecheck(reason) {
         intent: intentResult,
         guidance: guidance,
         last_recheck_reason: reason,
-        recheck_count: recheckCount,
+        recheck_count: activeSession.recheck_count,
         page_url: currentUrl,
+        page_type: pageType,
+        session: {
+          task_id: activeSession.task_id,
+          job_id: activeSession.job_id,
+          ats_kind: activeSession.ats_kind,
+          started_at: activeSession.started_at
+        },
         recheck_evidence: recheckEvidence
       }
     });
@@ -467,25 +521,24 @@ async function executeRecheck(reason) {
     if (actionResult.action === 'pause_needs_user') {
       showNeedsUserOverlay(atsResult, stageResult, actionResult, intentResult, guidance);
     } else if (actionResult.action === 'continue') {
-      // Remove overlay if it exists
       const overlay = document.getElementById('fw-needs-user-overlay');
       if (overlay) overlay.remove();
       
-      // Run autofill
       const userProfile = await APIClient.getUserProfile(1);
       if (userProfile && userProfile.profile) {
         await attemptAutofill(userProfile.profile, userProfile.user);
       }
     } else if (actionResult.action === 'noop') {
-      // Remove overlay, user will handle via popup
       const overlay = document.getElementById('fw-needs-user-overlay');
       if (overlay) overlay.remove();
     }
     
     console.log('[Recheck] Detection pipeline complete:', {
+      task_id: activeSession.task_id,
       ats: atsResult.ats_kind,
       stage: stageResult.stage,
       action: actionResult.action,
+      page_type: pageType,
       intent: intentResult?.intent
     });
     
@@ -515,6 +568,89 @@ function showRecheckingOverlay() {
       </div>
     `;
   }
+}
+
+/**
+ * Classify the current page type
+ * @returns {string} Page type classification
+ */
+function classifyPageType() {
+  const url = window.location.href.toLowerCase();
+  const bodyText = document.body?.textContent.toLowerCase() || '';
+  
+  // Check for submission confirmation
+  if (bodyText.includes('application submitted') ||
+      bodyText.includes('thank you for applying') ||
+      bodyText.includes('we received your application')) {
+    return 'submission_confirmation_page';
+  }
+  
+  // Check for authentication page
+  const hasPasswordInput = document.querySelector('input[type="password"]') !== null;
+  const hasLoginButton = findButtonsForClassification(['sign in', 'log in', 'login']).length > 0;
+  
+  if (hasPasswordInput && hasLoginButton) {
+    return 'authentication_page';
+  }
+  
+  // Check for application form
+  const hasFormInputs = document.querySelectorAll('input[type="text"], input[type="email"], textarea').length >= 3;
+  const hasSubmitButton = findButtonsForClassification(['submit', 'submit application', 'apply']).length > 0;
+  
+  if (hasFormInputs && hasSubmitButton) {
+    return 'application_form_page';
+  }
+  
+  // Check for ATS landing page
+  const isAtsUrl = url.includes('greenhouse.io') || 
+                   url.includes('lever.co') || 
+                   url.includes('myworkdayjobs.com') ||
+                   url.includes('icims.com');
+  
+  const hasApplyButton = findButtonsForClassification([
+    'apply', 'apply now', 'easy apply', 'apply for this job'
+  ]).length > 0;
+  
+  if (isAtsUrl && hasApplyButton) {
+    return 'ats_landing_page';
+  }
+  
+  // Check for job detail page
+  const hasJobTitle = document.querySelector('h1, h2, .job-title, [class*="job-title"]') !== null;
+  const hasJobDescription = bodyText.length > 500;
+  
+  if (hasJobTitle && hasJobDescription && hasApplyButton) {
+    return 'job_detail_page';
+  }
+  
+  return 'unknown_page';
+}
+
+/**
+ * Helper function to find buttons for page classification
+ * @param {string[]} textPatterns - Text patterns to search for
+ * @returns {Element[]} Array of matching button elements
+ */
+function findButtonsForClassification(textPatterns) {
+  const buttons = [];
+  const elements = document.querySelectorAll(
+    'button, a[role="button"], input[type="submit"], input[type="button"], [role="link"]'
+  );
+  
+  for (const el of elements) {
+    const text = (el.textContent || el.value || '').toLowerCase().trim();
+    const ariaLabel = (el.getAttribute('aria-label') || '').toLowerCase();
+    const combinedText = `${text} ${ariaLabel}`;
+    
+    for (const pattern of textPatterns) {
+      if (combinedText.includes(pattern)) {
+        buttons.push(el);
+        break;
+      }
+    }
+  }
+  
+  return buttons;
 }
 
 /**

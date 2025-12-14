@@ -157,7 +157,10 @@ function hideMessage() {
  * Show detection info panel
  */
 function showDetectionInfo(detectionState) {
-  const { ats, stage, action, intent, guidance, last_recheck_reason, recheck_count, page_url } = detectionState;
+  const { 
+    ats, stage, action, intent, guidance, 
+    last_recheck_reason, recheck_count, page_url, page_type, session 
+  } = detectionState;
   
   document.getElementById('detection-info').style.display = 'block';
   document.getElementById('ats-kind').textContent = ats.ats_kind || 'unknown';
@@ -174,14 +177,16 @@ function showDetectionInfo(detectionState) {
     document.getElementById('intent-info').style.display = 'none';
   }
   
-  // Format evidence as JSON with recheck metadata
+  // Format evidence as JSON with recheck metadata and session info
   const fullReport = {
+    session: session || null,
     ats: ats,
     stage: stage,
     action: action,
     intent: intent,
     guidance: guidance,
     page_url: page_url,
+    page_type: page_type,
     last_recheck_reason: last_recheck_reason,
     recheck_count: recheck_count,
     timestamp: new Date().toISOString()

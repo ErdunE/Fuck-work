@@ -4,7 +4,7 @@
  */
 
 // Import API client and state machine
-importScripts('api.js', 'ats_types.js', 'apply_state_machine.js');
+importScripts('api.js', 'ats_types.js', 'apply_state_machine.js', 'apply_session.js');
 
 // Worker state
 let currentTask = null;
@@ -93,7 +93,11 @@ async function processTask(task) {
       throw new Error(`Job ${task.job_id} not found`);
     }
     
-    // 3. Open job URL in new tab
+    // 3. Create apply session BEFORE opening tab
+    await createApplySession(task.id, task.job_id, job.url);
+    console.log(`[Background] Apply session created for task ${task.id}`);
+    
+    // 4. Open job URL in new tab
     console.log(`Opening job URL: ${job.url}`);
     const tab = await chrome.tabs.create({
       url: job.url,
@@ -102,7 +106,7 @@ async function processTask(task) {
     
     currentJobTab = tab.id;
     
-    // Store task data for content script
+    // 5. Store task data for content script (legacy, session is primary now)
     await chrome.storage.local.set({
       activeTask: task,
       activeJob: job,
@@ -231,6 +235,9 @@ async function completeTask(status, reason, details = {}) {
       reason,
       details
     );
+    
+    // Close apply session
+    await closeActiveSession();
     
     console.log(`Task ${currentTask.id} completed: ${status}`);
     
