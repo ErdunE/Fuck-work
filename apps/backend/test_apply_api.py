@@ -90,7 +90,7 @@ def test_transition_task(task_id: int, to_status: str, reason: str = None):
     payload = {
         "to_status": to_status,
         "reason": reason,
-        "details": {"test": True, "timestamp": "2024-01-01T00:00:00"}
+        "details": {"test": True, "timestamp": "2024-01-01T00:00:00", "detection_id": "test_detection_123"}
     }
     
     print(f"\n{'='*80}")
@@ -105,6 +105,8 @@ def test_transition_task(task_id: int, to_status: str, reason: str = None):
     if response.status_code == 200:
         result = response.json()
         print(f"✓ {result['message']}")
+        echoed = response.headers.get("X-FW-Detection-Id")
+        print(f"  X-FW-Detection-Id: {echoed}")
         print(f"  Event ID: {result['event_id']}")
         print(f"  Task status: {result['task']['status']}")
         print(f"  Attempt count: {result['task']['attempt_count']}")

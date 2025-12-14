@@ -160,7 +160,7 @@ async function processTask(task) {
 /**
  * Handle detection result from content script
  */
-async function handleDetectionResult({ ats, stage, action }) {
+async function handleDetectionResult({ ats, stage, action, detection_id }) {
   if (!currentTask) {
     console.log('[Background] No current task for detection result');
     return;
@@ -182,6 +182,9 @@ async function handleDetectionResult({ ats, stage, action }) {
   }
   
   console.log('[Background] Detection result:', { ats, stage, action });
+  if (detection_id) {
+    console.log('[FW Detection] Start', { detection_id, task_id: currentTask.id });
+  }
   
   try {
     if (action.action === 'pause_needs_user') {
@@ -197,7 +200,8 @@ async function handleDetectionResult({ ats, stage, action }) {
             ats: ats.ats_kind,
             stage: stage.stage,
             evidence: action.evidence,
-            detection_timestamp: new Date().toISOString()
+            detection_timestamp: new Date().toISOString(),
+            detection_id: detection_id || null
           }
         );
       } catch (error) {
@@ -211,6 +215,9 @@ async function handleDetectionResult({ ats, stage, action }) {
       
       // Keep task reference but mark as not processing
       isProcessing = false;
+      if (detection_id) {
+        console.log('[FW Detection] Complete', { detection_id, task_id: currentTask.id });
+      }
       
     } else if (action.action === 'fail') {
       // Transition to failed
@@ -223,7 +230,8 @@ async function handleDetectionResult({ ats, stage, action }) {
           action.reason,
           { 
             ats: ats.ats_kind,
-            stage: stage.stage
+            stage: stage.stage,
+            detection_id: detection_id || null
           }
         );
       } catch (error) {
@@ -239,12 +247,21 @@ async function handleDetectionResult({ ats, stage, action }) {
       currentJobTab = null;
       isProcessing = false;
       await chrome.storage.local.remove(['activeTask', 'activeJob', 'taskStartTime']);
+      if (detection_id) {
+        console.log('[FW Detection] Complete', { detection_id, task_id: currentTask.id });
+      }
     }
     
     // For 'continue' and 'noop', do nothing - task stays in_progress
+    if (detection_id && (action.action === 'continue' || action.action === 'noop')) {
+      console.log('[FW Detection] Complete', { detection_id, task_id: currentTask.id });
+    }
     
   } catch (error) {
     console.error('[Background] Failed to handle detection result:', error);
+    if (detection_id) {
+      console.log('[FW Detection] Complete', { detection_id, task_id: currentTask.id, error: true });
+    }
   }
 }
 

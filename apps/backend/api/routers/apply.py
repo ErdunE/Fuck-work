@@ -3,7 +3,7 @@ Apply task queue and orchestration endpoints.
 Phase 3.5 - Human-in-the-loop Apply Pipeline.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from database import get_db
 from database.models import User
@@ -120,6 +120,7 @@ def get_apply_task(
 def transition_apply_task(
     task_id: int,
     request: ApplyTransitionRequest,
+    response: Response,
     db: Session = Depends(get_db)
 ):
     """
@@ -148,6 +149,14 @@ def transition_apply_task(
             reason=request.reason,
             details=request.details
         )
+
+        # Debug correlation id echo (no JSON schema change)
+        try:
+            if isinstance(request.details, dict) and request.details.get("detection_id"):
+                response.headers["X-FW-Detection-Id"] = str(request.details.get("detection_id"))
+        except Exception:
+            # Never fail transition due to debug header
+            pass
         
         return ApplyTransitionResponse(
             task=task,

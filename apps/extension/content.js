@@ -3,7 +3,20 @@
  * Runs on job application pages with ATS detection and state machine.
  */
 
-console.log('FuckWork content script loaded');
+(() => {
+  const ts = new Date().toISOString();
+  const url = window.location.href;
+  const readyState = document.readyState;
+  let version = 'unknown';
+  try {
+    version = chrome?.runtime?.getManifest?.().version || 'unknown';
+  } catch (_) {
+    // ignore
+  }
+
+  console.log('[FW Injected] content.js loaded', { url, readyState, ts, version });
+  window.__FW_CONTENT_LOADED__ = { url, ts, version };
+})();
 
 /**
  * Ensure FW debug state exists globally
@@ -12,10 +25,32 @@ console.log('FuckWork content script loaded');
  */
 function ensureFWDebugState() {
   if (!window._FW_DEBUG_STATE__) {
+    let version = 'unknown';
+    try {
+      version = chrome?.runtime?.getManifest?.().version || 'unknown';
+    } catch (_) {
+      // ignore
+    }
     window._FW_DEBUG_STATE__ = {
       recheckCount: 0,
       lastRecheckReason: null,
-      initializedAt: Date.now()
+      initializedAt: Date.now(),
+      version,
+      lastUrlSeen: window.location.href,
+      lastPageType: null,
+      lastDedupSignature: null,
+      detectionCounter: 0,
+      lastDetectionId: null,
+      lastDetectionStage: null,
+      lastDetectionAtsKind: null,
+      overlay: {
+        ensureOverlayLogged: false,
+        state: 'none',
+        createdAt: null,
+        updatedAt: null,
+        removedAt: null,
+        lastUpdate: null
+      }
     };
     console.log('[FW Debug State] Initialized:', window._FW_DEBUG_STATE__);
   }
@@ -39,6 +74,56 @@ let lastRecheckSignature = null;
 
 // Overlay lifecycle management (session-scoped singleton)
 let fwOverlayInstance = null;
+let fwOverlayEnsureLoggedThisPage = false;
+
+function isFWDebugUIEnabled() {
+  try {
+    const params = new URL(window.location.href).searchParams;
+    if (params.get('fw_debug') === '1') return true;
+  } catch (_) {
+    // ignore
+  }
+  try {
+    return window.__FW_DEBUG_UI_ENABLED__ === true;
+  } catch (_) {
+    return false;
+  }
+}
+
+function getFWDebugSnapshot() {
+  const debugState = ensureFWDebugState();
+  return {
+    injected: Boolean(window.__FW_CONTENT_LOADED__),
+    injected_marker: window.__FW_CONTENT_LOADED__ || null,
+    session_active: Boolean(activeSession && activeSession.active),
+    task_id: activeSession?.task_id ?? null,
+    job_id: activeSession?.job_id ?? null,
+    last_recheck_reason: debugState.lastRecheckReason,
+    recheck_count: debugState.recheckCount,
+    last_detection_id: debugState.lastDetectionId,
+    url: window.location.href,
+    overlay_state: debugState.overlay.state
+  };
+}
+
+function updateOverlayDebugPanel() {
+  if (!fwOverlayInstance) return;
+  const debugState = ensureFWDebugState();
+  const panel = fwOverlayInstance.querySelector('.fw-debug-panel');
+  if (!panel) return;
+
+  const snap = getFWDebugSnapshot();
+  panel.textContent =
+    `content.js injected: ${snap.injected ? 'yes' : 'no'}\n` +
+    `session active: ${snap.session_active ? 'yes' : 'no'}\n` +
+    `task_id: ${snap.task_id}\n` +
+    `job_id: ${snap.job_id}\n` +
+    `last recheck reason: ${snap.last_recheck_reason}\n` +
+    `recheck_count: ${snap.recheck_count}\n` +
+    `last detection_id: ${snap.last_detection_id}\n` +
+    `current URL: ${snap.url}\n` +
+    `overlay state: ${debugState.overlay.state}\n`;
+}
 
 /**
  * Ensure overlay exists for active session
@@ -46,10 +131,23 @@ let fwOverlayInstance = null;
  * @param {object} session - Active apply session
  */
 function ensureOverlay(session) {
+  const debugState = ensureFWDebugState();
+  if (!fwOverlayEnsureLoggedThisPage) {
+    console.log('[FW Overlay] ensureOverlay called');
+    fwOverlayEnsureLoggedThisPage = true;
+  }
+
   if (!fwOverlayInstance) {
-    console.log('[Overlay] Creating session-scoped overlay for task:', session.task_id);
+    console.log('[FW Overlay] Created', { url: window.location.href, task_id: session.task_id });
     fwOverlayInstance = createOverlayElement(session);
     document.body.appendChild(fwOverlayInstance);
+    debugState.overlay.state = 'created';
+    debugState.overlay.createdAt = new Date().toISOString();
+    updateOverlayDebugPanel();
+  } else {
+    console.log('[FW Overlay] Reused existing overlay');
+    debugState.overlay.state = 'reused';
+    updateOverlayDebugPanel();
   }
 }
 
@@ -57,14 +155,25 @@ function ensureOverlay(session) {
  * Update overlay content based on detection results
  * Does NOT control visibility - only updates content
  * @param {object} guidance - Guidance object from detection
+ * @param {object} meta - Optional metadata { stage, ats_kind }
  */
-function updateOverlayContent(guidance) {
+function updateOverlayContent(guidance, meta = {}) {
   if (!fwOverlayInstance) {
     console.warn('[Overlay] Cannot update - overlay does not exist');
     return;
   }
-  
-  console.log('[Overlay] Updating content:', guidance.intent);
+
+  const debugState = ensureFWDebugState();
+  const stage = meta.stage ?? debugState.lastDetectionStage;
+  const atsKind = meta.ats_kind ?? debugState.lastDetectionAtsKind ?? guidance.ats_kind;
+  console.log('[FW Overlay] Updated content', {
+    intent: guidance.intent,
+    stage,
+    ats_kind: atsKind
+  });
+  debugState.overlay.state = 'updated';
+  debugState.overlay.updatedAt = new Date().toISOString();
+  debugState.overlay.lastUpdate = { intent: guidance.intent, stage, ats_kind: atsKind };
   
   // Update overlay DOM with new guidance
   const titleEl = fwOverlayInstance.querySelector('.fw-overlay-title');
@@ -80,6 +189,8 @@ function updateOverlayContent(guidance) {
   if (nextEl) nextEl.textContent = guidance.what_next;
   if (taskIdEl) taskIdEl.textContent = guidance.task_id;
   if (jobIdEl) jobIdEl.textContent = guidance.job_id;
+
+  updateOverlayDebugPanel();
 }
 
 /**
@@ -87,9 +198,12 @@ function updateOverlayContent(guidance) {
  * @param {object} session - Session object (may be inactive)
  */
 function removeOverlayIfSessionClosed(session) {
+  const debugState = ensureFWDebugState();
   if (!session || !session.active) {
     if (fwOverlayInstance) {
-      console.log('[Overlay] Removing overlay - session closed');
+      console.log('[FW Overlay] Removed (reason: session_closed)');
+      debugState.overlay.state = 'removed';
+      debugState.overlay.removedAt = new Date().toISOString();
       fwOverlayInstance.remove();
       fwOverlayInstance = null;
     }
@@ -163,6 +277,34 @@ function createOverlayElement(session) {
         📋 Copy Debug
       </button>
     </div>
+    ${isFWDebugUIEnabled() ? `
+      <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+        <button class="fw-debug-toggle" style="
+          width: 100%;
+          background: #fafafa;
+          border: 1px solid #eee;
+          border-radius: 4px;
+          padding: 6px 8px;
+          cursor: pointer;
+          font-size: 12px;
+          color: #555;
+          text-align: left;
+        ">FW Debug ▸</button>
+        <pre class="fw-debug-panel" style="
+          display: none;
+          margin: 8px 0 0 0;
+          padding: 8px;
+          background: #111;
+          color: #eee;
+          font-size: 11px;
+          border-radius: 4px;
+          white-space: pre-wrap;
+          word-break: break-word;
+          max-height: 180px;
+          overflow: auto;
+        "></pre>
+      </div>
+    ` : ``}
   `;
   
   // Add copy debug handler
@@ -174,6 +316,19 @@ function createOverlayElement(session) {
       console.log('[Overlay] Debug info copied to clipboard');
     }
   });
+
+  if (isFWDebugUIEnabled()) {
+    const toggle = overlay.querySelector('.fw-debug-toggle');
+    const panel = overlay.querySelector('.fw-debug-panel');
+    if (toggle && panel) {
+      toggle.addEventListener('click', () => {
+        const isOpen = panel.style.display === 'block';
+        panel.style.display = isOpen ? 'none' : 'block';
+        toggle.textContent = isOpen ? 'FW Debug ▸' : 'FW Debug ▾';
+        updateOverlayDebugPanel();
+      });
+    }
+  }
   
   return overlay;
 }
@@ -195,10 +350,19 @@ async function init() {
   activeSession = await getActiveSession();
   
   if (!activeSession || !activeSession.active) {
+    console.log('[FW Session] No active apply session on this page');
     console.log('[FW Init] No active session found, skipping initialization');
     return;
   }
   
+  console.log('[FW Session] Loaded', {
+    active: activeSession.active,
+    task_id: activeSession.task_id,
+    job_id: activeSession.job_id,
+    initial_url: activeSession.initial_url,
+    current_url: activeSession.current_url
+  });
+
   console.log('[FW Init] Active session found:', activeSession.task_id);
   
   // STEP 3: Get task from storage
@@ -243,6 +407,14 @@ async function runDetection() {
   }
   lastDetectionTime = now;
   
+  const debugState = ensureFWDebugState();
+  debugState.detectionCounter += 1;
+  const detectionId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : `det_${debugState.detectionCounter}_${Date.now()}`;
+  debugState.lastDetectionId = detectionId;
+
+  console.log('[FW Detection] Start', { detection_id: detectionId, url: window.location.href });
   console.log('[Detection] Running ATS and stage detection...');
   
   try {
@@ -253,6 +425,9 @@ async function runDetection() {
     // Step 2: Detect application stage
     const stageResult = detectApplyStage(atsResult.ats_kind);
     console.log('[Detection] Stage result:', stageResult);
+
+    debugState.lastDetectionStage = stageResult.stage;
+    debugState.lastDetectionAtsKind = atsResult.ats_kind;
     
     // Step 3: Compute worker action
     const actionResult = computeWorkerAction({
@@ -272,6 +447,8 @@ async function runDetection() {
     );
     console.log('[Detection] Intent result:', intentResult);
     console.log('[Detection] Guidance:', guidance);
+
+    updateOverlayContent(guidance, { stage: stageResult.stage, ats_kind: atsResult.ats_kind });
     
     // Step 5: UPDATE OVERLAY CONTENT (not visibility)
     updateOverlayContent(guidance);
@@ -284,6 +461,7 @@ async function runDetection() {
         action: actionResult,
         intent: intentResult,
         guidance: guidance,
+        detection_id: detectionId,
         timestamp: new Date().toISOString(),
         session: {
           task_id: activeSession.task_id,
@@ -308,6 +486,7 @@ async function runDetection() {
     // Step 8: Report back to background worker
     chrome.runtime.sendMessage({
       type: 'FW_DETECTION_RESULT',
+      detection_id: detectionId,
       ats: atsResult,
       stage: stageResult,
       action: actionResult
@@ -315,7 +494,9 @@ async function runDetection() {
       console.error('[Detection] Failed to send result to background:', err);
     });
     
+    console.log('[FW Detection] Complete', { detection_id: detectionId, task_id: activeSession?.task_id });
     return {
+      detection_id: detectionId,
       ats: atsResult,
       stage: stageResult,
       action: actionResult
@@ -333,8 +514,9 @@ async function runDetection() {
       task_id: activeSession.task_id,
       job_id: activeSession.job_id,
       intent: 'unknown_manual'
-    });
+    }, { stage: debugState.lastDetectionStage, ats_kind: debugState.lastDetectionAtsKind });
     
+    console.log('[FW Detection] Complete', { detection_id: detectionId, error: true });
     return null;
   }
 }
@@ -460,6 +642,20 @@ function sleep(ms) {
 async function triggerRecheck(reason) {
   // DEFENSIVE: Ensure debug state exists
   const debugState = ensureFWDebugState();
+  const beforeUrl = debugState.lastUrlSeen || lastRecheckUrl || '';
+  const afterUrl = window.location.href;
+  let pageType = null;
+  try {
+    pageType = classifyPageType();
+  } catch (_) {
+    pageType = null;
+  }
+  const reasonCategory = (() => {
+    if (reason === 'dom_changed') return 'mutation';
+    if (reason === 'visibility_change') return 'visibility';
+    if (reason === 'manual') return 'manual';
+    return 'navigation';
+  })();
   
   // Clear existing timeout
   if (recheckTimeout) {
@@ -467,7 +663,19 @@ async function triggerRecheck(reason) {
   }
   
   // Update debug state
+  debugState.recheckCount += 1;
   debugState.lastRecheckReason = reason;
+  debugState.lastUrlSeen = afterUrl;
+  debugState.lastPageType = pageType;
+
+  console.log('[FW Recheck] Triggered', {
+    reason: reasonCategory,
+    reason_raw: reason,
+    url_before: beforeUrl,
+    url_after: afterUrl,
+    page_type: pageType,
+    recheck_count: debugState.recheckCount
+  });
   
   // Debounce to avoid rapid fire
   recheckTimeout = setTimeout(async () => {
@@ -490,6 +698,14 @@ async function executeRecheck(reason) {
     console.log('[Recheck] No active session, skipping');
     return;
   }
+
+  console.log('[FW Session] Loaded', {
+    active: activeSession.active,
+    task_id: activeSession.task_id,
+    job_id: activeSession.job_id,
+    initial_url: activeSession.initial_url,
+    current_url: activeSession.current_url
+  });
   
   // Guard: Don't recheck if no active task
   if (!currentTask) {
@@ -515,7 +731,8 @@ async function executeRecheck(reason) {
   const signature = `${currentUrl}|${pageType}|${activeSession.task_id}`;
   
   if (signature === lastRecheckSignature) {
-    console.log('[Recheck] Skipping duplicate recheck for same page/stage');
+    debugState.lastDedupSignature = signature;
+    console.log('[FW Recheck] Skipped duplicate', { dedup_signature: signature });
     return;
   }
   
@@ -545,7 +762,7 @@ async function executeRecheck(reason) {
     task_id: activeSession.task_id,
     job_id: activeSession.job_id,
     intent: 'analyzing'
-  });
+  }, { stage: debugState.lastDetectionStage, ats_kind: debugState.lastDetectionAtsKind });
   
   try {
     
@@ -616,7 +833,7 @@ async function executeRecheck(reason) {
     
     // Update overlay content with new guidance (NO visibility control)
     if (guidance) {
-      updateOverlayContent(guidance);
+      updateOverlayContent(guidance, { stage: stageResult.stage, ats_kind: atsResult.ats_kind });
     }
     
     // Handle autofill if action is continue
@@ -648,7 +865,7 @@ async function executeRecheck(reason) {
       task_id: activeSession.task_id,
       job_id: activeSession.job_id,
       intent: 'error'
-    });
+    }, { stage: debugState.lastDetectionStage, ats_kind: debugState.lastDetectionAtsKind });
   }
 }
 

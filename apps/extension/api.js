@@ -70,7 +70,12 @@ class APIClient {
         const errorData = await response.json();
         throw new Error(errorData.detail || response.statusText);
       }
-      
+
+      const echoedDetectionId = response.headers.get('X-FW-Detection-Id');
+      if (echoedDetectionId) {
+        console.log('[FW Detection] Backend echoed detection_id', { detection_id: echoedDetectionId });
+      }
+
       return await response.json();
     } catch (error) {
       console.error('Failed to transition task:', error);
