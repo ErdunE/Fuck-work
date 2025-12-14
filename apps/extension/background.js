@@ -425,6 +425,31 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   // ============================================================
+  // Phase 5.3.2: Auth Bridge - Content → Background Relay
+  // ============================================================
+  if (message.type === 'FW_AUTH_BOOTSTRAP_COMPLETE') {
+    console.log('[FW Auth Background] Received auth bootstrap complete', {
+      user_id: message.user_id,
+      expires_at: message.expires_at,
+      from_tab: sender.tab?.id
+    });
+    console.log('[FW Auth Background] Token stored successfully');
+    console.log('[FW Auth Background] Authenticated as user_id', message.user_id);
+    sendResponse({ ok: true });
+    return true;
+  }
+  
+  if (message.type === 'FW_AUTH_CLEAR_COMPLETE') {
+    console.log('[FW Auth Background] Received auth clear complete', {
+      reason: message.reason,
+      from_tab: sender.tab?.id
+    });
+    console.log('[FW Auth Background] Token cleared successfully');
+    sendResponse({ ok: true });
+    return true;
+  }
+  
+  // ============================================================
   // FW_CONTENT_HELLO: Content script injection confirmation
   // ============================================================
   if (message.type === 'FW_CONTENT_HELLO') {

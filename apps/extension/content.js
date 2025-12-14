@@ -84,6 +84,73 @@ const FW_EXT_VERSION = (() => {
   });
 })();
 
+// ============================================================
+// Phase 5.3.2: Auth Event Listener - Web Control Plane Bridge
+// ============================================================
+/**
+ * Listen for auth events from Web Control Plane.
+ * Enables secure, cross-user-safe authentication sync.
+ */
+window.addEventListener('message', async (event) => {
+  // Security: Only accept messages from same origin
+  if (event.origin !== window.location.origin) {
+    return;
+  }
+  
+  const message = event.data;
+  
+  // Phase 5.3.2: Auth bootstrap (login/account switch)
+  if (message.type === 'FW_AUTH_BOOTSTRAP') {
+    console.log('[FW Auth Content] Received auth bootstrap from Web Control Plane', {
+      user_id: message.user_id,
+      mode: message.mode
+    });
+    
+    // Always clear existing auth first (mode: replace ensures no cross-user contamination)
+    await window.authStorage.clearAuthToken('bootstrap_replace');
+    
+    // Store new auth
+    await window.authStorage.storeAuthToken({
+      token: message.token,
+      user_id: message.user_id,
+      expires_at: message.expires_at
+    });
+    
+    console.log('[FW Auth Content] Auth bootstrap complete, notifying background');
+    
+    // Phase 5.3.2: Forward to background for logging and confirmation
+    try {
+      chrome.runtime.sendMessage({
+        type: 'FW_AUTH_BOOTSTRAP_COMPLETE',
+        user_id: message.user_id,
+        expires_at: message.expires_at
+      });
+    } catch (err) {
+      console.warn('[FW Auth Content] Failed to notify background:', err);
+    }
+  }
+  
+  // Phase 5.3.2: Auth clear (logout)
+  if (message.type === 'FW_AUTH_CLEAR') {
+    console.log('[FW Auth Content] Received auth clear from Web Control Plane', {
+      reason: message.reason
+    });
+    
+    await window.authStorage.clearAuthToken(`web_${message.reason}`);
+    console.log('[FW Auth Content] Auth cleared, notifying background');
+    
+    // Phase 5.3.2: Forward to background
+    try {
+      chrome.runtime.sendMessage({
+        type: 'FW_AUTH_CLEAR_COMPLETE',
+        reason: message.reason
+      });
+    } catch (err) {
+      console.warn('[FW Auth Content] Failed to notify background:', err);
+    }
+  }
+});
+
 /**
  * Ensure FW debug state exists globally
  * MUST be called before any access to _FW_DEBUG_STATE__
@@ -646,6 +713,182 @@ async function updateAutomationControlDisplay() {
   }
 }
 
+/**
+ * Validate URL match (loose matching for session bridge)
+ * Phase 5.3.1: Same origin + path, ignore query params, allow trailing slashes
+ * @param {string} currentUrl - Current page URL
+ * @param {string} sessionUrl - Session job URL from backend
+ * @returns {boolean} True if URLs match
+ */
+function validateUrlMatch(currentUrl, sessionUrl) {
+  try {
+    const current = safeParseURL(currentUrl);
+    const session = safeParseURL(sessionUrl);
+    
+    if (!current || !session) {
+      return false;
+    }
+    
+    // Same origin
+    if (current.origin !== session.origin) {
+      return false;
+    }
+    
+    // Same pathname (normalize trailing slashes)
+    const currentPath = current.pathname.replace(/\/$/, '');
+    const sessionPath = session.pathname.replace(/\/$/, '');
+    
+    return currentPath === sessionPath;
+  } catch (e) {
+    console.error('[FW Session] URL validation error:', e);
+    return false;
+  }
+}
+
+/**
+ * Get active session from backend (Phase 5.3.1 - Session Bridge)
+ * This overrides the function from apply_session.js to fetch from backend API.
+ * @returns {Promise<Object>} Session object with { active, task_id, run_id, job_url, ats_type }
+ */
+async function getActiveSession() {
+  try {
+    // Check if user is authenticated
+    if (!AuthManager || !await AuthManager.isAuthenticated()) {
+      console.log('[FW Session] Not authenticated, skipping session fetch');
+      return { active: false };
+    }
+    
+    // Fetch active session from backend
+    console.log('[FW Session] Fetching active session from backend...');
+    const sess = await APIClient.getMyActiveSession();
+    
+    console.log('[FW Session] Active session fetch result:', {
+      active: sess.active,
+      has_run_id: !!sess.run_id,
+      has_task_id: !!sess.task_id
+    });
+    
+    if (!sess.active) {
+      console.log('[FW Session] No active apply session (backend)');
+      return { active: false };
+    }
+    
+    // Validate URL match (loose matching)
+    const currentUrl = window.location.href;
+    const sessionUrl = sess.job_url;
+    const urlMatch = validateUrlMatch(currentUrl, sessionUrl);
+    
+    console.log('[FW Session] active_session_url_match:', urlMatch, {
+      current: currentUrl,
+      expected: sessionUrl
+    });
+    
+    if (!urlMatch) {
+      console.warn('[FW Session] URL mismatch - session exists but not for this page');
+      console.warn('[FW Session] This may be the wrong tab. Not initializing.');
+      return { active: false };
+    }
+    
+    // Store in chrome.storage.local for compatibility
+    await chrome.storage.local.set({
+      fw_active_session: {
+        ...sess,
+        detected_at: Date.now()
+      }
+    });
+    
+    console.log('[FW Session] active_session_attached:', {
+      task_id: sess.task_id,
+      run_id: sess.run_id,
+      ats_type: sess.ats_type
+    });
+    
+    // Return session in expected format
+    return {
+      active: true,
+      task_id: sess.task_id,
+      run_id: sess.run_id,
+      job_id: sess.job_id || `run_${sess.run_id}`,
+      job_url: sess.job_url,
+      ats_type: sess.ats_type,
+      initial_url: sess.job_url,
+      current_url: currentUrl,
+      recheck_count: 0
+    };
+    
+  } catch (error) {
+    console.error('[FW Session] Failed to fetch active session:', error);
+    return { active: false };
+  }
+}
+
+/**
+ * Phase 5.3.2: Verify auth token with backend before proceeding (self-healing)
+ * @returns {Promise<Object|null>} {user_id, email} or null if invalid
+ */
+async function verifyAuthToken() {
+  try {
+    // Load token from storage
+    const auth = await window.authStorage.loadAuthToken();
+    
+    if (!auth || !auth.token) {
+      console.log('[FW Auth] No token found in storage');
+      return null;
+    }
+    
+    // Check expiration
+    if (await window.authStorage.isTokenExpired()) {
+      console.log('[FW Auth] Token expired, clearing');
+      await window.authStorage.clearAuthToken('expired');
+      return null;
+    }
+    
+    // Verify with backend
+    console.log('[FW Auth] Verifying token with backend...', {
+      user_id: auth.user_id,
+      fingerprint: auth.fingerprint
+    });
+    
+    const headers = await APIClient.getAuthHeaders();
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, { headers });
+    
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.warn('[FW Auth] Backend auth failed (401) -> clearing token');
+        await window.authStorage.clearAuthToken('backend_401');
+        return null;
+      }
+      throw new Error(`Backend returned ${response.status}`);
+    }
+    
+    const userData = await response.json();
+    
+    // Verify user_id matches (critical for cross-user safety)
+    if (userData.user_id !== auth.user_id) {
+      console.error('[FW Auth] User mismatch (token user != backend user) -> clearing token', {
+        token_user: auth.user_id,
+        backend_user: userData.user_id
+      });
+      await window.authStorage.clearAuthToken('user_mismatch');
+      return null;
+    }
+    
+    console.log('[FW Auth] Token verified successfully', {
+      user_id: userData.user_id,
+      email: userData.email
+    });
+    
+    return {
+      user_id: userData.user_id,
+      email: userData.email
+    };
+    
+  } catch (error) {
+    console.error('[FW Auth] Token verification failed:', error);
+    return null;
+  }
+}
+
 // Wait for page to be fully loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -654,16 +897,30 @@ if (document.readyState === 'loading') {
 }
 
 function init() {
-  // Overlay survival guarantee:
-  // - No URL parsing here
-  // - No awaits here
-  // - Ensure overlay is created immediately after session load
+  // Phase 5.3.2: Init must verify auth before proceeding
   try {
     console.log('[FW Init] Starting initialization...');
     ensureFWDebugState();
 
-    getActiveSession()
+    // Phase 5.3.2: Verify auth before fetching session
+    verifyAuthToken()
+      .then((verifiedUser) => {
+        if (!verifiedUser) {
+          console.log('[FW Init] Not authenticated or token invalid, skipping initialization');
+          return;
+        }
+        
+        console.log('[FW Init] Auth verified for user', verifiedUser.user_id);
+        
+        // Now fetch active session
+        return getActiveSession();
+      })
       .then((session) => {
+        if (!session) {
+          // Auth failed in previous step, already logged
+          return;
+        }
+        
         activeSession = session;
 
         if (!activeSession || !activeSession.active) {
@@ -675,10 +932,12 @@ function init() {
         console.log('[FW Session] Loaded', {
           active: activeSession.active,
           task_id: activeSession.task_id,
-          job_id: activeSession.job_id,
-          initial_url: activeSession.initial_url,
-          current_url: activeSession.current_url
+          run_id: activeSession.run_id,  // Phase 5.3.1
+          job_url: activeSession.job_url,
+          ats_type: activeSession.ats_type  // Phase 5.3.1
         });
+        
+        console.log('[FW Init] Proceeding with initialization');
 
         // Overlay-first invariant: create overlay before any awaits/detection/url parsing.
         ensureOverlay(activeSession);
@@ -688,6 +947,34 @@ function init() {
         (async () => {
           try {
             console.log('[FW Init] Active session found:', activeSession.task_id);
+            
+            // Phase 5.3.1: Use run_id from backend session
+            if (activeSession.active && activeSession.run_id && !observabilityClient.getRunId()) {
+              const debugState = ensureFWDebugState();
+              const atsKind = activeSession.ats_type || debugState.lastDetectionAtsKind || 'unknown';
+              const intent = debugState.lastDetectionIntent || 'unknown';
+              const stage = debugState.lastDetectionStage || 'analyzing';
+              
+              // Set run_id from backend session (don't create new run)
+              observabilityClient.currentRunId = activeSession.run_id;
+              console.log('[Observability] Using existing run_id from session:', activeSession.run_id);
+              
+              // Log session_attached event
+              observabilityClient.enqueue({
+                source: 'extension',
+                severity: 'info',
+                event_name: 'session_attached',
+                url: window.location.href,
+                payload: {
+                  task_id: activeSession.task_id,
+                  run_id: activeSession.run_id,
+                  job_url: activeSession.job_url,
+                  ats_type: activeSession.ats_type
+                }
+              });
+              
+              observabilityClient.startAutoFlush();
+            }
 
             const { activeTask } = await chrome.storage.local.get(['activeTask']);
             if (!activeTask) {
