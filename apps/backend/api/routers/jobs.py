@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 from typing import Optional
 from database import get_db
 from database.models import Job
-from ..models import JobSearchRequest, JobSearchResponse, JobResponse
+from ..models import JobSearchRequest, JobSearchResponse, JobResponse, JobDecisionResponse, JobDecisionExplanation, DecisionSummary
 from ..services.job_service import JobService
+from decision_engine import explain_job_decision
 
 router = APIRouter()
 
@@ -60,6 +61,13 @@ def search_jobs(
             geo = derived.get('geo', {})
             salary = derived.get('salary', {})
             
+            # Generate lightweight decision summary (Phase 3.2)
+            decision = explain_job_decision(job)
+            decision_summary = DecisionSummary(
+                decision=decision.decision,
+                score=job.authenticity_score
+            )
+            
             job_responses.append(JobResponse(
                 id=job.id,
                 job_id=job.job_id,
@@ -82,7 +90,8 @@ def search_jobs(
                 state=geo.get('state'),
                 country=geo.get('country'),
                 posted_date=job.posted_date,
-                created_at=job.created_at
+                created_at=job.created_at,
+                decision_summary=decision_summary
             ))
         
         return JobSearchResponse(
@@ -138,5 +147,45 @@ def get_job_by_id(
         country=geo.get('country'),
         posted_date=job.posted_date,
         created_at=job.created_at
+    )
+
+
+@router.get("/{job_id}/decision", response_model=JobDecisionResponse)
+def get_job_decision(
+    job_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Get decision recommendation and explanation for a specific job.
+    
+    Returns deterministic, rule-based explanation of why a job is
+    recommended, requires caution, or should be avoided.
+    
+    Based on:
+    - Authenticity score thresholds
+    - Derived signals (level, mode, visa, salary)
+    - Red flags vs positive signals
+    - Confidence level
+    """
+    job = db.query(Job).filter(Job.job_id == job_id).first()
+    
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Run decision engine
+    decision = explain_job_decision(job)
+    
+    return JobDecisionResponse(
+        job_id=job.job_id,
+        title=job.title,
+        company_name=job.company_name,
+        decision=decision.decision,
+        explanation=JobDecisionExplanation(
+            decision=decision.decision,
+            reasons=decision.reasons,
+            risks=decision.risks,
+            signals_used=decision.signals_used,
+            confidence_level=decision.confidence_level
+        )
     )
 

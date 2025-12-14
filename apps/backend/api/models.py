@@ -3,7 +3,7 @@ Pydantic models for API requests and responses.
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Dict, Any
 from datetime import datetime
 
 
@@ -87,6 +87,9 @@ class JobResponse(BaseModel):
     posted_date: Optional[datetime]
     created_at: datetime
     
+    # Phase 3.2: Optional decision summary (non-breaking addition)
+    decision_summary: Optional['DecisionSummary'] = None
+    
     class Config:
         from_attributes = True
 
@@ -99,4 +102,34 @@ class JobSearchResponse(BaseModel):
     limit: int
     offset: int
     has_more: bool
+
+
+# Phase 3.2: Decision & Explainability Layer models
+
+class DecisionSummary(BaseModel):
+    """Lightweight decision summary for search results"""
+    decision: Literal["recommend", "caution", "avoid"]
+    score: Optional[float] = None
+
+
+class JobDecisionExplanation(BaseModel):
+    """Full decision explanation"""
+    decision: Literal["recommend", "caution", "avoid"]
+    reasons: List[str]
+    risks: List[str]
+    signals_used: Dict[str, Any]
+    confidence_level: str
+
+
+class JobDecisionResponse(BaseModel):
+    """Response for decision endpoint"""
+    job_id: str
+    title: str
+    company_name: str
+    decision: str
+    explanation: JobDecisionExplanation
+
+
+# Resolve forward references for Pydantic v2
+JobResponse.model_rebuild()
 
