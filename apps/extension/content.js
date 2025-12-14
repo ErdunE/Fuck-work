@@ -496,6 +496,39 @@ function createOverlayElement(session) {
       Job <span class="fw-overlay-job-id">${session.job_id}</span>
     </div>
     
+    <div class="fw-automation-controls" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee;">
+      <div style="font-size: 11px; color: #666; margin-bottom: 6px;">
+        This Session:
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="fw-session-toggle" data-pref="auto_fill_enabled_this_session" style="
+          flex: 1;
+          padding: 6px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          background: white;
+          font-size: 11px;
+          cursor: pointer;
+        ">
+          <span class="toggle-icon">◻</span> Auto-fill
+        </button>
+        <button class="fw-session-toggle" data-pref="auto_submit_enabled_this_session" style="
+          flex: 1;
+          padding: 6px 8px;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          background: white;
+          font-size: 11px;
+          cursor: pointer;
+        ">
+          <span class="toggle-icon">◻</span> Auto-submit
+        </button>
+      </div>
+      <div style="font-size: 10px; color: #999; margin-top: 4px; text-align: center;">
+        Session overrides active until application completes
+      </div>
+    </div>
+    
     ${isFWDebugUIEnabled() ? `
       <div style="margin-top: 12px; border-top: 1px solid #eee; padding-top: 8px;">
         <button class="fw-debug-toggle" style="
@@ -548,7 +581,69 @@ function createOverlayElement(session) {
     }
   }
   
+  // Add automation control handlers
+  attachAutomationControlHandlers(overlay, session);
+  
+  // Initial display update
+  updateAutomationControlDisplay();
+  
   return overlay;
+}
+
+/**
+ * Attach event handlers to automation toggle buttons
+ * @param {HTMLElement} overlay - Overlay element
+ * @param {object} session - Active session
+ */
+function attachAutomationControlHandlers(overlay, session) {
+  const toggleButtons = overlay.querySelectorAll('.fw-session-toggle');
+  
+  for (const btn of toggleButtons) {
+    btn.addEventListener('click', async () => {
+      const prefKey = btn.getAttribute('data-pref');
+      const baseKey = prefKey.replace('_this_session', '');
+      const currentValue = await prefManager.getEffectivePreference(baseKey);
+      
+      console.log('[Automation] Toggling', prefKey, 'from', currentValue, 'to', !currentValue);
+      
+      // Toggle session override
+      await prefManager.setSessionOverride(
+        session.task_id,
+        prefKey,
+        !currentValue
+      );
+      
+      updateAutomationControlDisplay();
+    });
+  }
+}
+
+/**
+ * Update automation control button display
+ */
+async function updateAutomationControlDisplay() {
+  if (!fwOverlayInstance) return;
+  
+  try {
+    const autoFillEnabled = await prefManager.getEffectivePreference('auto_fill_after_login');
+    const autoSubmitEnabled = await prefManager.getEffectivePreference('auto_submit_when_ready');
+    
+    // Update button states
+    const buttons = fwOverlayInstance.querySelectorAll('.fw-session-toggle');
+    for (const btn of buttons) {
+      const pref = btn.getAttribute('data-pref');
+      const enabled = pref.includes('auto_fill') ? autoFillEnabled : autoSubmitEnabled;
+      
+      const icon = btn.querySelector('.toggle-icon');
+      if (icon) {
+        icon.textContent = enabled ? '☑' : '◻';
+      }
+      btn.style.background = enabled ? '#e8f5e9' : 'white';
+      btn.style.borderColor = enabled ? '#4caf50' : '#ddd';
+    }
+  } catch (error) {
+    console.error('[Automation] Failed to update control display:', error);
+  }
 }
 
 // Wait for page to be fully loaded
@@ -703,9 +798,31 @@ async function runDetection() {
       }
     });
     
-    // Step 8: Take action based on result (NO overlay manipulation)
+    // Step 8: Phase 4.3 - Trigger automation based on page intent
+    if (pageIntent.intent === 'application_form') {
+      // Check if we just landed here after login
+      const justLoggedIn = checkIfJustLoggedIn();
+      
+      if (justLoggedIn) {
+        console.log('[Automation] Detected post-login, triggering autofill...');
+        await executeAutofillIfAuthorized();
+      } else {
+        // Always check if ready to submit when on application form
+        await checkReadyToSubmit();
+      }
+      
+      // Update last page type for login detection
+      const debugState = ensureFWDebugState();
+      debugState.lastPageType = pageIntent.intent;
+    } else if (pageIntent.intent === 'login_required' || pageIntent.intent === 'account_creation') {
+      // Store that we're on a login page for transition detection
+      const debugState = ensureFWDebugState();
+      debugState.lastPageType = pageIntent.intent;
+    }
+    
+    // Step 9: Legacy action handling (for backward compatibility)
     if (actionResult.action === 'continue') {
-      // Get user profile and run autofill
+      // Legacy autofill logic (will be gated by executeAutofillIfAuthorized)
       const userProfile = await APIClient.getUserProfile(1);
       
       if (userProfile && userProfile.profile) {
@@ -755,6 +872,259 @@ async function runDetection() {
 }
 
 // Legacy overlay function removed - now using session-scoped lifecycle manager
+
+/**
+ * Execute autofill if authorized (Phase 4.3)
+ * Checks permission before running autofill
+ */
+async function executeAutofillIfAuthorized() {
+  console.log('[Autofill] Checking if authorized...');
+  
+  // Check if autofill is enabled
+  const autoFillEnabled = await prefManager.getEffectivePreference('auto_fill_after_login');
+  
+  if (!autoFillEnabled) {
+    console.log('[Autofill] Skipped - auto-fill disabled');
+    const currentGuidance = await getCurrentGuidance();
+    if (currentGuidance) {
+      updateOverlayContent({
+        ...currentGuidance,
+        instruction: 'Auto-fill is disabled. Fill the form manually or enable auto-fill in settings.'
+      });
+    }
+    return;
+  }
+  
+  console.log('[Autofill] Starting authorized autofill...');
+  const currentGuidance = await getCurrentGuidance();
+  if (currentGuidance) {
+    updateOverlayContent({
+      ...currentGuidance,
+      title: 'Auto-filling Application',
+      instruction: 'Filling form fields with your profile information...',
+      reassurance: 'You can review and edit any field before submitting.'
+    });
+  }
+  
+  try {
+    const userProfile = await APIClient.getUserProfile(1);
+    if (userProfile && userProfile.profile) {
+      await attemptAutofill(userProfile.profile, userProfile.user);
+      
+      // After autofill, check if ready to submit
+      await checkReadyToSubmit();
+    } else {
+      console.warn('[Autofill] No user profile found');
+      if (currentGuidance) {
+        updateOverlayContent({
+          ...currentGuidance,
+          instruction: 'Could not load your profile. Please fill the form manually.'
+        });
+      }
+    }
+  } catch (error) {
+    console.error('[Autofill] Failed:', error);
+    if (currentGuidance) {
+      updateOverlayContent({
+        ...currentGuidance,
+        instruction: 'Auto-fill encountered an error. Please fill the form manually.'
+      });
+    }
+  }
+}
+
+/**
+ * Helper to get current guidance from storage
+ * @returns {Promise<object|null>}
+ */
+async function getCurrentGuidance() {
+  try {
+    const { detectionState } = await chrome.storage.local.get(['detectionState']);
+    return detectionState?.guidance || null;
+  } catch (error) {
+    console.error('[Guidance] Failed to load:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if application is ready to submit (Phase 4.3)
+ */
+async function checkReadyToSubmit() {
+  console.log('[Submit] Checking if ready to submit...');
+  
+  const readiness = detectSubmitReadiness();
+  
+  if (readiness.ready) {
+    console.log('[Submit] Application is ready - checking authorization...');
+    await attemptAutoSubmitIfAuthorized();
+  } else {
+    console.log('[Submit] Not ready:', readiness.blocker);
+    const currentGuidance = await getCurrentGuidance();
+    if (currentGuidance) {
+      updateOverlayContent({
+        ...currentGuidance,
+        instruction: `Complete the form. ${readiness.blocker}`
+      });
+    }
+  }
+}
+
+/**
+ * Attempt auto-submit if authorized (Phase 4.3)
+ * All 4 safety gates must pass
+ */
+async function attemptAutoSubmitIfAuthorized() {
+  console.log('[Submit] Checking auto-submit authorization...');
+  
+  // Gate 1: Check if auto-submit is enabled
+  const autoSubmitEnabled = await prefManager.getEffectivePreference('auto_submit_when_ready');
+  
+  if (!autoSubmitEnabled) {
+    console.log('[Submit] Auto-submit disabled');
+    const currentGuidance = await getCurrentGuidance();
+    if (currentGuidance) {
+      updateOverlayContent({
+        ...currentGuidance,
+        title: 'Ready to Submit',
+        instruction: 'Your application is ready. Review the form and click Submit when ready.',
+        reassurance: 'Auto-submit is disabled. You have full control.'
+      });
+    }
+    return;
+  }
+  
+  // Gate 2: Check ATS approval
+  const prefs = await prefManager.getPreferences();
+  if (!prefs.session.ats_approved_this_session) {
+    console.log('[Submit] ATS not approved - prompting user...');
+    const approved = await promptATSApproval();
+    if (!approved) {
+      console.log('[Submit] User declined ATS approval');
+      return;
+    }
+  }
+  
+  // Gate 3: Check readiness (redundant but safe)
+  const readiness = detectSubmitReadiness();
+  if (!readiness.ready) {
+    console.log('[Submit] Not ready:', readiness.blocker);
+    const currentGuidance = await getCurrentGuidance();
+    if (currentGuidance) {
+      updateOverlayContent({
+        ...currentGuidance,
+        instruction: `Cannot auto-submit: ${readiness.blocker}`
+      });
+    }
+    return;
+  }
+  
+  // Gate 4: ALWAYS show review modal (NON-NEGOTIABLE)
+  console.log('[Submit] Showing review modal...');
+  const currentGuidance = await getCurrentGuidance();
+  if (currentGuidance) {
+    updateOverlayContent({
+      ...currentGuidance,
+      title: 'Review Required',
+      instruction: 'Please review your application in the modal.',
+      reassurance: 'You can cancel at any time.'
+    });
+  }
+  
+  const { detectionState } = await chrome.storage.local.get(['detectionState']);
+  const context = {
+    activeSession: activeSession,
+    ats_kind: detectionState?.ats?.ats_kind,
+    job_id: activeSession?.job_id
+  };
+  
+  const confirmed = await showSubmitReviewModal(context);
+  
+  if (confirmed) {
+    console.log('[Submit] User confirmed - executing submit');
+    executeSubmit(readiness.submitButton);
+  } else {
+    console.log('[Submit] User canceled');
+    if (currentGuidance) {
+      updateOverlayContent({
+        ...currentGuidance,
+        title: 'Submission Canceled',
+        instruction: 'Submission canceled. Review the form and submit manually when ready.',
+        reassurance: 'You can always submit manually by clicking the submit button.'
+      });
+    }
+  }
+}
+
+/**
+ * Prompt user for ATS approval
+ * @returns {Promise<boolean>}
+ */
+async function promptATSApproval() {
+  const { detectionState } = await chrome.storage.local.get(['detectionState']);
+  const atsKind = detectionState?.ats?.ats_kind || 'this ATS';
+  
+  // Simple confirmation for now
+  // Future: Could be more sophisticated with ATS capability detection
+  const approved = confirm(
+    `Allow auto-submit for ${atsKind} applications in this session?\n\n` +
+    `You will still review every submission before it's sent.`
+  );
+  
+  if (approved && activeSession) {
+    await prefManager.setSessionOverride(activeSession.task_id, 'ats_approved_this_session', true);
+    console.log('[Submit] ATS approved for session');
+  }
+  
+  return approved;
+}
+
+/**
+ * Execute submit action
+ * @param {HTMLElement} submitButton - Submit button to click
+ */
+function executeSubmit(submitButton) {
+  // Final safety check
+  if (!submitButton || submitButton.disabled) {
+    console.error('[Submit] Submit button no longer available');
+    return;
+  }
+  
+  console.log('[Submit] Clicking submit button');
+  const currentGuidancePromise = getCurrentGuidance();
+  currentGuidancePromise.then(currentGuidance => {
+    if (currentGuidance) {
+      updateOverlayContent({
+        ...currentGuidance,
+        title: 'Submitting Application',
+        instruction: 'Sending your application...',
+        reassurance: 'Please wait...'
+      });
+    }
+  });
+  
+  // Click the button
+  submitButton.click();
+  
+  console.log('[Submit] Submit button clicked - waiting for page transition');
+}
+
+/**
+ * Check if we just logged in (based on page transition history)
+ * @returns {boolean}
+ */
+function checkIfJustLoggedIn() {
+  // Simple heuristic: check if we transitioned from login_required to application_form
+  const debugState = ensureFWDebugState();
+  
+  // Check if last page type was login_required
+  if (debugState.lastPageType === 'login_required') {
+    console.log('[Login] Detected transition from login page');
+    return true;
+  }
+  
+  return false;
+}
 
 /**
  * Attempt to autofill basic fields

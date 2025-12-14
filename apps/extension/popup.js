@@ -8,6 +8,9 @@ async function init() {
   // Load current state
   await refreshState();
   
+  // Load automation settings
+  await loadAutomationSettings();
+  
   // Set up event listeners
   document.getElementById('btn-continue').addEventListener('click', handleContinue);
   document.getElementById('btn-success').addEventListener('click', () => completeTask('success'));
@@ -15,6 +18,15 @@ async function init() {
   document.getElementById('btn-cancel').addEventListener('click', () => completeTask('canceled'));
   document.getElementById('btn-refresh').addEventListener('click', refreshState);
   document.getElementById('btn-copy-debug').addEventListener('click', handleCopyDebug);
+  document.getElementById('save-automation-prefs').addEventListener('click', handleSaveAutomationPrefs);
+  
+  // Listen for checkbox changes to enable save button
+  document.getElementById('auto-fill-toggle').addEventListener('change', () => {
+    document.getElementById('save-automation-prefs').style.background = '#ff9800';
+  });
+  document.getElementById('auto-submit-toggle').addEventListener('change', () => {
+    document.getElementById('save-automation-prefs').style.background = '#ff9800';
+  });
 }
 
 // Listen for storage changes to auto-update popup
@@ -233,6 +245,50 @@ async function handleContinue() {
   } catch (error) {
     showMessage('Failed to continue: ' + error.message, 'error');
     document.getElementById('btn-continue').disabled = false;
+  }
+}
+
+/**
+ * Load automation settings from preferences
+ */
+async function loadAutomationSettings() {
+  try {
+    const prefs = await prefManager.getPreferences();
+    document.getElementById('auto-fill-toggle').checked = prefs.global.auto_fill_after_login;
+    document.getElementById('auto-submit-toggle').checked = prefs.global.auto_submit_when_ready;
+    console.log('[Popup] Loaded automation settings:', prefs.global);
+  } catch (error) {
+    console.error('[Popup] Failed to load automation settings:', error);
+  }
+}
+
+/**
+ * Handle save automation preferences
+ */
+async function handleSaveAutomationPrefs() {
+  try {
+    const saveBtn = document.getElementById('save-automation-prefs');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+    
+    const autoFill = document.getElementById('auto-fill-toggle').checked;
+    const autoSubmit = document.getElementById('auto-submit-toggle').checked;
+    
+    await prefManager.updateGlobalPreferences({
+      auto_fill_after_login: autoFill,
+      auto_submit_when_ready: autoSubmit
+    });
+    
+    showMessage('Automation settings saved successfully', 'success');
+    saveBtn.style.background = '';
+    saveBtn.textContent = 'Save Settings';
+    saveBtn.disabled = false;
+    
+    setTimeout(hideMessage, 3000);
+  } catch (error) {
+    showMessage('Failed to save settings: ' + error.message, 'error');
+    document.getElementById('save-automation-prefs').disabled = false;
+    document.getElementById('save-automation-prefs').textContent = 'Save Settings';
   }
 }
 

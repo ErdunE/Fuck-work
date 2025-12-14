@@ -192,6 +192,57 @@
       color: #666;
       font-style: italic;
     }
+    
+    .automation-settings {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 2px solid #e0e0e0;
+    }
+    
+    .automation-settings h3 {
+      font-size: 14px;
+      margin: 0 0 12px 0;
+      color: #1a1a1a;
+    }
+    
+    .setting-row {
+      margin-bottom: 16px;
+    }
+    
+    .setting-row label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: 13px;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    
+    .setting-row input[type="checkbox"] {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+    
+    .setting-help {
+      font-size: 11px;
+      color: #666;
+      margin: 4px 0 0 24px;
+      line-height: 1.4;
+    }
+    
+    .setting-help.warning {
+      color: #ff9800;
+    }
+    
+    .setting-info {
+      font-size: 11px;
+      color: #666;
+      padding: 8px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      margin-top: 12px;
+      line-height: 1.4;
+    }
   </style>
 </head>
 <body>
@@ -259,6 +310,39 @@
   
   <div id="message" class="message" style="display: none;"></div>
   
+  <div class="automation-settings">
+    <h3>⚙️ Automation Settings</h3>
+    
+    <div class="setting-row">
+      <label>
+        <input type="checkbox" id="auto-fill-toggle" />
+        Auto-fill after login
+      </label>
+      <p class="setting-help">
+        Automatically fill application fields after you sign in.
+      </p>
+    </div>
+    
+    <div class="setting-row">
+      <label>
+        <input type="checkbox" id="auto-submit-toggle" />
+        Auto-submit when ready (requires review)
+      </label>
+      <p class="setting-help warning">
+        ⚠️ You will always review submissions before they are sent.
+      </p>
+    </div>
+    
+    <div class="setting-info">
+      These are global defaults. You can override them per-application in the overlay.
+    </div>
+    
+    <button id="save-automation-prefs" class="btn-primary" style="width: 100%; margin-top: 8px;">
+      Save Settings
+    </button>
+  </div>
+  
+  <script src="automation_preferences.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>
