@@ -4,9 +4,10 @@ SQLAlchemy ORM models for FuckWork Phase 2A.
 Minimal schema with 4-field collection_metadata.
 """
 
-from sqlalchemy import Column, Integer, String, Text, Float, TIMESTAMP
+from sqlalchemy import Column, Integer, String, Text, Float, TIMESTAMP, ForeignKey, Boolean, Date
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 from datetime import datetime
 
 Base = declarative_base()
@@ -90,4 +91,180 @@ class Job(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'expires_at': self.expires_at.isoformat() if self.expires_at else None,
         }
+
+
+# Phase 3.3: User Profile & Knowledge Foundation
+
+class User(Base):
+    """
+    User account - minimal for now.
+    No authentication in this phase.
+    """
+    __tablename__ = 'users'
+    
+    id = Column(Integer, primary_key=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    education = relationship("UserEducation", back_populates="user", cascade="all, delete-orphan")
+    experience = relationship("UserExperience", back_populates="user", cascade="all, delete-orphan")
+    projects = relationship("UserProject", back_populates="user", cascade="all, delete-orphan")
+    skills = relationship("UserSkill", back_populates="user", cascade="all, delete-orphan")
+    knowledge_entries = relationship("UserKnowledgeEntry", back_populates="user", cascade="all, delete-orphan")
+    
+    def __repr__(self):
+        return f"<User(id={self.id}, email='{self.email}')>"
+
+
+class UserProfile(Base):
+    """
+    User core profile - structured data for ATS autofill.
+    """
+    __tablename__ = 'user_profiles'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True, index=True)
+    
+    # Personal info
+    first_name = Column(String(100))
+    last_name = Column(String(100))
+    phone = Column(String(20))
+    
+    # Location
+    city = Column(String(100))
+    state = Column(String(50))
+    country = Column(String(100))
+    
+    # Work authorization
+    work_authorization = Column(String(100))
+    visa_status = Column(String(100))
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    user = relationship("User", back_populates="profile")
+    
+    def __repr__(self):
+        return f"<UserProfile(user_id={self.user_id}, name='{self.first_name} {self.last_name}')>"
+
+
+class UserEducation(Base):
+    """
+    Education history - structured for ATS.
+    """
+    __tablename__ = 'user_education'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    school_name = Column(String(255), nullable=False)
+    degree = Column(String(100))
+    major = Column(String(100))
+    start_date = Column(Date)
+    end_date = Column(Date)
+    gpa = Column(Float)
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    
+    # Relationship
+    user = relationship("User", back_populates="education")
+    
+    def __repr__(self):
+        return f"<UserEducation(id={self.id}, school='{self.school_name}', degree='{self.degree}')>"
+
+
+class UserExperience(Base):
+    """
+    Work experience - structured for ATS.
+    """
+    __tablename__ = 'user_experience'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    company_name = Column(String(255), nullable=False)
+    job_title = Column(String(255), nullable=False)
+    start_date = Column(Date)
+    end_date = Column(Date)
+    is_current = Column(Boolean, default=False)
+    
+    responsibilities = Column(Text)
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    
+    # Relationship
+    user = relationship("User", back_populates="experience")
+    
+    def __repr__(self):
+        return f"<UserExperience(id={self.id}, company='{self.company_name}', title='{self.job_title}')>"
+
+
+class UserProject(Base):
+    """
+    Projects - structured for ATS autofill.
+    """
+    __tablename__ = 'user_projects'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    project_name = Column(String(255), nullable=False)
+    role = Column(String(100))
+    description = Column(Text)
+    tech_stack = Column(Text)
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    
+    # Relationship
+    user = relationship("User", back_populates="projects")
+    
+    def __repr__(self):
+        return f"<UserProject(id={self.id}, name='{self.project_name}')>"
+
+
+class UserSkill(Base):
+    """
+    Skills - normalized but simple.
+    """
+    __tablename__ = 'user_skills'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    skill_name = Column(String(100), nullable=False)
+    skill_category = Column(String(50))
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    
+    # Relationship
+    user = relationship("User", back_populates="skills")
+    
+    def __repr__(self):
+        return f"<UserSkill(id={self.id}, skill='{self.skill_name}')>"
+
+
+class UserKnowledgeEntry(Base):
+    """
+    Unstructured knowledge base - for future AI reasoning.
+    NOT used for autofill.
+    """
+    __tablename__ = 'user_knowledge_entries'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    entry_type = Column(String(50), nullable=False)
+    content = Column(Text, nullable=False)
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    
+    # Relationship
+    user = relationship("User", back_populates="knowledge_entries")
+    
+    def __repr__(self):
+        return f"<UserKnowledgeEntry(id={self.id}, type='{self.entry_type}')>"
 
