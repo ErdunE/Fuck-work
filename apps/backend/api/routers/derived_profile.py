@@ -15,7 +15,7 @@ Architecture:
 """
 
 from datetime import datetime, date
-from typing import Optional, List
+from typing import Optional, List, Dict
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -33,6 +33,11 @@ class DerivedProfile(BaseModel):
     """
     ATS-ready profile derived from raw profile data.
     This is the ONLY profile format that autofill should use.
+    
+    Phase 5.2.1 Review Fixes:
+    - Includes missing_fields array for required fields that are null
+    - Includes source_fields mapping for traceability
+    - Work authorization split into boolean primitives
     """
     # Identity
     legal_name: Optional[str] = None
@@ -44,8 +49,10 @@ class DerivedProfile(BaseModel):
     # Experience (computed)
     years_of_experience: Optional[int] = None
     
-    # Compliance (normalized + direct)
-    work_authorization_status: Optional[str] = None
+    # Compliance (normalized + ATS-friendly boolean primitives)
+    work_authorized_us: Optional[bool] = None  # True if authorized to work in US
+    requires_sponsorship: Optional[bool] = None  # True if requires visa sponsorship
+    work_auth_category: Optional[str] = None  # US_CITIZEN, GREEN_CARD, H1B, OPT, etc.
     willing_to_relocate: bool = False
     government_employment_flag: bool = False
     
@@ -66,29 +73,47 @@ class DerivedProfile(BaseModel):
     linkedin_url: Optional[str] = None
     portfolio_url: Optional[str] = None
     github_url: Optional[str] = None
+    
+    # Metadata (Phase 5.2.1 Review Fix)
+    missing_fields: List[str] = []  # Fields that are required but null/empty
+    source_fields: Dict[str, List[str]] = {}  # Mapping of derived field -> raw fields used
 
 
 # Computation Functions
 
 def compute_legal_name(profile: Optional[UserProfile]) -> Optional[str]:
-    """Compute legal name from profile."""
+    """
+    Compute legal name from profile (Phase 5.2.1 Review Fix).
+    
+    Null-safe computation:
+    - Never returns "null" string or extra whitespace
+    - Only returns valid trimmed string or None
+    - Properly handles missing first/last names
+    """
     if not profile:
         return None
     
-    # Prefer full_name if set
-    if profile.full_name and profile.full_name.strip():
-        return profile.full_name.strip()
+    # Prefer full_name if set and not empty
+    if profile.full_name:
+        cleaned = profile.full_name.strip()
+        if cleaned and cleaned.lower() != 'null' and cleaned.lower() != 'none':
+            return cleaned
     
-    # Otherwise construct from first + last
-    if profile.first_name and profile.last_name:
-        return f"{profile.first_name.strip()} {profile.last_name.strip()}"
+    # Otherwise construct from first + last (only if BOTH exist)
+    first = profile.first_name.strip() if profile.first_name else None
+    last = profile.last_name.strip() if profile.last_name else None
     
-    # Fallback to whatever is available
-    if profile.first_name:
-        return profile.first_name.strip()
-    if profile.last_name:
-        return profile.last_name.strip()
+    # Check for null/none strings
+    if first and first.lower() in ('null', 'none', ''):
+        first = None
+    if last and last.lower() in ('null', 'none', ''):
+        last = None
     
+    # Only concatenate if BOTH are valid
+    if first and last:
+        return f"{first} {last}"
+    
+    # Do NOT return partial names - autofill needs full legal name
     return None
 
 
@@ -191,38 +216,60 @@ def compute_years_of_experience(experience_records: List[UserExperience]) -> Opt
     return years if years > 0 else 1  # Minimum 1 year if any experience
 
 
-def normalize_work_authorization(raw_value: Optional[str]) -> Optional[str]:
+def compute_work_authorization_primitives(raw_value: Optional[str]) -> tuple[Optional[bool], Optional[bool], Optional[str]]:
     """
-    Normalize work authorization status to standard values.
-    Common ATS values: US_CITIZEN, GREEN_CARD, H1B, OPT, REQUIRES_SPONSORSHIP
+    Compute work authorization as ATS-friendly boolean primitives (Phase 5.2.1 Review Fix).
+    
+    Returns: (work_authorized_us, requires_sponsorship, work_auth_category)
+    
+    Examples:
+    - "US Citizen" -> (True, False, "US_CITIZEN")
+    - "Green Card" -> (True, False, "GREEN_CARD")
+    - "H1B" -> (True, True, "H1B")
+    - "Requires Sponsorship" -> (None, True, "REQUIRES_SPONSORSHIP")
+    - None/empty -> (None, None, None)
     """
-    if not raw_value:
-        return None
+    if not raw_value or not raw_value.strip():
+        return (None, None, None)
     
     value_lower = raw_value.lower().strip()
     
-    # US Citizen
+    # US Citizen: authorized, no sponsorship needed
     if any(keyword in value_lower for keyword in ['us citizen', 'citizen', 'usc', 'u.s. citizen']):
-        return 'US_CITIZEN'
+        return (True, False, 'US_CITIZEN')
     
-    # Green Card
+    # Green Card / Permanent Resident: authorized, no sponsorship needed
     if any(keyword in value_lower for keyword in ['green card', 'permanent resident', 'pr', 'greencard']):
-        return 'GREEN_CARD'
+        return (True, False, 'GREEN_CARD')
     
-    # H1B
+    # H1B: authorized (if valid), but required sponsorship initially
     if any(keyword in value_lower for keyword in ['h1b', 'h-1b', 'h 1b']):
-        return 'H1B'
+        return (True, True, 'H1B')
     
-    # OPT / F1
+    # OPT / F1: authorized temporarily, may need sponsorship
     if any(keyword in value_lower for keyword in ['opt', 'f1', 'f-1']):
-        return 'OPT'
+        return (True, True, 'OPT')
     
-    # Requires Sponsorship
+    # Explicitly requires sponsorship (unknown status)
     if any(keyword in value_lower for keyword in ['sponsor', 'sponsorship', 'require sponsor']):
-        return 'REQUIRES_SPONSORSHIP'
+        return (None, True, 'REQUIRES_SPONSORSHIP')
     
-    # If not recognized, return raw value (uppercase, normalized)
-    return raw_value.strip().upper().replace(' ', '_')
+    # Not authorized explicitly
+    if any(keyword in value_lower for keyword in ['not authorized', 'no authorization', 'not eligible']):
+        return (False, None, 'NOT_AUTHORIZED')
+    
+    # Unknown/unrecognized -> return raw normalized category only
+    category = raw_value.strip().upper().replace(' ', '_')
+    return (None, None, category)
+
+
+def normalize_work_authorization(raw_value: Optional[str]) -> Optional[str]:
+    """
+    Normalize work authorization status to standard category (backward compat).
+    Common ATS values: US_CITIZEN, GREEN_CARD, H1B, OPT, REQUIRES_SPONSORSHIP
+    """
+    _, _, category = compute_work_authorization_primitives(raw_value)
+    return category
 
 
 def extract_normalized_skills(skill_records: List[UserSkill]) -> List[str]:
@@ -259,7 +306,7 @@ def get_derived_profile(
     db: Session = Depends(get_db)
 ):
     """
-    Get derived ATS-ready profile (Phase 5.2.1).
+    Get derived ATS-ready profile (Phase 5.2.1 + Review Fixes).
     
     This endpoint computes ATS-ready answers from raw profile data.
     Extension autofill MUST use this endpoint exclusively.
@@ -268,6 +315,12 @@ def get_derived_profile(
       Raw Tables → Derived Computation → ATS-Ready Response
     
     Computation is done on-the-fly (no caching).
+    
+    Review Fixes:
+    - Includes missing_fields array
+    - Includes source_fields mapping for traceability
+    - Work authorization split into boolean primitives
+    - Null-safe legal_name computation
     """
     # Fetch raw data
     profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
@@ -276,16 +329,64 @@ def get_derived_profile(
     skills = db.query(UserSkill).filter(UserSkill.user_id == current_user.id).all()
     
     # Compute derived fields
+    legal_name = compute_legal_name(profile)
+    highest_degree = compute_highest_degree(education)
+    graduation_year = compute_graduation_year(education)
+    years_of_experience = compute_years_of_experience(experience)
+    work_authorized_us, requires_sponsorship, work_auth_category = compute_work_authorization_primitives(
+        profile.work_authorization if profile else None
+    )
+    normalized_skills_list = extract_normalized_skills(skills)
+    
+    # Track missing fields (Phase 5.2.1 Review Fix)
+    missing_fields = []
+    if not legal_name:
+        missing_fields.append('legal_name')
+    if not (profile and profile.primary_email):
+        missing_fields.append('primary_email')
+    if not (profile and profile.phone):
+        missing_fields.append('phone')
+    if highest_degree is None and len(education) == 0:
+        missing_fields.append('highest_degree')
+    if years_of_experience is None and len(experience) == 0:
+        missing_fields.append('years_of_experience')
+    if work_authorized_us is None and work_auth_category is None:
+        missing_fields.append('work_authorization')
+    
+    # Build source_fields mapping (Phase 5.2.1 Review Fix)
+    source_fields = {}
+    if legal_name:
+        source_fields['legal_name'] = ['first_name', 'last_name', 'full_name']
+    if highest_degree:
+        source_fields['highest_degree'] = ['user_education.degree']
+    if graduation_year:
+        source_fields['graduation_year'] = ['user_education.end_date']
+    if years_of_experience is not None:
+        source_fields['years_of_experience'] = ['user_experience.start_date', 'user_experience.end_date', 'user_experience.is_current']
+    if work_authorized_us is not None or requires_sponsorship is not None:
+        source_fields['work_authorization'] = ['work_authorization']
+    if normalized_skills_list:
+        source_fields['normalized_skills'] = ['user_skills.skill_name']
+    
+    # Construct response
     derived = DerivedProfile(
         # Computed fields
-        legal_name=compute_legal_name(profile),
-        highest_degree=compute_highest_degree(education),
-        graduation_year=compute_graduation_year(education),
-        years_of_experience=compute_years_of_experience(experience),
-        work_authorization_status=normalize_work_authorization(profile.work_authorization if profile else None),
+        legal_name=legal_name,
+        highest_degree=highest_degree,
+        graduation_year=graduation_year,
+        years_of_experience=years_of_experience,
+        
+        # Work authorization primitives (Phase 5.2.1 Review Fix)
+        work_authorized_us=work_authorized_us,
+        requires_sponsorship=requires_sponsorship,
+        work_auth_category=work_auth_category,
+        
+        # Compliance flags
         willing_to_relocate=profile.willing_to_relocate if (profile and profile.willing_to_relocate is not None) else False,
         government_employment_flag=profile.government_employment_history if (profile and profile.government_employment_history is not None) else False,
-        normalized_skills=extract_normalized_skills(skills),
+        
+        # Skills
+        normalized_skills=normalized_skills_list,
         
         # Passthrough fields (contact/location/links)
         primary_email=profile.primary_email if profile else None,
@@ -296,7 +397,11 @@ def get_derived_profile(
         postal_code=profile.postal_code if profile else None,
         linkedin_url=profile.linkedin_url if profile else None,
         portfolio_url=profile.portfolio_url if profile else None,
-        github_url=profile.github_url if profile else None
+        github_url=profile.github_url if profile else None,
+        
+        # Metadata (Phase 5.2.1 Review Fix)
+        missing_fields=missing_fields,
+        source_fields=source_fields
     )
     
     return derived

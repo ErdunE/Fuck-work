@@ -95,7 +95,7 @@ export interface Skill {
   skill_category?: string
 }
 
-// Phase 5.2.1: Derived Profile (ATS-ready answers)
+// Phase 5.2.1: Derived Profile (ATS-ready answers) + Review Fixes
 export interface DerivedProfile {
   // Identity (computed)
   legal_name?: string
@@ -107,8 +107,10 @@ export interface DerivedProfile {
   // Experience (computed)
   years_of_experience?: number
   
-  // Compliance (normalized + direct)
-  work_authorization_status?: string  // US_CITIZEN, GREEN_CARD, H1B, OPT, etc.
+  // Compliance (Review Fix: work auth split into boolean primitives)
+  work_authorized_us?: boolean
+  requires_sponsorship?: boolean
+  work_auth_category?: string  // US_CITIZEN, GREEN_CARD, H1B, OPT, etc.
   willing_to_relocate: boolean
   government_employment_flag: boolean
   
@@ -129,6 +131,10 @@ export interface DerivedProfile {
   linkedin_url?: string
   portfolio_url?: string
   github_url?: string
+  
+  // Metadata (Review Fix: traceability)
+  missing_fields: string[]
+  source_fields: Record<string, string[]>
 }
 
 // Automation Preferences types

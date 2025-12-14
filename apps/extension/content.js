@@ -927,30 +927,57 @@ async function executeAutofillIfAuthorized() {
       return;
     }
     
-    console.log('[Phase 5.2.1] Derived profile source: backend (ATS-ready answers)');
-    console.log('[Phase 5.2.1] Derived profile data loaded:', {
+    // Phase 5.2.1 Review Fix: Explicit telemetry proving derived profile usage
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[Phase 5.2.1 Review Fix] PROOF OF DERIVED PROFILE USAGE');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[Telemetry] profile_source: "derived-profile" (NOT raw profile)');
+    console.log('[Telemetry] endpoint: GET /api/users/me/derived-profile');
+    console.log('[Telemetry] Derived profile data received:', {
       legal_name: derivedProfile.legal_name || 'MISSING',
       primary_email: derivedProfile.primary_email || 'MISSING',
       phone: derivedProfile.phone || 'MISSING',
       highest_degree: derivedProfile.highest_degree || 'MISSING',
       graduation_year: derivedProfile.graduation_year || 'MISSING',
       years_of_experience: derivedProfile.years_of_experience || 'MISSING',
-      work_authorization_status: derivedProfile.work_authorization_status || 'MISSING',
-      normalized_skills: derivedProfile.normalized_skills?.length || 0
+      work_authorized_us: derivedProfile.work_authorized_us,
+      requires_sponsorship: derivedProfile.requires_sponsorship,
+      work_auth_category: derivedProfile.work_auth_category || 'MISSING',
+      normalized_skills: derivedProfile.normalized_skills?.length || 0,
+      missing_fields: derivedProfile.missing_fields || [],
+      source_fields_count: Object.keys(derivedProfile.source_fields || {}).length
     });
+    
+    if (derivedProfile.missing_fields && derivedProfile.missing_fields.length > 0) {
+      console.warn('[Telemetry] ⚠️ Missing required fields:', derivedProfile.missing_fields);
+    }
+    
+    console.log('[Telemetry] Source field mapping (traceability):', derivedProfile.source_fields || {});
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     // Phase 5.2.1: Execute autofill with DERIVED profile
     const autofillResult = await attemptAutofill(derivedProfile);
     
-    // Phase 5.2.1: Log detailed telemetry
-    console.log('[Phase 5.2.1] Autofill telemetry:', {
-      profile_source: 'derived_backend',
-      autofill_trigger_reason: 'application_form detected + auto_fill_enabled',
-      fields_attempted: autofillResult.attempted,
-      fields_filled: autofillResult.filled,
-      fields_skipped: autofillResult.skipped,
-      skipped_reasons: autofillResult.skippedReasons
-    });
+    // Phase 5.2.1 Review Fix: Enhanced telemetry
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[Phase 5.2.1 Review Fix] AUTOFILL TELEMETRY');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('[Telemetry] profile_source: "derived-profile"');
+    console.log('[Telemetry] autofill_trigger_reason: application_form detected + auto_fill_enabled');
+    console.log('[Telemetry] fields_attempted:', autofillResult.attempted);
+    console.log('[Telemetry] fields_filled:', autofillResult.filled);
+    console.log('[Telemetry] fields_skipped:', autofillResult.skipped);
+    console.log('[Telemetry] Detailed skip reasons:', autofillResult.skippedReasons);
+    
+    if (autofillResult.selectorsNotFound && autofillResult.selectorsNotFound.length > 0) {
+      console.warn('[Telemetry] ⚠️ ATS-specific selectors NOT FOUND on page:', autofillResult.selectorsNotFound);
+    }
+    
+    const fillRate = autofillResult.attempted > 0 
+      ? Math.round((autofillResult.filled / autofillResult.attempted) * 100) 
+      : 0;
+    console.log('[Telemetry] fill_rate:', `${fillRate}%`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
     // Log successful autofill (Phase 5.2.1)
     await logAutomationEvent(createEventPayload(
@@ -1224,13 +1251,14 @@ function checkIfJustLoggedIn() {
  * Uses ATS-ready answers, not raw profile data
  */
 async function attemptAutofill(derivedProfile) {
-  console.log('[Phase 5.2.1] Autofill using DERIVED profile (ATS-ready answers)');
-  console.log('[Phase 5.2.1] Profile source: derived_backend (NOT raw profile)');
+  console.log('[Phase 5.2.1 Review Fix] Autofill using DERIVED profile (ATS-ready answers)');
+  console.log('[Phase 5.2.1 Review Fix] profile_source: "derived-profile"');
   
   let attempted = 0;
   let filled = 0;
   const skipped = [];
   const skippedReasons = {};
+  const selectorsNotFound = [];  // Phase 5.2.1 Review Fix: Track missing ATS-specific selectors
   
   // Helper to fill text/url field
   const fillField = (field, value, fieldName) => {
@@ -1320,26 +1348,42 @@ async function attemptAutofill(derivedProfile) {
   
   // Phase 5.2.1: NEW - Highest Degree (ATS-specific)
   const degreeFields = findFieldsByType(['text', 'select'], ['degree', 'education', 'highest']);
+  if (degreeFields.length === 0 && derivedProfile.highest_degree) {
+    selectorsNotFound.push('highest_degree');
+    console.warn('[Telemetry] ⚠️ selector_not_found: highest_degree (profile has value but no field found)');
+  }
   for (const field of degreeFields) {
     fillField(field, derivedProfile.highest_degree, 'highest_degree');
   }
   
   // Phase 5.2.1: NEW - Years of Experience (ATS-specific)
   const experienceFields = findFieldsByType(['number', 'text'], ['experience', 'years', 'years of experience']);
+  if (experienceFields.length === 0 && derivedProfile.years_of_experience !== null && derivedProfile.years_of_experience !== undefined) {
+    selectorsNotFound.push('years_of_experience');
+    console.warn('[Telemetry] ⚠️ selector_not_found: years_of_experience (profile has value but no field found)');
+  }
   for (const field of experienceFields) {
     if (derivedProfile.years_of_experience !== null && derivedProfile.years_of_experience !== undefined) {
       fillField(field, derivedProfile.years_of_experience.toString(), 'years_of_experience');
     }
   }
   
-  // Phase 5.2.1: NEW - Work Authorization (ATS-specific, normalized)
+  // Phase 5.2.1 Review Fix: Work Authorization (use work_auth_category)
   const authFields = findFieldsByType(['text', 'select'], ['authorization', 'work auth', 'visa', 'sponsorship', 'work authorization']);
+  if (authFields.length === 0 && derivedProfile.work_auth_category) {
+    selectorsNotFound.push('work_authorization');
+    console.warn('[Telemetry] ⚠️ selector_not_found: work_authorization (profile has value but no field found)');
+  }
   for (const field of authFields) {
-    fillField(field, derivedProfile.work_authorization_status, 'work_authorization_status');
+    fillField(field, derivedProfile.work_auth_category, 'work_authorization');
   }
   
   // Phase 5.2.1: NEW - Willing to Relocate (ATS-specific checkbox)
   const relocateFields = findFieldsByType(['checkbox', 'radio'], ['relocate', 'willing to move', 'willing to relocate', 'relocation']);
+  if (relocateFields.length === 0 && derivedProfile.willing_to_relocate) {
+    selectorsNotFound.push('willing_to_relocate');
+    console.warn('[Telemetry] ⚠️ selector_not_found: willing_to_relocate (profile has value but no field found)');
+  }
   for (const field of relocateFields) {
     if (derivedProfile.willing_to_relocate) {
       fillCheckbox(field, true, 'willing_to_relocate');
@@ -1390,7 +1434,7 @@ async function attemptAutofill(derivedProfile) {
     fillField(field, derivedProfile.github_url, 'github_url');
   }
   
-  // Phase 5.2.1: Log summary
+  // Phase 5.2.1 Review Fix: Log summary with enhanced telemetry
   console.log('[Phase 5.2.1] Autofill complete');
   console.log(`[Phase 5.2.1] Fields attempted: ${attempted}`);
   console.log(`[Phase 5.2.1] Fields filled: ${filled}`);
@@ -1402,16 +1446,22 @@ async function attemptAutofill(derivedProfile) {
   const fillRate = attempted > 0 ? Math.round((filled / attempted) * 100) : 0;
   console.log(`[Phase 5.2.1] Fill rate: ${fillRate}%`);
   
-  // Phase 5.2.1: Log ATS-specific fields
-  console.log('[Phase 5.2.1] Autofill used DERIVED profile exclusively');
-  console.log('[Phase 5.2.1] ATS-specific fields filled:', {
+  // Phase 5.2.1 Review Fix: Explicit proof of derived profile usage
+  console.log('[Phase 5.2.1 Review Fix] PROOF: Autofill used DERIVED profile exclusively');
+  console.log('[Phase 5.2.1 Review Fix] ATS-specific fields from derived profile:', {
     legal_name: !!derivedProfile.legal_name,
     highest_degree: !!derivedProfile.highest_degree,
     years_of_experience: derivedProfile.years_of_experience !== null && derivedProfile.years_of_experience !== undefined,
-    work_authorization_status: !!derivedProfile.work_authorization_status,
+    work_auth_category: !!derivedProfile.work_auth_category,
+    work_authorized_us: derivedProfile.work_authorized_us,
+    requires_sponsorship: derivedProfile.requires_sponsorship,
     willing_to_relocate: derivedProfile.willing_to_relocate,
     government_employment_flag: derivedProfile.government_employment_flag
   });
+  
+  if (selectorsNotFound.length > 0) {
+    console.warn(`[Phase 5.2.1 Review Fix] ⚠️ ${selectorsNotFound.length} ATS-specific selectors NOT FOUND:`, selectorsNotFound);
+  }
   
   // Phase 5.2.1: E2E success criteria check
   if (fillRate < 80 && attempted > 0) {
@@ -1427,6 +1477,7 @@ async function attemptAutofill(derivedProfile) {
     filled,
     skipped,
     skippedReasons,
+    selectorsNotFound,  // Phase 5.2.1 Review Fix
     fillRate
   };
 }
