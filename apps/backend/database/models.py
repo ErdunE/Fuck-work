@@ -4,7 +4,7 @@ SQLAlchemy ORM models for FuckWork Phase 2A.
 Minimal schema with 4-field collection_metadata.
 """
 
-from sqlalchemy import Column, Integer, String, Text, Float, TIMESTAMP, ForeignKey, Boolean, Date
+from sqlalchemy import Column, Integer, String, Text, Float, TIMESTAMP, ForeignKey, Boolean, Date, Index
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -114,6 +114,7 @@ class User(Base):
     projects = relationship("UserProject", back_populates="user", cascade="all, delete-orphan")
     skills = relationship("UserSkill", back_populates="user", cascade="all, delete-orphan")
     knowledge_entries = relationship("UserKnowledgeEntry", back_populates="user", cascade="all, delete-orphan")
+    apply_tasks = relationship("ApplyTask", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"
@@ -267,4 +268,66 @@ class UserKnowledgeEntry(Base):
     
     def __repr__(self):
         return f"<UserKnowledgeEntry(id={self.id}, type='{self.entry_type}')>"
+
+
+# Phase 3.5: Apply Orchestration + Status Tracking
+
+class ApplyTask(Base):
+    """
+    Apply task - represents a job application attempt.
+    Tracks status through lifecycle: queued -> in_progress -> needs_user -> success/failed
+    """
+    __tablename__ = 'apply_tasks'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    job_id = Column(String(255), nullable=False, index=True)
+    
+    # Status management
+    status = Column(String(20), nullable=False, default='queued', index=True)
+    # Status values: queued | in_progress | needs_user | success | failed | canceled
+    
+    priority = Column(Integer, default=0)
+    attempt_count = Column(Integer, default=0)
+    last_error = Column(Text)
+    task_metadata = Column(JSONB)
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="apply_tasks")
+    events = relationship("ApplyEvent", back_populates="task", cascade="all, delete-orphan")
+    
+    # Composite index for queue ordering
+    __table_args__ = (
+        Index('idx_apply_tasks_queue_order', 'user_id', 'status', 'priority', 'created_at'),
+    )
+    
+    def __repr__(self):
+        return f"<ApplyTask(id={self.id}, job_id='{self.job_id}', status='{self.status}')>"
+
+
+class ApplyEvent(Base):
+    """
+    Apply event - audit log for status transitions.
+    Tracks every state change with reason and debug details.
+    """
+    __tablename__ = 'apply_events'
+    
+    id = Column(Integer, primary_key=True)
+    task_id = Column(Integer, ForeignKey('apply_tasks.id'), nullable=False, index=True)
+    
+    from_status = Column(String(20), nullable=False)
+    to_status = Column(String(20), nullable=False)
+    reason = Column(String(500))
+    details = Column(JSONB)
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    
+    # Relationship
+    task = relationship("ApplyTask", back_populates="events")
+    
+    def __repr__(self):
+        return f"<ApplyEvent(id={self.id}, task_id={self.task_id}, {self.from_status} -> {self.to_status})>"
 
