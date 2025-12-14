@@ -19,6 +19,7 @@ export default function Layout() {
           <h2 style={{ margin: 0 }}>FuckWork Control Plane</h2>
           <nav style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
             <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</Link>
+            <Link to="/jobs" style={{ color: 'white', textDecoration: 'none' }}>Jobs</Link>
             <Link to="/profile" style={{ color: 'white', textDecoration: 'none' }}>Profile</Link>
             <Link to="/automation" style={{ color: 'white', textDecoration: 'none' }}>Automation</Link>
             <Link to="/tasks" style={{ color: 'white', textDecoration: 'none' }}>Tasks</Link>

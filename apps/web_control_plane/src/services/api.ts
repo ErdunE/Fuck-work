@@ -7,7 +7,13 @@ import type {
   Profile,
   AutomationPreferences,
   ApplyTask,
-  AutomationEvent
+  AutomationEvent,
+  Education,
+  Experience,
+  Project,
+  Skill,
+  Job,
+  JobSearchResponse
 } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -112,6 +118,109 @@ class APIService {
     if (filters?.session_id) params.append('session_id', filters.session_id)
     if (filters?.event_type) params.append('event_type', filters.event_type)
     const response = await this.client.get(`/api/users/me/automation-events?${params}`)
+    return response.data
+  }
+
+  // Phase 5.2: Education methods
+  async getEducation(): Promise<{ education: Education[]; total: number }> {
+    const response = await this.client.get('/api/users/me/education')
+    return response.data
+  }
+
+  async createEducation(data: Omit<Education, 'id'>): Promise<Education> {
+    const response = await this.client.post('/api/users/me/education', data)
+    return response.data
+  }
+
+  async updateEducation(id: number, data: Partial<Omit<Education, 'id'>>): Promise<Education> {
+    const response = await this.client.put(`/api/users/me/education/${id}`, data)
+    return response.data
+  }
+
+  async deleteEducation(id: number): Promise<void> {
+    await this.client.delete(`/api/users/me/education/${id}`)
+  }
+
+  // Phase 5.2: Experience methods
+  async getExperience(): Promise<{ experience: Experience[]; total: number }> {
+    const response = await this.client.get('/api/users/me/experience')
+    return response.data
+  }
+
+  async createExperience(data: Omit<Experience, 'id'>): Promise<Experience> {
+    const response = await this.client.post('/api/users/me/experience', data)
+    return response.data
+  }
+
+  async updateExperience(id: number, data: Partial<Omit<Experience, 'id'>>): Promise<Experience> {
+    const response = await this.client.put(`/api/users/me/experience/${id}`, data)
+    return response.data
+  }
+
+  async deleteExperience(id: number): Promise<void> {
+    await this.client.delete(`/api/users/me/experience/${id}`)
+  }
+
+  // Phase 5.2: Projects methods
+  async getProjects(): Promise<{ projects: Project[]; total: number }> {
+    const response = await this.client.get('/api/users/me/projects')
+    return response.data
+  }
+
+  async createProject(data: Omit<Project, 'id'>): Promise<Project> {
+    const response = await this.client.post('/api/users/me/projects', data)
+    return response.data
+  }
+
+  async updateProject(id: number, data: Partial<Omit<Project, 'id'>>): Promise<Project> {
+    const response = await this.client.put(`/api/users/me/projects/${id}`, data)
+    return response.data
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await this.client.delete(`/api/users/me/projects/${id}`)
+  }
+
+  // Phase 5.2: Skills methods
+  async getSkills(): Promise<{ skills: Skill[]; total: number }> {
+    const response = await this.client.get('/api/users/me/skills')
+    return response.data
+  }
+
+  async createSkill(data: Omit<Skill, 'id'>): Promise<Skill> {
+    const response = await this.client.post('/api/users/me/skills', data)
+    return response.data
+  }
+
+  async updateSkill(id: number, data: Partial<Omit<Skill, 'id'>>): Promise<Skill> {
+    const response = await this.client.put(`/api/users/me/skills/${id}`, data)
+    return response.data
+  }
+
+  async deleteSkill(id: number): Promise<void> {
+    await this.client.delete(`/api/users/me/skills/${id}`)
+  }
+
+  // Phase 5.2: Jobs methods
+  async searchJobs(filters?: any, limit = 20, offset = 0): Promise<JobSearchResponse> {
+    const payload = {
+      filters: filters || {},
+      sort_by: 'newest',
+      limit,
+      offset
+    }
+    const response = await this.client.post('/jobs/search', payload)
+    return response.data
+  }
+
+  async addJobManually(job: { url: string; title: string; company_name: string; platform?: string }): Promise<Job> {
+    const response = await this.client.post('/jobs/manual', job)
+    return response.data
+  }
+
+  // Phase 5.2: Task creation
+  async createApplyTask(job_id: string): Promise<{ id: number; job_id: string; status: string; created_at: string; message: string }> {
+    const response = await this.client.post('/api/users/me/apply-tasks', { job_id })
     return response.data
   }
 }

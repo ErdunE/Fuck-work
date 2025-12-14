@@ -8,6 +8,7 @@ import Profile from './pages/Profile'
 import AutomationSettings from './pages/AutomationSettings'
 import Tasks from './pages/Tasks'
 import AuditLog from './pages/AuditLog'
+import Jobs from './pages/Jobs'  // Phase 5.2
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
+            <Route path="jobs" element={<Jobs />} />
             <Route path="profile" element={<Profile />} />
             <Route path="automation" element={<AutomationSettings />} />
             <Route path="tasks" element={<Tasks />} />

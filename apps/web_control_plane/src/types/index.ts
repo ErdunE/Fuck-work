@@ -46,7 +46,53 @@ export interface Profile {
   github_url?: string
   work_authorization?: string
   visa_status?: string
+  // Phase 5.2: Collections
+  education?: Education[]
+  experience?: Experience[]
+  projects?: Project[]
+  skills?: Skill[]
+  // Phase 5.2: Compliance
+  willing_to_relocate?: boolean
+  government_employment_history?: boolean
   updated_at: string
+}
+
+// Phase 5.2: Education
+export interface Education {
+  id: number
+  school_name: string
+  degree?: string
+  major?: string
+  start_date?: string
+  end_date?: string
+  gpa?: number
+}
+
+// Phase 5.2: Experience
+export interface Experience {
+  id: number
+  company_name: string
+  job_title: string
+  start_date?: string
+  end_date?: string
+  is_current: boolean
+  responsibilities?: string
+}
+
+// Phase 5.2: Project
+export interface Project {
+  id: number
+  project_name: string
+  role?: string
+  description?: string
+  tech_stack?: string
+}
+
+// Phase 5.2: Skill
+export interface Skill {
+  id: number
+  skill_name: string
+  skill_category?: string
 }
 
 // Automation Preferences types
@@ -98,5 +144,27 @@ export interface AutomationEvent {
   preferences_snapshot?: Record<string, any>
   event_payload?: Record<string, any>
   created_at: string
+}
+
+// Phase 5.2: Job types
+export interface Job {
+  id: number
+  job_id: string
+  title: string
+  company_name: string
+  url: string
+  platform: string
+  authenticity_score?: number
+  authenticity_level?: string
+  posted_date?: string
+  created_at: string
+}
+
+export interface JobSearchResponse {
+  jobs: Job[]
+  total: number
+  limit: number
+  offset: number
+  has_more: boolean
 }
 
