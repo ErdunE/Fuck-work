@@ -95,6 +95,42 @@ export interface Skill {
   skill_category?: string
 }
 
+// Phase 5.2.1: Derived Profile (ATS-ready answers)
+export interface DerivedProfile {
+  // Identity (computed)
+  legal_name?: string
+  
+  // Education (computed)
+  highest_degree?: string  // PhD, MS, BS, AS
+  graduation_year?: number
+  
+  // Experience (computed)
+  years_of_experience?: number
+  
+  // Compliance (normalized + direct)
+  work_authorization_status?: string  // US_CITIZEN, GREEN_CARD, H1B, OPT, etc.
+  willing_to_relocate: boolean
+  government_employment_flag: boolean
+  
+  // Skills (normalized)
+  normalized_skills: string[]
+  
+  // Contact (passthrough)
+  primary_email?: string
+  phone?: string
+  
+  // Location (passthrough)
+  city?: string
+  state?: string
+  country?: string
+  postal_code?: string
+  
+  // Professional Links (passthrough)
+  linkedin_url?: string
+  portfolio_url?: string
+  github_url?: string
+}
+
 // Automation Preferences types
 export interface AutomationPreferences {
   id: number

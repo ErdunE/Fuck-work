@@ -5,6 +5,7 @@ import type {
   AuthResponse, 
   User,
   Profile,
+  DerivedProfile,
   AutomationPreferences,
   ApplyTask,
   AutomationEvent,
@@ -89,6 +90,12 @@ class APIService {
 
   async updateProfile(data: Partial<Profile>): Promise<{ id: number; updated_at: string; message: string }> {
     const response = await this.client.put('/api/users/me/profile', data)
+    return response.data
+  }
+
+  // Phase 5.2.1: Derived Profile (ATS-ready answers)
+  async getDerivedProfile(): Promise<DerivedProfile> {
+    const response = await this.client.get('/api/users/me/derived-profile')
     return response.data
   }
 

@@ -160,7 +160,12 @@ class APIClient {
    * Get current user's profile (Phase 5.0 - authenticated)
    * Authoritative source for autofill operations
    */
+  /**
+   * Get raw profile (Phase 5.0 - DEPRECATED in Phase 5.2.1)
+   * @deprecated Use getMyDerivedProfile() instead for autofill operations
+   */
   static async getMyProfile() {
+    console.warn('[DEPRECATED] getMyProfile() - Autofill should use getMyDerivedProfile() instead');
     try {
       const headers = await this.getAuthHeaders();
       const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, { headers });
@@ -172,6 +177,30 @@ class APIClient {
       return await response.json();
     } catch (error) {
       console.error('[FW API] Failed to get profile:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Get derived ATS-ready profile (Phase 5.2.1 - REQUIRED FOR AUTOFILL)
+   * This endpoint returns computed, ATS-ready answers from raw profile data.
+   * Extension autofill MUST use this endpoint exclusively.
+   */
+  static async getMyDerivedProfile() {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/api/users/me/derived-profile`, { headers });
+      
+      if (!response.ok) {
+        console.error('[FW API] Failed to fetch derived profile:', response.status, response.statusText);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const derived = await response.json();
+      console.log('[FW API] Derived profile fetched successfully');
+      return derived;
+    } catch (error) {
+      console.error('[FW API] Failed to get derived profile:', error);
       return null;
     }
   }

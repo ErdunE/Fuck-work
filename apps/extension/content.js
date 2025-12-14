@@ -904,18 +904,18 @@ async function executeAutofillIfAuthorized() {
   }
   
   try {
-    // Phase 5.1: Fetch profile from backend (ONLY source of truth)
-    console.log('[Phase 5.1] Fetching profile from backend API (authenticated)...');
-    const backendProfile = await APIClient.getMyProfile();
+    // Phase 5.2.1: Fetch DERIVED profile from backend (ATS-ready answers ONLY)
+    console.log('[Phase 5.2.1] Fetching DERIVED profile from backend API (authenticated)...');
+    const derivedProfile = await APIClient.getMyDerivedProfile();
     
-    if (!backendProfile) {
-      console.error('[Autofill] Backend profile fetch failed or returned null');
+    if (!derivedProfile) {
+      console.error('[Autofill] Derived profile fetch failed or returned null');
       
       // Log failure (Phase 5.0)
       await logAutomationEvent(createEventPayload(
         'autofill_failed',
         'autofill_blocked',
-        'Backend profile API returned null (auth may have failed)'
+        'Derived profile API returned null (auth may have failed)'
       ));
       
       if (currentGuidance) {
@@ -927,22 +927,24 @@ async function executeAutofillIfAuthorized() {
       return;
     }
     
-    console.log('[Phase 5.1] Profile source: backend (authenticated API)');
-    console.log('[Phase 5.1] Profile data loaded:', {
-      first_name: backendProfile.first_name || 'MISSING',
-      last_name: backendProfile.last_name || 'MISSING',
-      primary_email: backendProfile.primary_email || 'MISSING',
-      phone: backendProfile.phone || 'MISSING',
-      city: backendProfile.city || 'MISSING',
-      linkedin_url: backendProfile.linkedin_url || 'MISSING'
+    console.log('[Phase 5.2.1] Derived profile source: backend (ATS-ready answers)');
+    console.log('[Phase 5.2.1] Derived profile data loaded:', {
+      legal_name: derivedProfile.legal_name || 'MISSING',
+      primary_email: derivedProfile.primary_email || 'MISSING',
+      phone: derivedProfile.phone || 'MISSING',
+      highest_degree: derivedProfile.highest_degree || 'MISSING',
+      graduation_year: derivedProfile.graduation_year || 'MISSING',
+      years_of_experience: derivedProfile.years_of_experience || 'MISSING',
+      work_authorization_status: derivedProfile.work_authorization_status || 'MISSING',
+      normalized_skills: derivedProfile.normalized_skills?.length || 0
     });
     
-    // Phase 5.1: Execute autofill with backend profile
-    const autofillResult = await attemptAutofill(backendProfile);
+    // Phase 5.2.1: Execute autofill with DERIVED profile
+    const autofillResult = await attemptAutofill(derivedProfile);
     
-    // Phase 5.1: Log detailed telemetry
-    console.log('[Phase 5.1] Autofill telemetry:', {
-      profile_source: 'backend',
+    // Phase 5.2.1: Log detailed telemetry
+    console.log('[Phase 5.2.1] Autofill telemetry:', {
+      profile_source: 'derived_backend',
       autofill_trigger_reason: 'application_form detected + auto_fill_enabled',
       fields_attempted: autofillResult.attempted,
       fields_filled: autofillResult.filled,
@@ -950,13 +952,14 @@ async function executeAutofillIfAuthorized() {
       skipped_reasons: autofillResult.skippedReasons
     });
     
-    // Log successful autofill (Phase 5.0)
+    // Log successful autofill (Phase 5.2.1)
     await logAutomationEvent(createEventPayload(
       'autofill_executed',
       'autofill_executed',
-      'auto_fill_after_login=true, profile loaded from backend API',
+      'auto_fill_after_login=true, DERIVED profile loaded from backend API',
       {
-        profile_source: 'backend',
+        profile_source: 'derived_backend',
+        profile_type: 'ats_ready_answers',
         fields_filled: autofillResult.filled,
         fields_attempted: autofillResult.attempted,
         fields_skipped: autofillResult.skipped
@@ -1217,18 +1220,19 @@ function checkIfJustLoggedIn() {
 }
 
 /**
- * Attempt to autofill basic fields
+ * Attempt to autofill using DERIVED profile (Phase 5.2.1)
+ * Uses ATS-ready answers, not raw profile data
  */
-async function attemptAutofill(profile) {
-  console.log('[Phase 5.1] Attempting autofill with backend profile');
-  console.log('[Phase 5.1] Profile source: backend (ONLY source of truth)');
+async function attemptAutofill(derivedProfile) {
+  console.log('[Phase 5.2.1] Autofill using DERIVED profile (ATS-ready answers)');
+  console.log('[Phase 5.2.1] Profile source: derived_backend (NOT raw profile)');
   
   let attempted = 0;
   let filled = 0;
   const skipped = [];
   const skippedReasons = {};
   
-  // Helper to fill field
+  // Helper to fill text/url field
   const fillField = (field, value, fieldName) => {
     attempted++;
     if (!value) {
@@ -1261,85 +1265,161 @@ async function attemptAutofill(profile) {
     return true;
   };
   
-  // Email (use primary_email from Phase 5.0 profile)
+  // Helper to check/uncheck checkbox
+  const fillCheckbox = (field, value, fieldName) => {
+    attempted++;
+    if (field.disabled || field.readOnly) {
+      skipped.push(fieldName);
+      skippedReasons[fieldName] = 'field_locked';
+      console.log(`[Autofill] Skipped ${fieldName}: field_locked`);
+      return false;
+    }
+    
+    field.checked = value;
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    console.log(`[Autofill] Checked ${fieldName}: ${value}`);
+    filled++;
+    return true;
+  };
+  
+  // Phase 5.2.1: Legal Name (single field, derived)
+  const fullNameFields = findFieldsByType(['text'], ['name', 'full', 'legal', 'fullname']);
+  for (const field of fullNameFields) {
+    fillField(field, derivedProfile.legal_name, 'legal_name');
+  }
+  
+  // Phase 5.2.1: First/Last name (backward compat - some ATS still ask separately)
+  // Extract from legal_name if not provided separately
+  if (derivedProfile.legal_name) {
+    const nameParts = derivedProfile.legal_name.split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ');
+    
+    const firstNameFields = findFieldsByType(['text'], ['first', 'fname', 'firstname', 'given']);
+    for (const field of firstNameFields) {
+      fillField(field, firstName, 'first_name');
+    }
+    
+    const lastNameFields = findFieldsByType(['text'], ['last', 'lname', 'lastname', 'surname', 'family']);
+    for (const field of lastNameFields) {
+      fillField(field, lastName, 'last_name');
+    }
+  }
+  
+  // Email
   const emailFields = findFieldsByType(['email'], ['email', 'e-mail', 'e_mail']);
   for (const field of emailFields) {
-    fillField(field, profile.primary_email, 'email');
-  }
-  
-  // First name
-  const firstNameFields = findFieldsByType(['text'], ['first', 'fname', 'firstname', 'given']);
-  for (const field of firstNameFields) {
-    fillField(field, profile.first_name, 'first_name');
-  }
-  
-  // Last name
-  const lastNameFields = findFieldsByType(['text'], ['last', 'lname', 'lastname', 'surname', 'family']);
-  for (const field of lastNameFields) {
-    fillField(field, profile.last_name, 'last_name');
+    fillField(field, derivedProfile.primary_email, 'email');
   }
   
   // Phone
   const phoneFields = findFieldsByType(['tel', 'text'], ['phone', 'mobile', 'cell', 'telephone']);
   for (const field of phoneFields) {
-    fillField(field, profile.phone, 'phone');
+    fillField(field, derivedProfile.phone, 'phone');
+  }
+  
+  // Phase 5.2.1: NEW - Highest Degree (ATS-specific)
+  const degreeFields = findFieldsByType(['text', 'select'], ['degree', 'education', 'highest']);
+  for (const field of degreeFields) {
+    fillField(field, derivedProfile.highest_degree, 'highest_degree');
+  }
+  
+  // Phase 5.2.1: NEW - Years of Experience (ATS-specific)
+  const experienceFields = findFieldsByType(['number', 'text'], ['experience', 'years', 'years of experience']);
+  for (const field of experienceFields) {
+    if (derivedProfile.years_of_experience !== null && derivedProfile.years_of_experience !== undefined) {
+      fillField(field, derivedProfile.years_of_experience.toString(), 'years_of_experience');
+    }
+  }
+  
+  // Phase 5.2.1: NEW - Work Authorization (ATS-specific, normalized)
+  const authFields = findFieldsByType(['text', 'select'], ['authorization', 'work auth', 'visa', 'sponsorship', 'work authorization']);
+  for (const field of authFields) {
+    fillField(field, derivedProfile.work_authorization_status, 'work_authorization_status');
+  }
+  
+  // Phase 5.2.1: NEW - Willing to Relocate (ATS-specific checkbox)
+  const relocateFields = findFieldsByType(['checkbox', 'radio'], ['relocate', 'willing to move', 'willing to relocate', 'relocation']);
+  for (const field of relocateFields) {
+    if (derivedProfile.willing_to_relocate) {
+      fillCheckbox(field, true, 'willing_to_relocate');
+    }
+  }
+  
+  // Phase 5.2.1: NEW - Government Employment (ATS-specific checkbox)
+  const govFields = findFieldsByType(['checkbox', 'radio'], ['government', 'federal', 'public sector', 'government employment']);
+  for (const field of govFields) {
+    if (derivedProfile.government_employment_flag) {
+      fillCheckbox(field, true, 'government_employment_flag');
+    }
   }
   
   // City
   const cityFields = findFieldsByType(['text'], ['city']);
   for (const field of cityFields) {
-    fillField(field, profile.city, 'city');
+    fillField(field, derivedProfile.city, 'city');
   }
   
   // State
   const stateFields = findFieldsByType(['text'], ['state', 'province', 'region']);
   for (const field of stateFields) {
-    fillField(field, profile.state, 'state');
+    fillField(field, derivedProfile.state, 'state');
   }
   
   // Postal/Zip code
   const postalFields = findFieldsByType(['text'], ['zip', 'postal', 'postcode', 'zipcode']);
   for (const field of postalFields) {
-    fillField(field, profile.postal_code, 'postal_code');
+    fillField(field, derivedProfile.postal_code, 'postal_code');
   }
   
   // LinkedIn URL
   const linkedinFields = findFieldsByType(['url', 'text'], ['linkedin', 'linked-in']);
   for (const field of linkedinFields) {
-    fillField(field, profile.linkedin_url, 'linkedin_url');
+    fillField(field, derivedProfile.linkedin_url, 'linkedin_url');
   }
   
   // Portfolio URL
   const portfolioFields = findFieldsByType(['url', 'text'], ['portfolio', 'website', 'personal']);
   for (const field of portfolioFields) {
-    fillField(field, profile.portfolio_url, 'portfolio_url');
+    fillField(field, derivedProfile.portfolio_url, 'portfolio_url');
   }
   
   // GitHub URL
   const githubFields = findFieldsByType(['url', 'text'], ['github', 'git-hub']);
   for (const field of githubFields) {
-    fillField(field, profile.github_url, 'github_url');
+    fillField(field, derivedProfile.github_url, 'github_url');
   }
   
-  // Phase 5.1: Log summary
-  console.log('[Phase 5.1] Autofill complete');
-  console.log(`[Phase 5.1] Fields attempted: ${attempted}`);
-  console.log(`[Phase 5.1] Fields filled: ${filled}`);
-  console.log(`[Phase 5.1] Fields skipped: ${skipped.length}`);
+  // Phase 5.2.1: Log summary
+  console.log('[Phase 5.2.1] Autofill complete');
+  console.log(`[Phase 5.2.1] Fields attempted: ${attempted}`);
+  console.log(`[Phase 5.2.1] Fields filled: ${filled}`);
+  console.log(`[Phase 5.2.1] Fields skipped: ${skipped.length}`);
   if (skipped.length > 0) {
-    console.log(`[Phase 5.1] Skipped fields:`, skippedReasons);
+    console.log(`[Phase 5.2.1] Skipped fields:`, skippedReasons);
   }
   
   const fillRate = attempted > 0 ? Math.round((filled / attempted) * 100) : 0;
-  console.log(`[Phase 5.1] Fill rate: ${fillRate}%`);
+  console.log(`[Phase 5.2.1] Fill rate: ${fillRate}%`);
   
-  // Phase 5.1: E2E success criteria check
+  // Phase 5.2.1: Log ATS-specific fields
+  console.log('[Phase 5.2.1] Autofill used DERIVED profile exclusively');
+  console.log('[Phase 5.2.1] ATS-specific fields filled:', {
+    legal_name: !!derivedProfile.legal_name,
+    highest_degree: !!derivedProfile.highest_degree,
+    years_of_experience: derivedProfile.years_of_experience !== null && derivedProfile.years_of_experience !== undefined,
+    work_authorization_status: !!derivedProfile.work_authorization_status,
+    willing_to_relocate: derivedProfile.willing_to_relocate,
+    government_employment_flag: derivedProfile.government_employment_flag
+  });
+  
+  // Phase 5.2.1: E2E success criteria check
   if (fillRate < 80 && attempted > 0) {
-    console.warn(`[Phase 5.1] E2E WARNING: Fill rate ${fillRate}% is below 80% threshold`);
+    console.warn(`[Phase 5.2.1] E2E WARNING: Fill rate ${fillRate}% is below 80% threshold`);
   }
   
   if (filled === 0 && attempted === 0) {
-    console.warn('[Phase 5.1] E2E WARNING: No form fields detected on page');
+    console.warn('[Phase 5.2.1] E2E WARNING: No form fields detected on page');
   }
   
   return {
