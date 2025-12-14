@@ -146,18 +146,30 @@ function hideMessage() {
  * Show detection info panel
  */
 function showDetectionInfo(detectionState) {
-  const { ats, stage, action } = detectionState;
+  const { ats, stage, action, intent, guidance } = detectionState;
   
   document.getElementById('detection-info').style.display = 'block';
   document.getElementById('ats-kind').textContent = ats.ats_kind || 'unknown';
   document.getElementById('apply-stage').textContent = stage.stage || 'unknown';
   document.getElementById('stage-reason').textContent = action.reason || 'N/A';
   
+  // Show intent guidance if available
+  if (intent && guidance) {
+    document.getElementById('intent-info').style.display = 'block';
+    document.getElementById('intent-title').textContent = guidance.title || 'Manual Action Needed';
+    document.getElementById('intent-action').textContent = guidance.user_action || 'Complete the required action';
+    document.getElementById('intent-next').textContent = guidance.what_next || 'The application will continue';
+  } else {
+    document.getElementById('intent-info').style.display = 'none';
+  }
+  
   // Format evidence as JSON
   const fullReport = {
     ats: ats,
     stage: stage,
     action: action,
+    intent: intent,
+    guidance: guidance,
     timestamp: new Date().toISOString()
   };
   

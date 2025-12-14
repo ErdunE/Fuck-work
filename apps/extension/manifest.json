@@ -43,6 +43,8 @@
         "ats_types.js",
         "ats_detector.js",
         "apply_stage_detector.js",
+        "user_action_intent_detector.js",
+        "user_guidance.js",
         "apply_state_machine.js",
         "content.js"
       ],

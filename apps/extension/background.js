@@ -312,6 +312,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true; // Async response
   }
+  
+  if (message.type === 'FW_TASK_RESUMED') {
+    // Task automatically resumed after user action
+    console.log('[Background] Task resumed:', message);
+    
+    if (currentTask && currentTask.status === 'needs_user') {
+      // Transition needs_user -> in_progress
+      APIClient.transitionTask(
+        currentTask.id,
+        'in_progress',
+        `Resumed after user completed: ${message.previous_intent}`,
+        {
+          auto_resume: true,
+          previous_intent: message.previous_intent,
+          new_stage: message.new_stage,
+          evidence: message.evidence,
+          timestamp: new Date().toISOString()
+        }
+      )
+        .then(() => {
+          console.log('[Background] Task transitioned to in_progress');
+          sendResponse({ success: true });
+        })
+        .catch(error => {
+          console.error('[Background] Resume transition failed:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+    } else {
+      sendResponse({ success: false, error: 'No current task in needs_user state' });
+    }
+    return true; // Async response
+  }
 });
 
 /**
