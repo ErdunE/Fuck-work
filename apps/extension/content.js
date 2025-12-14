@@ -76,13 +76,37 @@ let lastRecheckSignature = null;
 let fwOverlayInstance = null;
 let fwOverlayEnsureLoggedThisPage = false;
 
-function isFWDebugUIEnabled() {
+/**
+ * Safe URL parser (never throws).
+ * @param {string} input
+ * @param {string} fallback
+ * @returns {URL|{href:string,searchParams:URLSearchParams,toString:Function}}
+ */
+function safeParseURL(input, fallback = location.href) {
   try {
-    const params = new URL(window.location.href).searchParams;
-    if (params.get('fw_debug') === '1') return true;
-  } catch (_) {
-    // ignore
+    return new URL(input);
+  } catch (error) {
+    console.warn('[FW URL] Invalid URL encountered', { input, fallback_used: fallback });
+    try {
+      return new URL(fallback);
+    } catch (error2) {
+      console.warn('[FW URL] Invalid URL encountered', { input: fallback, fallback_used: location.href });
+      return {
+        href: String(fallback),
+        searchParams: new URLSearchParams(),
+        toString: () => String(fallback)
+      };
+    }
   }
+}
+
+function isFWDebugUIEnabled() {
+  // Must never throw during init/recheck; avoid URL parsing here entirely.
+  try {
+    if (typeof location !== 'undefined' && typeof location.search === 'string') {
+      if (location.search.includes('fw_debug=1')) return true;
+    }
+  } catch (_) {}
   try {
     return window.__FW_DEBUG_UI_ENABLED__ === true;
   } catch (_) {
@@ -137,10 +161,26 @@ function ensureOverlay(session) {
     fwOverlayEnsureLoggedThisPage = true;
   }
 
+  // Hard invariant: if session is active, overlay must exist.
+  if (session && session.active === true) {
+    console.log('[FW Invariant] Session active → overlay must exist');
+  }
+
   if (!fwOverlayInstance) {
-    console.log('[FW Overlay] Created', { url: window.location.href, task_id: session.task_id });
+    console.log('[FW Overlay] Created', { url: window.location.href, task_id: session?.task_id ?? null });
     fwOverlayInstance = createOverlayElement(session);
-    document.body.appendChild(fwOverlayInstance);
+    if (document.body) {
+      document.body.appendChild(fwOverlayInstance);
+    } else {
+      // Extremely early execution; retry once DOM is ready.
+      document.addEventListener('DOMContentLoaded', () => {
+        try {
+          if (fwOverlayInstance && document.body && !document.getElementById('fw-needs-user-overlay')) {
+            document.body.appendChild(fwOverlayInstance);
+          }
+        } catch (_) {}
+      }, { once: true });
+    }
     debugState.overlay.state = 'created';
     debugState.overlay.createdAt = new Date().toISOString();
     updateOverlayDebugPanel();
@@ -149,6 +189,39 @@ function ensureOverlay(session) {
     debugState.overlay.state = 'reused';
     updateOverlayDebugPanel();
   }
+}
+
+function enforceOverlayInvariant(session) {
+  if (!session || session.active !== true) return;
+  console.log('[FW Invariant] Session active → overlay must exist');
+  const existing = document.getElementById('fw-needs-user-overlay');
+  if (!existing || !fwOverlayInstance) {
+    console.warn('[FW Invariant] Overlay missing - recreating immediately');
+    fwOverlayInstance = null;
+    ensureOverlay(session);
+  }
+}
+
+function fatalManualFallback(where, error) {
+  console.error('[FW Fatal] Detection error, falling back to manual guidance', { where, error: error?.message || String(error) });
+  try {
+    if (activeSession && activeSession.active) {
+      enforceOverlayInvariant(activeSession);
+    }
+  } catch (_) {}
+
+  // Do NOT change existing guidance templates/copy; this is explicit crash fallback text only.
+  try {
+    updateOverlayContent({
+      title: 'Manual Action Required',
+      what_happening: 'Continue the application on this page. I’m still tracking this task.',
+      user_action: 'Continue the application on this page. I’m still tracking this task.',
+      what_next: 'Continue the application on this page. I’m still tracking this task.',
+      intent: 'unknown_manual',
+      task_id: activeSession?.task_id ?? 'unknown',
+      job_id: activeSession?.job_id ?? 'unknown'
+    });
+  } catch (_) {}
 }
 
 /**
@@ -340,59 +413,69 @@ if (document.readyState === 'loading') {
   init();
 }
 
-async function init() {
-  console.log('[FW Init] Starting initialization...');
-  
-  // STEP 1: Ensure debug state exists
-  const debugState = ensureFWDebugState();
-  
-  // STEP 2: Load or initialize session (MUST be first)
-  activeSession = await getActiveSession();
-  
-  if (!activeSession || !activeSession.active) {
-    console.log('[FW Session] No active apply session on this page');
-    console.log('[FW Init] No active session found, skipping initialization');
-    return;
-  }
-  
-  console.log('[FW Session] Loaded', {
-    active: activeSession.active,
-    task_id: activeSession.task_id,
-    job_id: activeSession.job_id,
-    initial_url: activeSession.initial_url,
-    current_url: activeSession.current_url
-  });
+function init() {
+  // Overlay survival guarantee:
+  // - No URL parsing here
+  // - No awaits here
+  // - Ensure overlay is created immediately after session load
+  try {
+    console.log('[FW Init] Starting initialization...');
+    ensureFWDebugState();
 
-  console.log('[FW Init] Active session found:', activeSession.task_id);
-  
-  // STEP 3: Get task from storage
-  const { activeTask } = await chrome.storage.local.get(['activeTask']);
-  if (!activeTask) {
-    console.log('[FW Init] No active task in storage');
-    return;
+    getActiveSession()
+      .then((session) => {
+        activeSession = session;
+
+        if (!activeSession || !activeSession.active) {
+          console.log('[FW Session] No active apply session on this page');
+          console.log('[FW Init] No active session found, skipping initialization');
+          return;
+        }
+
+        console.log('[FW Session] Loaded', {
+          active: activeSession.active,
+          task_id: activeSession.task_id,
+          job_id: activeSession.job_id,
+          initial_url: activeSession.initial_url,
+          current_url: activeSession.current_url
+        });
+
+        // Overlay-first invariant: create overlay before any awaits/detection/url parsing.
+        ensureOverlay(activeSession);
+        enforceOverlayInvariant(activeSession);
+
+        // Continue async pipeline after overlay exists.
+        (async () => {
+          try {
+            console.log('[FW Init] Active session found:', activeSession.task_id);
+
+            const { activeTask } = await chrome.storage.local.get(['activeTask']);
+            if (!activeTask) {
+              console.log('[FW Init] No active task in storage');
+              return;
+            }
+
+            currentTask = activeTask;
+
+            await updateActiveSession({ current_url: window.location.href });
+            await sleep(2000);
+            await runDetection();
+
+            initializePageLifecycle();
+            startResumeMonitoring();
+
+            console.log('[FW Init] Initialization complete');
+          } catch (error) {
+            fatalManualFallback('init_async', error);
+          }
+        })().catch((error) => fatalManualFallback('init_async_outer', error));
+      })
+      .catch((error) => {
+        fatalManualFallback('session_load', error);
+      });
+  } catch (error) {
+    fatalManualFallback('init_sync', error);
   }
-  
-  currentTask = activeTask;
-  
-  // STEP 4: CREATE OVERLAY (before detection)
-  ensureOverlay(activeSession);
-  
-  // STEP 5: Update session with current URL
-  await updateActiveSession({ current_url: window.location.href });
-  
-  // STEP 6: Wait for page to settle
-  await sleep(2000);
-  
-  // STEP 7: Run detection (will update overlay content)
-  await runDetection();
-  
-  // STEP 8: Initialize page lifecycle observers (AFTER detection)
-  initializePageLifecycle();
-  
-  // STEP 9: Start monitoring for resume conditions
-  startResumeMonitoring();
-  
-  console.log('[FW Init] Initialization complete');
 }
 
 /**
@@ -690,81 +773,85 @@ async function triggerRecheck(reason) {
 async function executeRecheck(reason) {
   // DEFENSIVE: Ensure debug state exists
   const debugState = ensureFWDebugState();
-  
-  // Load active session
-  activeSession = await getActiveSession();
-  
-  if (!activeSession || !activeSession.active) {
-    console.log('[Recheck] No active session, skipping');
-    return;
-  }
 
-  console.log('[FW Session] Loaded', {
-    active: activeSession.active,
-    task_id: activeSession.task_id,
-    job_id: activeSession.job_id,
-    initial_url: activeSession.initial_url,
-    current_url: activeSession.current_url
-  });
-  
-  // Guard: Don't recheck if no active task
-  if (!currentTask) {
-    console.log('[Recheck] No active task, skipping');
-    return;
-  }
-  
-  // Verify task matches session
-  if (currentTask.id !== activeSession.task_id) {
-    console.warn('[Recheck] Task/session mismatch!', {
-      task: currentTask.id,
-      session: activeSession.task_id
-    });
-    return;
-  }
-  
-  const currentUrl = window.location.href;
-  
-  // Classify page type early for signature
-  const pageType = classifyPageType();
-  
-  // DEDUPLICATION: Create signature
-  const signature = `${currentUrl}|${pageType}|${activeSession.task_id}`;
-  
-  if (signature === lastRecheckSignature) {
-    debugState.lastDedupSignature = signature;
-    console.log('[FW Recheck] Skipped duplicate', { dedup_signature: signature });
-    return;
-  }
-  
-  lastRecheckSignature = signature;
-  console.log(`[Recheck] New recheck signature: ${signature}`);
-  
-  // Update session state
-  await updateActiveSession({
-    current_url: currentUrl,
-    recheck_count: activeSession.recheck_count + 1
-  });
-  
-  // Reload updated session
-  activeSession = await getActiveSession();
-  
-  // Update debug state
-  debugState.recheckCount = activeSession.recheck_count;
-  
-  console.log(`[Recheck] Executing detection pipeline (reason: ${reason}, task: ${activeSession.task_id}, count: ${debugState.recheckCount})`);
-  
-  // Show "rechecking" state in existing overlay
-  updateOverlayContent({
-    title: 'Analyzing New Page',
-    what_happening: `Detected ${reason}, checking what to do next...`,
-    user_action: 'Please wait while I analyze this page',
-    what_next: 'Guidance will appear in a moment',
-    task_id: activeSession.task_id,
-    job_id: activeSession.job_id,
-    intent: 'analyzing'
-  }, { stage: debugState.lastDetectionStage, ats_kind: debugState.lastDetectionAtsKind });
-  
   try {
+    // Load active session
+    activeSession = await getActiveSession();
+
+    if (!activeSession || !activeSession.active) {
+      console.log('[Recheck] No active session, skipping');
+      return;
+    }
+
+    console.log('[FW Session] Loaded', {
+      active: activeSession.active,
+      task_id: activeSession.task_id,
+      job_id: activeSession.job_id,
+      initial_url: activeSession.initial_url,
+      current_url: activeSession.current_url
+    });
+
+    // Explicit invariant logging and enforcement on every recheck page
+    enforceOverlayInvariant(activeSession);
+  
+    // Guard: Don't recheck if no active task
+    if (!currentTask) {
+      console.log('[Recheck] No active task, skipping');
+      return;
+    }
+  
+    // Verify task matches session
+    if (currentTask.id !== activeSession.task_id) {
+      console.warn('[Recheck] Task/session mismatch!', {
+        task: currentTask.id,
+        session: activeSession.task_id
+      });
+      return;
+    }
+  
+    const currentUrl = window.location.href;
+  
+    // Classify page type early for signature
+    const pageType = classifyPageType();
+  
+    // DEDUPLICATION: Create signature
+    const signature = `${currentUrl}|${pageType}|${activeSession.task_id}`;
+  
+    if (signature === lastRecheckSignature) {
+      debugState.lastDedupSignature = signature;
+      console.log('[FW Recheck] Skipped duplicate', { dedup_signature: signature });
+      return;
+    }
+  
+    lastRecheckSignature = signature;
+    console.log(`[Recheck] New recheck signature: ${signature}`);
+  
+    // Update session state
+    await updateActiveSession({
+      current_url: currentUrl,
+      recheck_count: activeSession.recheck_count + 1
+    });
+  
+    // Reload updated session
+    activeSession = await getActiveSession();
+  
+    // Update debug state
+    debugState.recheckCount = activeSession.recheck_count;
+  
+    console.log(`[Recheck] Executing detection pipeline (reason: ${reason}, task: ${activeSession.task_id}, count: ${debugState.recheckCount})`);
+  
+    // Show "rechecking" state in existing overlay
+    updateOverlayContent({
+      title: 'Analyzing New Page',
+      what_happening: `Detected ${reason}, checking what to do next...`,
+      user_action: 'Please wait while I analyze this page',
+      what_next: 'Guidance will appear in a moment',
+      task_id: activeSession.task_id,
+      job_id: activeSession.job_id,
+      intent: 'analyzing'
+    }, { stage: debugState.lastDetectionStage, ats_kind: debugState.lastDetectionAtsKind });
+  
+    try {
     
     // Run full detection pipeline
     const atsResult = detectATS();
@@ -853,19 +940,22 @@ async function executeRecheck(reason) {
       intent: intentResult?.intent
     });
     
+    } catch (error) {
+      console.error('[Recheck] Detection failed:', error);
+
+      // Show error in overlay (don't remove it)
+      updateOverlayContent({
+        title: 'Recheck Failed',
+        what_happening: 'Could not analyze this page',
+        user_action: 'You can continue manually or cancel the task',
+        what_next: 'I will retry on next page change',
+        task_id: activeSession.task_id,
+        job_id: activeSession.job_id,
+        intent: 'error'
+      }, { stage: debugState.lastDetectionStage, ats_kind: debugState.lastDetectionAtsKind });
+    }
   } catch (error) {
-    console.error('[Recheck] Detection failed:', error);
-    
-    // Show error in overlay (don't remove it)
-    updateOverlayContent({
-      title: 'Recheck Failed',
-      what_happening: 'Could not analyze this page',
-      user_action: 'You can continue manually or cancel the task',
-      what_next: 'I will retry on next page change',
-      task_id: activeSession.task_id,
-      job_id: activeSession.job_id,
-      intent: 'error'
-    }, { stage: debugState.lastDetectionStage, ats_kind: debugState.lastDetectionAtsKind });
+    fatalManualFallback('executeRecheck_outer', error);
   }
 }
 
