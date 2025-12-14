@@ -77,26 +77,93 @@ let fwOverlayInstance = null;
 let fwOverlayEnsureLoggedThisPage = false;
 
 /**
- * Safe URL parser (never throws).
- * @param {string} input
- * @param {string} fallback
- * @returns {URL|{href:string,searchParams:URLSearchParams,toString:Function}}
+ * Safe URL parser (NEVER throws).
+ * Handles: null, undefined, "", "www.example.com", "/path", and garbage strings.
+ * Strategy: auto-add https:// if no protocol; fallback to window.location.href on failure.
+ * @param {string|null|undefined} input
+ * @param {string} [fallback]
+ * @returns {URL|{href:string,searchParams:URLSearchParams,toString:Function,hostname:string,pathname:string,origin:string}}
  */
-function safeParseURL(input, fallback = location.href) {
+function safeParseURL(input, fallback) {
+  // Get a safe fallback (never throw here)
+  let safeFallback;
   try {
-    return new URL(input);
-  } catch (error) {
-    console.warn('[FW URL] Invalid URL encountered', { input, fallback_used: fallback });
+    safeFallback = (typeof fallback === 'string' && fallback) ? fallback : window.location.href;
+  } catch (_) {
+    safeFallback = 'about:blank';
+  }
+
+  // Handle null, undefined, empty string
+  if (input === null || input === undefined || input === '') {
+    console.warn('[FW URL] Invalid URL encountered', { input, fallback_used: safeFallback });
+    return safeParseURLInternal(safeFallback, safeFallback);
+  }
+
+  // Coerce to string
+  let str;
+  try {
+    str = String(input).trim();
+  } catch (_) {
+    console.warn('[FW URL] Invalid URL encountered', { input, fallback_used: safeFallback });
+    return safeParseURLInternal(safeFallback, safeFallback);
+  }
+
+  if (!str) {
+    console.warn('[FW URL] Invalid URL encountered', { input, fallback_used: safeFallback });
+    return safeParseURLInternal(safeFallback, safeFallback);
+  }
+
+  // Try parsing as-is first
+  try {
+    return new URL(str);
+  } catch (_) {
+    // continue to normalization
+  }
+
+  // Relative path starting with /
+  if (str.startsWith('/')) {
     try {
-      return new URL(fallback);
-    } catch (error2) {
-      console.warn('[FW URL] Invalid URL encountered', { input: fallback, fallback_used: location.href });
-      return {
-        href: String(fallback),
-        searchParams: new URLSearchParams(),
-        toString: () => String(fallback)
-      };
+      const origin = new URL(safeFallback).origin;
+      return new URL(str, origin);
+    } catch (_) {
+      // continue
     }
+  }
+
+  // Missing protocol (e.g. "www.linkedin.com" or "linkedin.com/jobs")
+  if (!str.includes('://')) {
+    try {
+      return new URL('https://' + str);
+    } catch (_) {
+      // continue
+    }
+  }
+
+  // All attempts failed
+  console.warn('[FW URL] Invalid URL encountered', { input, fallback_used: safeFallback });
+  return safeParseURLInternal(safeFallback, safeFallback);
+}
+
+/**
+ * Internal helper: parse URL or return mock object (NEVER throws).
+ */
+function safeParseURLInternal(urlString, fallbackHref) {
+  try {
+    return new URL(urlString);
+  } catch (_) {
+    // Return a minimal URL-like object that won't crash callers
+    const href = typeof fallbackHref === 'string' ? fallbackHref : 'about:blank';
+    return {
+      href: href,
+      searchParams: new URLSearchParams(),
+      toString: () => href,
+      hostname: '',
+      pathname: '/',
+      origin: '',
+      protocol: '',
+      search: '',
+      hash: ''
+    };
   }
 }
 
