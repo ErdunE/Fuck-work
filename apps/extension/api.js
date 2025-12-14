@@ -9,36 +9,29 @@ const USER_ID = 1; // Backward compatibility fallback
 
 class APIClient {
   /**
-   * Get authorization headers (Phase 5.0)
-   * Returns headers object with JWT token if available
+   * Get authorization headers (Phase 5.3.4: Single Source of Truth)
+   * Token MUST be passed explicitly by caller (content.js)
+   * @param {string} token - JWT token from content.js authContext
+   * @returns {Object} Headers object with Authorization
    */
-  static async getAuthHeaders() {
-    // Phase 5.3.3: Auth headers construction logging
+  static getAuthHeaders(token) {
+    // Phase 5.3.4: Token received from caller logging
     console.group('[FW API][Auth Headers]');
-    console.log('Loading auth for API request');
+    console.log('Token received from caller:', !!token);
     
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-    
-    // Try to get JWT token (Phase 5.0)
-    if (typeof AuthManager !== 'undefined') {
-      const token = await AuthManager.getToken();
-      console.log('Has token:', !!token);
-      if (token) {
-        // Get user info for logging (don't log token itself)
-        const userInfo = await AuthManager.getUserInfo();
-        console.log('user_id:', userInfo?.user_id);
-        console.log('email:', userInfo?.email);
-        headers['Authorization'] = `Bearer ${token}`;
-      }
-    } else {
-      console.log('AuthManager not available');
+    if (!token) {
+      console.error('[FW API] CRITICAL: getAuthHeaders called without token');
+      console.groupEnd();
+      throw new Error('[FW API] Token required but not provided');
     }
     
+    console.log('Building Authorization header');
     console.groupEnd();
     
-    return headers;
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
   }
   /**
    * Get next queued apply task
@@ -176,11 +169,12 @@ class APIClient {
   /**
    * Get raw profile (Phase 5.0 - DEPRECATED in Phase 5.2.1)
    * @deprecated Use getMyDerivedProfile() instead for autofill operations
+   * @param {string} token - JWT token from content.js authContext
    */
-  static async getMyProfile() {
+  static async getMyProfile(token) {
     console.warn('[DEPRECATED] getMyProfile() - Autofill should use getMyDerivedProfile() instead');
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, { headers });
       
       if (!response.ok) {
@@ -198,10 +192,11 @@ class APIClient {
    * Get derived ATS-ready profile (Phase 5.2.1 - REQUIRED FOR AUTOFILL)
    * This endpoint returns computed, ATS-ready answers from raw profile data.
    * Extension autofill MUST use this endpoint exclusively.
+   * @param {string} token - JWT token from content.js authContext
    */
-  static async getMyDerivedProfile() {
+  static async getMyDerivedProfile(token) {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/users/me/derived-profile`, { headers });
       
       if (!response.ok) {
@@ -221,10 +216,11 @@ class APIClient {
   /**
    * Get automation preferences (Phase 5.0 - CRITICAL)
    * Extension polls this endpoint for preference updates
+   * @param {string} token - JWT token from content.js authContext
    */
-  static async getAutomationPreferences() {
+  static async getAutomationPreferences(token) {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/users/me/automation-preferences`, { headers });
       
       if (!response.ok) {
@@ -240,10 +236,12 @@ class APIClient {
   
   /**
    * Update automation preferences (Phase 5.0)
+   * @param {string} token - JWT token from content.js authContext
+   * @param {Object} updates - Preference updates object
    */
-  static async updateAutomationPreferences(updates) {
+  static async updateAutomationPreferences(token, updates) {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(
         `${API_BASE_URL}/api/users/me/automation-preferences`,
         {
@@ -266,10 +264,12 @@ class APIClient {
   
   /**
    * Log automation event (Phase 5.0 - audit log)
+   * @param {string} token - JWT token from content.js authContext
+   * @param {Object} eventData - Event data object
    */
-  static async logAutomationEvent(eventData) {
+  static async logAutomationEvent(token, eventData) {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(
         `${API_BASE_URL}/api/users/me/automation-events`,
         {
@@ -293,10 +293,14 @@ class APIClient {
   
   /**
    * Get apply tasks (Phase 5.0 - read-only visibility)
+   * @param {string} token - JWT token from content.js authContext
+   * @param {string|null} status - Filter by status (optional)
+   * @param {number} limit - Max results (default 50)
+   * @param {number} offset - Offset for pagination (default 0)
    */
-  static async getMyApplyTasks(status = null, limit = 50, offset = 0) {
+  static async getMyApplyTasks(token, status = null, limit = 50, offset = 0) {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       let url = `${API_BASE_URL}/api/users/me/apply-tasks?limit=${limit}&offset=${offset}`;
       if (status) {
         url += `&status=${status}`;
@@ -317,10 +321,12 @@ class APIClient {
   
   /**
    * Get specific apply task detail (Phase 5.0)
+   * @param {string} token - JWT token from content.js authContext
+   * @param {number} taskId - Task ID
    */
-  static async getMyApplyTask(taskId) {
+  static async getMyApplyTask(token, taskId) {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/users/me/apply-tasks/${taskId}`, { headers });
       
       if (!response.ok) {
@@ -337,10 +343,11 @@ class APIClient {
   /**
    * Get active apply session from backend (Phase 5.3.1 - Session Bridge)
    * Extension uses this to deterministically attach to the correct apply run.
+   * @param {string} token - JWT token from content.js authContext
    */
-  static async getMyActiveSession() {
+  static async getMyActiveSession(token) {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/users/me/active-session`, { headers });
       
       if (!response.ok) {
@@ -357,10 +364,11 @@ class APIClient {
   /**
    * Clear active apply session (Phase 5.3.1 - Session Bridge)
    * Called when run completes, fails, or user cancels.
+   * @param {string} token - JWT token from content.js authContext
    */
-  static async clearMyActiveSession() {
+  static async clearMyActiveSession(token) {
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/users/me/active-session`, {
         method: 'DELETE',
         headers

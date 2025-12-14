@@ -750,17 +750,20 @@ function validateUrlMatch(currentUrl, sessionUrl) {
  * This overrides the function from apply_session.js to fetch from backend API.
  * @returns {Promise<Object>} Session object with { active, task_id, run_id, job_url, ats_type }
  */
-async function getActiveSession() {
+async function getActiveSession(authContext) {
   try {
-    // Check if user is authenticated
-    if (!AuthManager || !await AuthManager.isAuthenticated()) {
-      console.log('[FW Session] Not authenticated, skipping session fetch');
-      return { active: false };
-    }
+    // Phase 5.3.4: authContext passed from verifyAuthToken, no need to re-check auth
+    
+    // Phase 5.3.4: Log token passing to API
+    console.group('[FW Content][API Call Prep]');
+    console.log('Passing token explicitly to API');
+    console.log('token exists:', !!authContext.token);
+    console.log('fingerprint:', authContext.fingerprint);
+    console.groupEnd();
     
     // Fetch active session from backend
     console.log('[FW Session] Fetching active session from backend...');
-    const sess = await APIClient.getMyActiveSession();
+    const sess = await APIClient.getMyActiveSession(authContext.token);
     
     console.log('[FW Session] Active session fetch result:', {
       active: sess.active,
@@ -903,9 +906,13 @@ async function verifyAuthToken() {
     console.log('Match:', userData.user_id === auth.user_id);
     console.groupEnd();
     
+    // Phase 5.3.4: Return full authContext including token for API calls
     return {
+      token: auth.token,
       user_id: userData.user_id,
-      email: userData.email
+      email: userData.email,
+      fingerprint: auth.fingerprint,
+      expires_at: auth.expires_at
     };
     
   } catch (error) {
@@ -937,16 +944,16 @@ function init() {
 
     // Phase 5.3.2: Verify auth before fetching session
     verifyAuthToken()
-      .then((verifiedUser) => {
-        if (!verifiedUser) {
+      .then((authContext) => {
+        if (!authContext) {
           console.log('[FW Init] Not authenticated or token invalid, skipping initialization');
           return;
         }
         
-        console.log('[FW Init] Auth verified for user', verifiedUser.user_id);
+        console.log('[FW Init] Auth verified for user', authContext.user_id);
         
-        // Now fetch active session
-        return getActiveSession();
+        // Phase 5.3.4: Pass authContext to getActiveSession
+        return getActiveSession(authContext);
       })
       .then((session) => {
         if (!session) {
