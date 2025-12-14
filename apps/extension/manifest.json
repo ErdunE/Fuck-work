@@ -24,7 +24,7 @@
         "*://*.indeed.com/viewjob*",
         "*://*.greenhouse.io/*/jobs/*"
       ],
-      "js": ["content.js"],
+      "js": ["api.js", "content.js"],
       "run_at": "document_idle"
     }
   ],
