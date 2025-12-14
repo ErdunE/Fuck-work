@@ -1,7 +1,7 @@
 """
-Apply Tasks Visibility API endpoints for Phase 5.0 Web Control Plane.
-Read-only visibility into what the system is doing.
-NO editing, NO retry buttons yet - visibility only.
+Apply Tasks API endpoints for Phase 5.0/5.2 Web Control Plane.
+- Phase 5.0: Read-only visibility
+- Phase 5.2: Add task creation capability
 """
 
 from datetime import datetime
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
 from database import get_db
-from database.models import User, ApplyTask
+from database.models import User, ApplyTask, Job
 from api.auth import get_current_user
 
 router = APIRouter(prefix="/api/users/me", tags=["apply-tasks"])
@@ -62,6 +62,21 @@ class ApplyTasksListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+# Phase 5.2: Task creation models
+class CreateTaskRequest(BaseModel):
+    """Request to create a new apply task."""
+    job_id: str
+
+
+class CreateTaskResponse(BaseModel):
+    """Response for task creation."""
+    id: int
+    job_id: str
+    status: str
+    created_at: datetime
+    message: str
 
 
 # Helper Functions
@@ -184,4 +199,68 @@ def get_apply_task(
         )
     
     return ApplyTaskDetail.from_orm(task)
+
+
+@router.post("/apply-tasks", response_model=CreateTaskResponse, status_code=status.HTTP_201_CREATED)
+def create_apply_task(
+    request: CreateTaskRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Create a new apply task (Phase 5.2).
+    
+    Allows users to start an application from Web Control Plane.
+    Idempotent - returns existing task if already exists for this job.
+    """
+    # Verify job exists
+    job = db.query(Job).filter(Job.job_id == request.job_id).first()
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Job '{request.job_id}' not found"
+        )
+    
+    # Check if task already exists for this user + job
+    existing_task = db.query(ApplyTask).filter(
+        ApplyTask.user_id == current_user.id,
+        ApplyTask.job_id == request.job_id
+    ).first()
+    
+    if existing_task:
+        # Return existing task (idempotent)
+        return CreateTaskResponse(
+            id=existing_task.id,
+            job_id=existing_task.job_id,
+            status=existing_task.status,
+            created_at=existing_task.created_at,
+            message=f"Task already exists with status '{existing_task.status}'"
+        )
+    
+    # Create new task
+    task = ApplyTask(
+        user_id=current_user.id,
+        job_id=request.job_id,
+        status='queued',
+        priority=0,
+        task_metadata={
+            'company': job.company_name,
+            'title': job.title,
+            'platform': job.platform,
+            'url': job.url,
+            'created_from': 'web_control_plane'
+        }
+    )
+    
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    
+    return CreateTaskResponse(
+        id=task.id,
+        job_id=task.job_id,
+        status=task.status,
+        created_at=task.created_at,
+        message="Task created successfully"
+    )
 

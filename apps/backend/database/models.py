@@ -164,6 +164,10 @@ class UserProfile(Base):
     work_authorization = Column(String(100))
     visa_status = Column(String(100))
     
+    # Phase 5.2: Compliance / Preferences
+    willing_to_relocate = Column(Boolean)
+    government_employment_history = Column(Boolean)
+    
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
     

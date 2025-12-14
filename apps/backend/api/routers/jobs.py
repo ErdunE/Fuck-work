@@ -1,17 +1,39 @@
 """
-Job search endpoints.
+Job search endpoints + manual job entry (Phase 5.2).
 """
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
+from pydantic import BaseModel
+import hashlib
 from database import get_db
-from database.models import Job
+from database.models import Job, User
 from ..models import JobSearchRequest, JobSearchResponse, JobResponse, JobDecisionResponse, JobDecisionExplanation, DecisionSummary
 from ..services.job_service import JobService
 from decision_engine import explain_job_decision
+from api.auth import get_current_user
 
 router = APIRouter()
+
+
+# Phase 5.2: Manual job entry models
+class ManualJobRequest(BaseModel):
+    """Manual job entry request."""
+    url: str
+    title: str
+    company_name: str
+    platform: Optional[str] = None
+
+
+class ManualJobResponse(BaseModel):
+    """Manual job entry response."""
+    id: int
+    job_id: str
+    url: str
+    title: str
+    company_name: str
+    platform: str
 
 
 @router.post("/search", response_model=JobSearchResponse)
@@ -187,5 +209,82 @@ def get_job_decision(
             signals_used=decision.signals_used,
             confidence_level=decision.confidence_level
         )
+    )
+
+
+@router.post("/manual", response_model=ManualJobResponse)
+def create_manual_job(
+    request: ManualJobRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Manually add a job (Phase 5.2).
+    
+    Allows users to add jobs directly from Web Control Plane.
+    No scraping or scoring is performed.
+    """
+    # Check if job with this URL already exists
+    existing_job = db.query(Job).filter(Job.url == request.url).first()
+    if existing_job:
+        # Return existing job (idempotent)
+        return ManualJobResponse(
+            id=existing_job.id,
+            job_id=existing_job.job_id,
+            url=existing_job.url,
+            title=existing_job.title,
+            company_name=existing_job.company_name,
+            platform=existing_job.platform
+        )
+    
+    # Infer platform from URL if not provided
+    platform = request.platform
+    if not platform:
+        url_lower = request.url.lower()
+        if 'linkedin.com' in url_lower:
+            platform = 'LinkedIn'
+        elif 'greenhouse.io' in url_lower:
+            platform = 'Greenhouse'
+        elif 'lever.co' in url_lower:
+            platform = 'Lever'
+        elif 'workday.com' in url_lower:
+            platform = 'Workday'
+        elif 'indeed.com' in url_lower:
+            platform = 'Indeed'
+        else:
+            platform = 'Manual'
+    
+    # Generate job_id (hash of URL for uniqueness)
+    job_id = f"manual_{hashlib.md5(request.url.encode()).hexdigest()[:12]}"
+    
+    # Create job record
+    job = Job(
+        job_id=job_id,
+        title=request.title,
+        company_name=request.company_name,
+        url=request.url,
+        platform=platform,
+        jd_text="",  # No JD text for manual entries
+        authenticity_score=None,  # No scoring for manual entries
+        authenticity_level=None,
+        confidence=None,
+        collection_metadata={
+            "collection_method": "manual_entry",
+            "platform": platform,
+            "added_by_user_id": current_user.id
+        }
+    )
+    
+    db.add(job)
+    db.commit()
+    db.refresh(job)
+    
+    return ManualJobResponse(
+        id=job.id,
+        job_id=job.job_id,
+        url=job.url,
+        title=job.title,
+        company_name=job.company_name,
+        platform=job.platform
     )
 
