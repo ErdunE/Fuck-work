@@ -266,25 +266,26 @@ function getFWDebugSnapshot() {
   };
 }
 
-function updateOverlayDebugPanel() {
+async function updateOverlayDebugPanel() {
   if (!fwOverlayInstance) return;
   const debugState = ensureFWDebugState();
   const panel = fwOverlayInstance.querySelector('.fw-debug-panel');
   if (!panel) return;
 
   const snap = getFWDebugSnapshot();
+  const { detectionState } = await chrome.storage.local.get(['detectionState']);
+  
   panel.textContent =
-    `content.js injected: ${snap.injected ? 'yes' : 'no'}\n` +
-    `injectedHost: ${snap.injected_host}\n` +
-    `injectedTs: ${snap.injected_ts}\n` +
-    `session active: ${snap.session_active ? 'yes' : 'no'}\n` +
-    `task_id: ${snap.task_id}\n` +
-    `job_id: ${snap.job_id}\n` +
-    `last recheck reason: ${snap.last_recheck_reason}\n` +
-    `recheck_count: ${snap.recheck_count}\n` +
-    `last detection_id: ${snap.last_detection_id}\n` +
-    `current URL: ${snap.url}\n` +
-    `overlay state: ${debugState.overlay.state}\n`;
+    `Page Intent: ${detectionState?.pageIntent?.intent || 'unknown'}\n` +
+    `ATS: ${detectionState?.ats?.ats_kind || 'unknown'}\n` +
+    `Stage: ${detectionState?.stage?.stage || 'unknown'}\n` +
+    `Session: ${snap.session_active ? 'active' : 'inactive'}\n` +
+    `Task ID: ${snap.task_id}\n` +
+    `Step: ${detectionState?.guidance?.step?.current || '?'} of ${detectionState?.guidance?.step?.total || '?'}\n` +
+    `Injected: ${snap.injected ? 'yes' : 'no'} (${snap.injected_host})\n` +
+    `Recheck Count: ${snap.recheck_count}\n` +
+    `Detection ID: ${snap.last_detection_id}\n` +
+    `URL: ${snap.url}\n`;
 }
 
 /**
@@ -379,6 +380,7 @@ function updateOverlayContent(guidance, meta = {}) {
   const atsKind = meta.ats_kind ?? debugState.lastDetectionAtsKind ?? guidance.ats_kind;
   console.log('[FW Overlay] Updated content', {
     intent: guidance.intent,
+    step: guidance.step,
     stage,
     ats_kind: atsKind
   });
@@ -388,16 +390,19 @@ function updateOverlayContent(guidance, meta = {}) {
   
   // Update overlay DOM with new guidance
   const titleEl = fwOverlayInstance.querySelector('.fw-overlay-title');
-  const whatEl = fwOverlayInstance.querySelector('.fw-overlay-what');
-  const actionEl = fwOverlayInstance.querySelector('.fw-overlay-action');
-  const nextEl = fwOverlayInstance.querySelector('.fw-overlay-next');
+  const progressEl = fwOverlayInstance.querySelector('.fw-overlay-progress');
+  const instructionEl = fwOverlayInstance.querySelector('.fw-overlay-instruction');
+  const reassuranceEl = fwOverlayInstance.querySelector('.fw-overlay-reassurance');
+  const whatNextEl = fwOverlayInstance.querySelector('.fw-overlay-what-next');
   const taskIdEl = fwOverlayInstance.querySelector('.fw-overlay-task-id');
   const jobIdEl = fwOverlayInstance.querySelector('.fw-overlay-job-id');
   
+  // Handle both new intent-based guidance and legacy guidance
   if (titleEl) titleEl.textContent = guidance.title;
-  if (whatEl) whatEl.textContent = guidance.what_happening;
-  if (actionEl) actionEl.textContent = guidance.user_action;
-  if (nextEl) nextEl.textContent = guidance.what_next;
+  if (progressEl && guidance.progress_text) progressEl.textContent = guidance.progress_text;
+  if (instructionEl) instructionEl.textContent = guidance.instruction || guidance.user_action;
+  if (reassuranceEl) reassuranceEl.textContent = guidance.reassurance || guidance.what_happening;
+  if (whatNextEl) whatNextEl.textContent = guidance.what_next;
   if (taskIdEl) taskIdEl.textContent = guidance.task_id;
   if (jobIdEl) jobIdEl.textContent = guidance.job_id;
 
@@ -435,7 +440,7 @@ function createOverlayElement(session) {
     position: fixed;
     top: 20px;
     right: 20px;
-    width: 360px;
+    width: 380px;
     background: white;
     border: 2px solid #ff9800;
     border-radius: 8px;
@@ -446,58 +451,61 @@ function createOverlayElement(session) {
   `;
   
   overlay.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-      <div style="flex: 1;">
-        <div style="font-size: 16px; font-weight: 600; color: #ff9800; margin-bottom: 4px;">
-          FuckWork Apply Assistant
-        </div>
-        <div style="font-size: 12px; color: #999;">
-          Task #<span class="fw-overlay-task-id">${session.task_id}</span> | 
-          Job <span class="fw-overlay-job-id">${session.job_id}</span>
-        </div>
+    <div style="margin-bottom: 16px;">
+      <div style="font-size: 12px; color: #666; margin-bottom: 4px;">
+        FuckWork Apply Assistant
+      </div>
+      <div style="font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px;">
+        <span class="fw-overlay-title">Loading...</span>
+      </div>
+      <div style="font-size: 12px; color: #999;">
+        <span class="fw-overlay-progress">Preparing...</span>
       </div>
     </div>
     
     <div style="margin-bottom: 16px; padding: 12px; background: #fff3e0; border-radius: 6px; border-left: 3px solid #ff9800;">
-      <div style="font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px;">
-        <span class="fw-overlay-title">Loading...</span>
+      <div style="font-size: 14px; color: #1a1a1a; margin-bottom: 12px; line-height: 1.4;">
+        <span class="fw-overlay-instruction">Analyzing page...</span>
       </div>
-      <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
-        <strong>What's happening:</strong> <span class="fw-overlay-what">Analyzing page...</span>
+      <div style="font-size: 13px; color: #666; margin-bottom: 8px; line-height: 1.4;">
+        <span class="fw-overlay-reassurance">Please wait...</span>
       </div>
-      <div style="font-size: 14px; color: #1a1a1a; font-weight: 500; margin-bottom: 8px;">
-        <strong>→ <span class="fw-overlay-action">Please wait...</span></strong>
-      </div>
-      <div style="font-size: 12px; color: #666;">
-        <em>After you do this:</em> <span class="fw-overlay-next">Detection in progress...</span>
+      <div style="font-size: 12px; color: #555; font-style: italic; line-height: 1.4;">
+        <strong>What's next:</strong> <span class="fw-overlay-what-next">Detection in progress...</span>
       </div>
     </div>
     
-    <div style="display: flex; gap: 8px;">
+    <div style="display: flex; gap: 8px; margin-bottom: 8px;">
       <button class="fw-overlay-copy-debug" style="
         flex: 1;
-        padding: 10px;
+        padding: 8px;
         background: #e0e0e0;
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        font-size: 13px;
+        font-size: 12px;
         color: #333;
         font-weight: 500;
       ">
         📋 Copy Debug
       </button>
     </div>
+    
+    <div style="font-size: 11px; color: #999; text-align: center;">
+      Task #<span class="fw-overlay-task-id">${session.task_id}</span> | 
+      Job <span class="fw-overlay-job-id">${session.job_id}</span>
+    </div>
+    
     ${isFWDebugUIEnabled() ? `
-      <div style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+      <div style="margin-top: 12px; border-top: 1px solid #eee; padding-top: 8px;">
         <button class="fw-debug-toggle" style="
           width: 100%;
-          background: #fafafa;
-          border: 1px solid #eee;
+          padding: 6px;
+          background: #f5f5f5;
+          border: none;
           border-radius: 4px;
-          padding: 6px 8px;
           cursor: pointer;
-          font-size: 12px;
+          font-size: 11px;
           color: #555;
           text-align: left;
         ">FW Debug ▸</button>
@@ -505,17 +513,16 @@ function createOverlayElement(session) {
           display: none;
           margin: 8px 0 0 0;
           padding: 8px;
-          background: #111;
-          color: #eee;
-          font-size: 11px;
+          background: #f9f9f9;
           border-radius: 4px;
+          font-size: 10px;
+          color: #333;
+          overflow-x: auto;
           white-space: pre-wrap;
-          word-break: break-word;
-          max-height: 180px;
-          overflow: auto;
+          max-height: 200px;
         "></pre>
       </div>
-    ` : ``}
+    ` : ''}
   `;
   
   // Add copy debug handler
@@ -650,7 +657,11 @@ async function runDetection() {
     debugState.lastDetectionStage = stageResult.stage;
     debugState.lastDetectionAtsKind = atsResult.ats_kind;
     
-    // Step 3: Compute worker action
+    // Step 3: NEW - Page intent detection (Phase 4.2 UX upgrade)
+    const pageIntent = classifyPageIntent();
+    console.log('[FW Detection] Page intent:', pageIntent);
+    
+    // Step 4: Compute worker action
     const actionResult = computeWorkerAction({
       task: currentTask,
       ats: atsResult,
@@ -658,29 +669,29 @@ async function runDetection() {
     });
     console.log('[Detection] Action result:', actionResult);
     
-    // Step 4: Detect user action intent and generate guidance
-    const intentResult = detectUserActionIntent(atsResult, stageResult);
-    const guidance = generateSessionAwareGuidance(
-      intentResult.intent,
-      atsResult,
-      stageResult,
-      activeSession
-    );
-    console.log('[Detection] Intent result:', intentResult);
-    console.log('[Detection] Guidance:', guidance);
-
-    updateOverlayContent(guidance, { stage: stageResult.stage, ats_kind: atsResult.ats_kind });
+    // Step 5: Generate intent-based guidance (Phase 4.2 UX upgrade)
+    const guidance = generateIntentBasedGuidance(pageIntent, activeSession);
+    console.log('[FW Detection] Complete', {
+      detection_id: detectionId,
+      ats: atsResult.ats_kind,
+      stage: stageResult.stage,
+      intent: pageIntent.intent,
+      step: guidance.step
+    });
     
-    // Step 5: UPDATE OVERLAY CONTENT (not visibility)
-    updateOverlayContent(guidance);
+    // Step 6: UPDATE OVERLAY CONTENT (not visibility)
+    updateOverlayContent(guidance, {
+      ats_kind: atsResult.ats_kind,
+      stage: stageResult.stage
+    });
     
-    // Step 6: Store detection state for popup access
+    // Step 7: Store detection state for popup access
     await chrome.storage.local.set({
       detectionState: {
         ats: atsResult,
         stage: stageResult,
         action: actionResult,
-        intent: intentResult,
+        pageIntent: pageIntent,
         guidance: guidance,
         detection_id: detectionId,
         timestamp: new Date().toISOString(),
@@ -692,7 +703,7 @@ async function runDetection() {
       }
     });
     
-    // Step 7: Take action based on result (NO overlay manipulation)
+    // Step 8: Take action based on result (NO overlay manipulation)
     if (actionResult.action === 'continue') {
       // Get user profile and run autofill
       const userProfile = await APIClient.getUserProfile(1);
@@ -704,12 +715,13 @@ async function runDetection() {
       }
     }
     
-    // Step 8: Report back to background worker
+    // Step 9: Report back to background worker
     chrome.runtime.sendMessage({
       type: 'FW_DETECTION_RESULT',
       detection_id: detectionId,
       ats: atsResult,
       stage: stageResult,
+      pageIntent: pageIntent,
       action: actionResult
     }).catch(err => {
       console.error('[Detection] Failed to send result to background:', err);
