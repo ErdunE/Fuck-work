@@ -798,18 +798,14 @@ async function runDetection() {
       }
     });
     
-    // Step 8: Phase 4.3 - Trigger automation based on page intent
+    // Step 8: Phase 5.1 - E2E Mode: Trigger autofill automatically on application_form
     if (pageIntent.intent === 'application_form') {
-      // Check if we just landed here after login
-      const justLoggedIn = checkIfJustLoggedIn();
+      console.log('[Phase 5.1 E2E] Detected application_form page - triggering autofill...');
       
-      if (justLoggedIn) {
-        console.log('[Automation] Detected post-login, triggering autofill...');
-        await executeAutofillIfAuthorized();
-      } else {
-        // Always check if ready to submit when on application form
-        await checkReadyToSubmit();
-      }
+      // Phase 5.1: Automatically trigger autofill when:
+      // - page_intent === "application_form"
+      // - auto_fill_after_login === true (checked inside executeAutofillIfAuthorized)
+      await executeAutofillIfAuthorized();
       
       // Update last page type for login detection
       const debugState = ensureFWDebugState();
@@ -820,17 +816,8 @@ async function runDetection() {
       debugState.lastPageType = pageIntent.intent;
     }
     
-    // Step 9: Legacy action handling (for backward compatibility)
-    if (actionResult.action === 'continue') {
-      // Legacy autofill logic (will be gated by executeAutofillIfAuthorized)
-      const userProfile = await APIClient.getUserProfile(1);
-      
-      if (userProfile && userProfile.profile) {
-        await attemptAutofill(userProfile.profile, userProfile.user);
-      } else {
-        console.log('No user profile found for autofill');
-      }
-    }
+    // Step 9: Legacy action handling removed in Phase 5.1
+    // Autofill now triggers automatically on application_form detection
     
     // Step 9: Report back to background worker
     chrome.runtime.sendMessage({
@@ -904,6 +891,8 @@ async function executeAutofillIfAuthorized() {
   }
   
   console.log('[Autofill] Starting authorized autofill...');
+  console.log('[Phase 5.1] E2E Mode: Autofill trigger reason = application_form detected');
+  
   const currentGuidance = await getCurrentGuidance();
   if (currentGuidance) {
     updateOverlayContent({
@@ -915,37 +904,82 @@ async function executeAutofillIfAuthorized() {
   }
   
   try {
-    const userProfile = await APIClient.getUserProfile(1);
-    if (userProfile && userProfile.profile) {
-      await attemptAutofill(userProfile.profile, userProfile.user);
-      
-      // Log successful autofill (Phase 5.0)
-      await logAutomationEvent(createEventPayload(
-        'autofill_executed',
-        'autofill_executed',
-        'auto_fill_after_login=true, profile loaded successfully',
-        { fields_filled: 'count_not_tracked_yet' }
-      ));
-      
-      // After autofill, check if ready to submit
-      await checkReadyToSubmit();
-    } else {
-      console.warn('[Autofill] No user profile found');
+    // Phase 5.1: Fetch profile from backend (ONLY source of truth)
+    console.log('[Phase 5.1] Fetching profile from backend API (authenticated)...');
+    const backendProfile = await APIClient.getMyProfile();
+    
+    if (!backendProfile) {
+      console.error('[Autofill] Backend profile fetch failed or returned null');
       
       // Log failure (Phase 5.0)
       await logAutomationEvent(createEventPayload(
         'autofill_failed',
         'autofill_blocked',
-        'User profile not found or failed to load'
+        'Backend profile API returned null (auth may have failed)'
       ));
       
       if (currentGuidance) {
         updateOverlayContent({
           ...currentGuidance,
-          instruction: 'Could not load your profile. Please fill the form manually.'
+          instruction: 'Could not load your profile. Please ensure you are logged in.'
         });
       }
+      return;
     }
+    
+    console.log('[Phase 5.1] Profile source: backend (authenticated API)');
+    console.log('[Phase 5.1] Profile data loaded:', {
+      first_name: backendProfile.first_name || 'MISSING',
+      last_name: backendProfile.last_name || 'MISSING',
+      primary_email: backendProfile.primary_email || 'MISSING',
+      phone: backendProfile.phone || 'MISSING',
+      city: backendProfile.city || 'MISSING',
+      linkedin_url: backendProfile.linkedin_url || 'MISSING'
+    });
+    
+    // Phase 5.1: Execute autofill with backend profile
+    const autofillResult = await attemptAutofill(backendProfile);
+    
+    // Phase 5.1: Log detailed telemetry
+    console.log('[Phase 5.1] Autofill telemetry:', {
+      profile_source: 'backend',
+      autofill_trigger_reason: 'application_form detected + auto_fill_enabled',
+      fields_attempted: autofillResult.attempted,
+      fields_filled: autofillResult.filled,
+      fields_skipped: autofillResult.skipped,
+      skipped_reasons: autofillResult.skippedReasons
+    });
+    
+    // Log successful autofill (Phase 5.0)
+    await logAutomationEvent(createEventPayload(
+      'autofill_executed',
+      'autofill_executed',
+      'auto_fill_after_login=true, profile loaded from backend API',
+      {
+        profile_source: 'backend',
+        fields_filled: autofillResult.filled,
+        fields_attempted: autofillResult.attempted,
+        fields_skipped: autofillResult.skipped
+      }
+    ));
+    
+    // Update overlay with result
+    if (currentGuidance) {
+      const fillRate = autofillResult.attempted > 0 
+        ? Math.round((autofillResult.filled / autofillResult.attempted) * 100) 
+        : 0;
+      
+      updateOverlayContent({
+        ...currentGuidance,
+        title: 'Autofill Complete',
+        instruction: `Filled ${autofillResult.filled} of ${autofillResult.attempted} fields (${fillRate}%). Review and submit when ready.`,
+        reassurance: 'All data comes from your profile. You can edit any field.'
+      });
+    }
+    
+    // After autofill, check if ready to submit
+    await checkReadyToSubmit();
+    
   } catch (error) {
     console.error('[Autofill] Failed:', error);
     
@@ -1185,52 +1219,136 @@ function checkIfJustLoggedIn() {
 /**
  * Attempt to autofill basic fields
  */
-async function attemptAutofill(profile, user) {
-  console.log('Attempting autofill with profile:', profile);
+async function attemptAutofill(profile) {
+  console.log('[Phase 5.1] Attempting autofill with backend profile');
+  console.log('[Phase 5.1] Profile source: backend (ONLY source of truth)');
   
-  let filledCount = 0;
+  let attempted = 0;
+  let filled = 0;
+  const skipped = [];
+  const skippedReasons = {};
   
-  // Find and fill email field
+  // Helper to fill field
+  const fillField = (field, value, fieldName) => {
+    attempted++;
+    if (!value) {
+      skipped.push(fieldName);
+      skippedReasons[fieldName] = 'missing_profile_field';
+      console.log(`[Autofill] Skipped ${fieldName}: missing_profile_field`);
+      return false;
+    }
+    
+    if (field.disabled || field.readOnly) {
+      skipped.push(fieldName);
+      skippedReasons[fieldName] = 'field_locked';
+      console.log(`[Autofill] Skipped ${fieldName}: field_locked`);
+      return false;
+    }
+    
+    if (field.value && field.value.trim()) {
+      skipped.push(fieldName);
+      skippedReasons[fieldName] = 'field_already_filled';
+      console.log(`[Autofill] Skipped ${fieldName}: field_already_filled`);
+      return false;
+    }
+    
+    field.value = value;
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+    field.dispatchEvent(new Event('blur', { bubbles: true }));
+    console.log(`[Autofill] Filled ${fieldName}: ${value}`);
+    filled++;
+    return true;
+  };
+  
+  // Email (use primary_email from Phase 5.0 profile)
   const emailFields = findFieldsByType(['email'], ['email', 'e-mail', 'e_mail']);
   for (const field of emailFields) {
-    if (user.email && !field.value) {
-      field.value = user.email;
-      field.dispatchEvent(new Event('input', { bubbles: true }));
-      field.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log('Filled email:', user.email);
-      filledCount++;
-    }
+    fillField(field, profile.primary_email, 'email');
   }
   
-  // Find and fill first name
+  // First name
   const firstNameFields = findFieldsByType(['text'], ['first', 'fname', 'firstname', 'given']);
   for (const field of firstNameFields) {
-    if (profile.first_name && !field.value) {
-      field.value = profile.first_name;
-      field.dispatchEvent(new Event('input', { bubbles: true }));
-      field.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log('Filled first name:', profile.first_name);
-      filledCount++;
-    }
+    fillField(field, profile.first_name, 'first_name');
   }
   
-  // Find and fill last name
+  // Last name
   const lastNameFields = findFieldsByType(['text'], ['last', 'lname', 'lastname', 'surname', 'family']);
   for (const field of lastNameFields) {
-    if (profile.last_name && !field.value) {
-      field.value = profile.last_name;
-      field.dispatchEvent(new Event('input', { bubbles: true }));
-      field.dispatchEvent(new Event('change', { bubbles: true }));
-      console.log('Filled last name:', profile.last_name);
-      filledCount++;
-    }
+    fillField(field, profile.last_name, 'last_name');
   }
   
-  console.log(`Autofilled ${filledCount} fields`);
-  
-  if (filledCount === 0) {
-    console.log('No fields were filled - form may be unrecognized');
+  // Phone
+  const phoneFields = findFieldsByType(['tel', 'text'], ['phone', 'mobile', 'cell', 'telephone']);
+  for (const field of phoneFields) {
+    fillField(field, profile.phone, 'phone');
   }
+  
+  // City
+  const cityFields = findFieldsByType(['text'], ['city']);
+  for (const field of cityFields) {
+    fillField(field, profile.city, 'city');
+  }
+  
+  // State
+  const stateFields = findFieldsByType(['text'], ['state', 'province', 'region']);
+  for (const field of stateFields) {
+    fillField(field, profile.state, 'state');
+  }
+  
+  // Postal/Zip code
+  const postalFields = findFieldsByType(['text'], ['zip', 'postal', 'postcode', 'zipcode']);
+  for (const field of postalFields) {
+    fillField(field, profile.postal_code, 'postal_code');
+  }
+  
+  // LinkedIn URL
+  const linkedinFields = findFieldsByType(['url', 'text'], ['linkedin', 'linked-in']);
+  for (const field of linkedinFields) {
+    fillField(field, profile.linkedin_url, 'linkedin_url');
+  }
+  
+  // Portfolio URL
+  const portfolioFields = findFieldsByType(['url', 'text'], ['portfolio', 'website', 'personal']);
+  for (const field of portfolioFields) {
+    fillField(field, profile.portfolio_url, 'portfolio_url');
+  }
+  
+  // GitHub URL
+  const githubFields = findFieldsByType(['url', 'text'], ['github', 'git-hub']);
+  for (const field of githubFields) {
+    fillField(field, profile.github_url, 'github_url');
+  }
+  
+  // Phase 5.1: Log summary
+  console.log('[Phase 5.1] Autofill complete');
+  console.log(`[Phase 5.1] Fields attempted: ${attempted}`);
+  console.log(`[Phase 5.1] Fields filled: ${filled}`);
+  console.log(`[Phase 5.1] Fields skipped: ${skipped.length}`);
+  if (skipped.length > 0) {
+    console.log(`[Phase 5.1] Skipped fields:`, skippedReasons);
+  }
+  
+  const fillRate = attempted > 0 ? Math.round((filled / attempted) * 100) : 0;
+  console.log(`[Phase 5.1] Fill rate: ${fillRate}%`);
+  
+  // Phase 5.1: E2E success criteria check
+  if (fillRate < 80 && attempted > 0) {
+    console.warn(`[Phase 5.1] E2E WARNING: Fill rate ${fillRate}% is below 80% threshold`);
+  }
+  
+  if (filled === 0 && attempted === 0) {
+    console.warn('[Phase 5.1] E2E WARNING: No form fields detected on page');
+  }
+  
+  return {
+    attempted,
+    filled,
+    skipped,
+    skippedReasons,
+    fillRate
+  };
 }
 
 /**
