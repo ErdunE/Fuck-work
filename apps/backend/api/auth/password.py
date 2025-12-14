@@ -1,11 +1,25 @@
 """
-Password hashing utilities using bcrypt.
+Password hashing utilities using bcrypt directly.
+Replaced passlib to avoid bcrypt 5.x compatibility issues on Python 3.12.
 """
 
-from passlib.context import CryptContext
+import bcrypt
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def hash_password(password: str) -> str:
+    """
+    Hash a plaintext password using bcrypt.
+    
+    Args:
+        password: Plaintext password to hash
+    
+    Returns:
+        Hashed password string (UTF-8 decoded)
+    """
+    password_bytes = password.encode("utf-8")
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    return hashed.decode("utf-8")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -19,18 +33,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
-
-
-def hash_password(password: str) -> str:
-    """
-    Hash a plaintext password using bcrypt.
-    
-    Args:
-        password: Plaintext password to hash
-    
-    Returns:
-        Hashed password string
-    """
-    return pwd_context.hash(password)
+    password_bytes = plain_password.encode("utf-8")
+    hashed_bytes = hashed_password.encode("utf-8")
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
