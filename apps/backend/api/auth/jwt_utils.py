@@ -21,28 +21,32 @@ JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", "10080"))  # 7 
 security = HTTPBearer()
 
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(user_id: int, email: str, expires_delta: Optional[timedelta] = None) -> str:
     """
     Create a JWT access token.
     
+    CRITICAL: sub claim MUST be string (JWT RFC 7519 requirement).
+    This ensures compatibility with python-jose, OAuth, SSO, and future refresh tokens.
+    
     Args:
-        data: Payload data to encode (should include 'sub' with user_id)
+        user_id: User ID to encode in 'sub' claim (will be converted to string)
+        email: User email to include in token
         expires_delta: Custom expiration time, defaults to JWT_EXPIRATION_MINUTES
     
     Returns:
         Encoded JWT token
     """
-    to_encode = data.copy()
-    
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
         expire = datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_MINUTES)
     
-    to_encode.update({
-        "exp": expire,
-        "iat": datetime.utcnow()
-    })
+    to_encode = {
+        "sub": str(user_id),  # MUST be string per JWT RFC
+        "email": email,
+        "iat": datetime.utcnow(),
+        "exp": expire
+    }
     
     encoded_jwt = jwt.encode(to_encode, JWT_SECRET_KEY, algorithm=JWT_ALGORITHM)
     return encoded_jwt
@@ -94,11 +98,20 @@ async def get_current_user(
     token = credentials.credentials
     payload = verify_token(token)
     
-    user_id: int = payload.get("sub")
-    if user_id is None:
+    user_id_str = payload.get("sub")
+    if user_id_str is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid authentication credentials"
+        )
+    
+    # Convert sub from string to int (sub is always string per JWT RFC)
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID in token"
         )
     
     # Get user from database

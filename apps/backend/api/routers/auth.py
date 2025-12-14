@@ -143,9 +143,10 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     user.last_login_at = datetime.utcnow()
     db.commit()
     
-    # Create JWT token
+    # Create JWT token (sub MUST be string per JWT RFC)
     access_token = create_access_token(
-        data={"sub": user.id, "email": user.email}
+        user_id=user.id,
+        email=user.email
     )
     
     return TokenResponse(
