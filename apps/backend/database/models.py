@@ -97,13 +97,15 @@ class Job(Base):
 
 class User(Base):
     """
-    User account - minimal for now.
-    No authentication in this phase.
+    User account - Phase 5.0: JWT authentication enabled.
     """
     __tablename__ = 'users'
     
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
+    password_hash = Column(String(255))  # Phase 5.0: nullable for stub auth
+    last_login_at = Column(TIMESTAMP)  # Phase 5.0: track last login
+    is_active = Column(Boolean, default=True)  # Phase 5.0: soft deletion
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -115,6 +117,8 @@ class User(Base):
     skills = relationship("UserSkill", back_populates="user", cascade="all, delete-orphan")
     knowledge_entries = relationship("UserKnowledgeEntry", back_populates="user", cascade="all, delete-orphan")
     apply_tasks = relationship("ApplyTask", back_populates="user", cascade="all, delete-orphan")
+    automation_preferences = relationship("AutomationPreference", back_populates="user", uselist=False, cascade="all, delete-orphan")  # Phase 5.0
+    automation_events = relationship("AutomationEvent", back_populates="user", cascade="all, delete-orphan")  # Phase 5.0
     
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"
@@ -122,24 +126,41 @@ class User(Base):
 
 class UserProfile(Base):
     """
-    User core profile - structured data for ATS autofill.
+    User core profile - Phase 5.0: authoritative source for autofill operations.
     """
     __tablename__ = 'user_profiles'
     
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True, index=True)
+    version = Column(Integer, default=1)  # Phase 5.0: for future schema migrations
     
     # Personal info
-    first_name = Column(String(100))
-    last_name = Column(String(100))
-    phone = Column(String(20))
+    first_name = Column(String(255))
+    last_name = Column(String(255))
+    full_name = Column(String(255))  # Phase 5.0: convenience field
+    phone = Column(String(50))
+    
+    # Contact info - Phase 5.0
+    primary_email = Column(String(255))
+    secondary_email = Column(String(255))
     
     # Location
-    city = Column(String(100))
-    state = Column(String(50))
+    city = Column(String(255))
+    state = Column(String(100))
     country = Column(String(100))
+    postal_code = Column(String(20))  # Phase 5.0
     
-    # Work authorization
+    # Resume & Documents - Phase 5.0
+    resume_url = Column(String(1024))  # S3/cloud storage URL
+    resume_filename = Column(String(255))
+    resume_uploaded_at = Column(TIMESTAMP)
+    
+    # Professional - Phase 5.0
+    linkedin_url = Column(String(512))
+    portfolio_url = Column(String(512))
+    github_url = Column(String(512))
+    
+    # Work authorization (existing)
     work_authorization = Column(String(100))
     visa_status = Column(String(100))
     
@@ -330,4 +351,91 @@ class ApplyEvent(Base):
     
     def __repr__(self):
         return f"<ApplyEvent(id={self.id}, task_id={self.task_id}, {self.from_status} -> {self.to_status})>"
+
+
+# Phase 5.0: Web Control Plane Models
+
+class AutomationPreference(Base):
+    """
+    Automation preferences - Phase 5.0: System of record for automation behavior.
+    Directly corresponds to Phase 4.3 extension preferences.
+    Backend is source of truth, extension polls and caches locally.
+    """
+    __tablename__ = 'automation_preferences'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, unique=True, index=True)
+    version = Column(Integer, default=1)  # Schema version for future migrations
+    
+    # Global Automation Settings (maps to extension Phase 4.3)
+    auto_fill_after_login = Column(Boolean, default=True)
+    auto_submit_when_ready = Column(Boolean, default=False)
+    require_review_before_submit = Column(Boolean, default=True)  # Safety gate
+    
+    # Future Expansion Hooks (JSONB for flexibility)
+    per_ats_overrides = Column(JSONB, default={})  # {"greenhouse": {"auto_fill": false}}
+    field_autofill_rules = Column(JSONB, default={})  # Custom field mappings
+    submit_review_timeout_ms = Column(Integer, default=0)  # 0 = explicit confirm
+    
+    # Sync Metadata
+    last_synced_at = Column(TIMESTAMP)
+    sync_source = Column(String(50))  # 'web', 'extension', 'api'
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    user = relationship("User", back_populates="automation_preferences")
+    
+    def __repr__(self):
+        return f"<AutomationPreference(user_id={self.user_id}, auto_fill={self.auto_fill_after_login}, auto_submit={self.auto_submit_when_ready})>"
+
+
+class AutomationEvent(Base):
+    """
+    Automation event - Phase 5.0: Audit log for automation decisions and actions.
+    Developer-grade debugging to replace browser console.
+    Immutable audit log (INSERT only, no UPDATE/DELETE).
+    """
+    __tablename__ = 'automation_events'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), index=True)  # SET NULL on user delete
+    task_id = Column(Integer, ForeignKey('apply_tasks.id'), index=True)  # SET NULL on task delete
+    session_id = Column(String(255), index=True)  # From apply_session.task_id
+    
+    # Event Classification
+    event_type = Column(String(100), nullable=False)  # 'autofill_triggered', 'submit_approved', 'detection_result'
+    event_category = Column(String(50))  # 'automation', 'detection', 'user_action'
+    
+    # Detection Context (from Phase 4.1.4.2)
+    detection_id = Column(String(255), index=True)  # Correlation ID
+    page_url = Column(Text)
+    page_intent = Column(String(50))  # From page_intent_classifier
+    ats_kind = Column(String(100))
+    apply_stage = Column(String(100))
+    
+    # Automation Decisions
+    automation_decision = Column(String(100))  # 'autofill_executed', 'submit_blocked', 'user_canceled'
+    decision_reason = Column(Text)  # Why this decision was made
+    
+    # Preferences Snapshot (at time of event)
+    preferences_snapshot = Column(JSONB)  # Record effective preferences
+    
+    # Payload
+    event_payload = Column(JSONB)  # Full event data
+    
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)
+    
+    # Relationships
+    user = relationship("User", back_populates="automation_events")
+    task = relationship("ApplyTask")
+    
+    # Composite indexes for fast queries
+    __table_args__ = (
+        Index('idx_automation_events_type_category', 'event_type', 'event_category'),
+    )
+    
+    def __repr__(self):
+        return f"<AutomationEvent(id={self.id}, type='{self.event_type}', decision='{self.automation_decision}')>"
 

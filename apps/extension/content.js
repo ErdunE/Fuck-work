@@ -885,6 +885,14 @@ async function executeAutofillIfAuthorized() {
   
   if (!autoFillEnabled) {
     console.log('[Autofill] Skipped - auto-fill disabled');
+    
+    // Log decision (Phase 5.0)
+    await logAutomationEvent(createEventPayload(
+      'autofill_evaluated',
+      'autofill_blocked',
+      'auto_fill_after_login=false'
+    ));
+    
     const currentGuidance = await getCurrentGuidance();
     if (currentGuidance) {
       updateOverlayContent({
@@ -911,10 +919,26 @@ async function executeAutofillIfAuthorized() {
     if (userProfile && userProfile.profile) {
       await attemptAutofill(userProfile.profile, userProfile.user);
       
+      // Log successful autofill (Phase 5.0)
+      await logAutomationEvent(createEventPayload(
+        'autofill_executed',
+        'autofill_executed',
+        'auto_fill_after_login=true, profile loaded successfully',
+        { fields_filled: 'count_not_tracked_yet' }
+      ));
+      
       // After autofill, check if ready to submit
       await checkReadyToSubmit();
     } else {
       console.warn('[Autofill] No user profile found');
+      
+      // Log failure (Phase 5.0)
+      await logAutomationEvent(createEventPayload(
+        'autofill_failed',
+        'autofill_blocked',
+        'User profile not found or failed to load'
+      ));
+      
       if (currentGuidance) {
         updateOverlayContent({
           ...currentGuidance,
@@ -924,6 +948,14 @@ async function executeAutofillIfAuthorized() {
     }
   } catch (error) {
     console.error('[Autofill] Failed:', error);
+    
+    // Log error (Phase 5.0)
+    await logAutomationEvent(createEventPayload(
+      'autofill_error',
+      'autofill_failed',
+      `Autofill error: ${error.message}`
+    ));
+    
     if (currentGuidance) {
       updateOverlayContent({
         ...currentGuidance,
@@ -982,6 +1014,14 @@ async function attemptAutoSubmitIfAuthorized() {
   
   if (!autoSubmitEnabled) {
     console.log('[Submit] Auto-submit disabled');
+    
+    // Log decision (Phase 5.0)
+    await logAutomationEvent(createEventPayload(
+      'submit_evaluated',
+      'submit_blocked',
+      'auto_submit_when_ready=false'
+    ));
+    
     const currentGuidance = await getCurrentGuidance();
     if (currentGuidance) {
       updateOverlayContent({
@@ -1001,6 +1041,14 @@ async function attemptAutoSubmitIfAuthorized() {
     const approved = await promptATSApproval();
     if (!approved) {
       console.log('[Submit] User declined ATS approval');
+      
+      // Log user decision (Phase 5.0)
+      await logAutomationEvent(createEventPayload(
+        'submit_evaluated',
+        'submit_blocked',
+        'User declined ATS approval'
+      ));
+      
       return;
     }
   }
@@ -1009,6 +1057,14 @@ async function attemptAutoSubmitIfAuthorized() {
   const readiness = detectSubmitReadiness();
   if (!readiness.ready) {
     console.log('[Submit] Not ready:', readiness.blocker);
+    
+    // Log blocker (Phase 5.0)
+    await logAutomationEvent(createEventPayload(
+      'submit_evaluated',
+      'submit_blocked',
+      `Form not ready: ${readiness.blocker}`
+    ));
+    
     const currentGuidance = await getCurrentGuidance();
     if (currentGuidance) {
       updateOverlayContent({

@@ -1,12 +1,32 @@
 /**
  * API client for FuckWork backend.
+ * Phase 5.0: JWT authentication enabled.
  * Handles all HTTP communication with the backend.
  */
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
-const USER_ID = 1; // Hardcoded for Phase 3.6
+const USER_ID = 1; // Backward compatibility fallback
 
 class APIClient {
+  /**
+   * Get authorization headers (Phase 5.0)
+   * Returns headers object with JWT token if available
+   */
+  static async getAuthHeaders() {
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    // Try to get JWT token (Phase 5.0)
+    if (typeof AuthManager !== 'undefined') {
+      const token = await AuthManager.getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
+    
+    return headers;
+  }
   /**
    * Get next queued apply task
    */
@@ -115,7 +135,7 @@ class APIClient {
   }
   
   /**
-   * Get user profile for autofill
+   * Get user profile for autofill (Phase 3.6 - backward compat)
    */
   static async getUserProfile(userId) {
     try {
@@ -128,6 +148,146 @@ class APIClient {
       return await response.json();
     } catch (error) {
       console.error('Failed to get user profile:', error);
+      return null;
+    }
+  }
+  
+  // ============================================
+  // Phase 5.0 API Methods
+  // ============================================
+  
+  /**
+   * Get current user's profile (Phase 5.0 - authenticated)
+   * Authoritative source for autofill operations
+   */
+  static async getMyProfile() {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/api/users/me/profile`, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('[FW API] Failed to get profile:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Get automation preferences (Phase 5.0 - CRITICAL)
+   * Extension polls this endpoint for preference updates
+   */
+  static async getAutomationPreferences() {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/api/users/me/automation-preferences`, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('[FW API] Failed to get automation preferences:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Update automation preferences (Phase 5.0)
+   */
+  static async updateAutomationPreferences(updates) {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(
+        `${API_BASE_URL}/api/users/me/automation-preferences`,
+        {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(updates)
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('[FW API] Failed to update automation preferences:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Log automation event (Phase 5.0 - audit log)
+   */
+  static async logAutomationEvent(eventData) {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(
+        `${API_BASE_URL}/api/users/me/automation-events`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(eventData)
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('[FW API] Failed to log automation event:', error);
+      // Don't throw - logging failure should not break automation
+      return null;
+    }
+  }
+  
+  /**
+   * Get apply tasks (Phase 5.0 - read-only visibility)
+   */
+  static async getMyApplyTasks(status = null, limit = 50, offset = 0) {
+    try {
+      const headers = await this.getAuthHeaders();
+      let url = `${API_BASE_URL}/api/users/me/apply-tasks?limit=${limit}&offset=${offset}`;
+      if (status) {
+        url += `&status=${status}`;
+      }
+      
+      const response = await fetch(url, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('[FW API] Failed to get apply tasks:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Get specific apply task detail (Phase 5.0)
+   */
+  static async getMyApplyTask(taskId) {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/api/users/me/apply-tasks/${taskId}`, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('[FW API] Failed to get apply task:', error);
       return null;
     }
   }

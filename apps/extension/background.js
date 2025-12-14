@@ -1,10 +1,11 @@
 /**
  * Background script for apply task worker.
+ * Phase 5.0: JWT authentication and preference sync enabled.
  * Polls backend for tasks and orchestrates execution.
  */
 
-// Import API client and state machine
-importScripts('api.js', 'ats_types.js', 'apply_state_machine.js', 'apply_session.js');
+// Import API client, auth, and state machine
+importScripts('auth.js', 'api.js', 'ats_types.js', 'apply_state_machine.js', 'apply_session.js', 'preference_sync.js');
 
 // Worker state
 let currentTask = null;
@@ -489,8 +490,31 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 });
 
 /**
+ * Phase 5.0: Initialize authentication and preference sync
+ */
+async function initializePhase5() {
+  console.log('[FW Phase 5.0] Initializing Web Control Plane integration');
+  
+  // Validate authentication
+  const userInfo = await AuthManager.validateToken();
+  if (userInfo) {
+    console.log('[FW Phase 5.0] Authenticated', { user_id: userInfo.user_id });
+    
+    // Start preference sync service
+    await PreferenceSyncService.start();
+  } else {
+    console.log('[FW Phase 5.0] Not authenticated - running in offline mode');
+    console.log('[FW Phase 5.0] Extension will use local preference cache');
+    console.log('[FW Phase 5.0] Open popup to log in');
+  }
+}
+
+/**
  * Initialize on extension load
  */
 console.log('FuckWork Apply Worker initialized');
 startPolling();
+
+// Phase 5.0 initialization
+initializePhase5();
 
