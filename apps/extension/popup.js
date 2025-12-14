@@ -9,10 +9,12 @@ async function init() {
   await refreshState();
   
   // Set up event listeners
+  document.getElementById('btn-continue').addEventListener('click', handleContinue);
   document.getElementById('btn-success').addEventListener('click', () => completeTask('success'));
   document.getElementById('btn-needs-user').addEventListener('click', () => completeTask('needs_user'));
   document.getElementById('btn-cancel').addEventListener('click', () => completeTask('canceled'));
   document.getElementById('btn-refresh').addEventListener('click', refreshState);
+  document.getElementById('btn-copy-debug').addEventListener('click', handleCopyDebug);
 }
 
 /**
@@ -35,6 +37,24 @@ async function refreshState() {
       document.getElementById('job-id').textContent = response.task.job_id;
       document.getElementById('task-status').textContent = response.task.status;
       document.getElementById('task-priority').textContent = response.task.priority;
+      
+      // Load detection state from storage
+      const { detectionState } = await chrome.storage.local.get(['detectionState']);
+      
+      if (detectionState) {
+        showDetectionInfo(detectionState);
+      } else {
+        // Hide detection info if not available
+        document.getElementById('detection-info').style.display = 'none';
+      }
+      
+      // Show continue button if needs_user
+      if (response.task.status === 'needs_user') {
+        document.getElementById('btn-continue').style.display = 'block';
+        document.getElementById('btn-continue').disabled = false;
+      } else {
+        document.getElementById('btn-continue').style.display = 'none';
+      }
       
       // Enable buttons
       document.getElementById('btn-success').disabled = false;
@@ -120,5 +140,68 @@ function showMessage(text, type) {
  */
 function hideMessage() {
   document.getElementById('message').style.display = 'none';
+}
+
+/**
+ * Show detection info panel
+ */
+function showDetectionInfo(detectionState) {
+  const { ats, stage, action } = detectionState;
+  
+  document.getElementById('detection-info').style.display = 'block';
+  document.getElementById('ats-kind').textContent = ats.ats_kind || 'unknown';
+  document.getElementById('apply-stage').textContent = stage.stage || 'unknown';
+  document.getElementById('stage-reason').textContent = action.reason || 'N/A';
+  
+  // Format evidence as JSON
+  const fullReport = {
+    ats: ats,
+    stage: stage,
+    action: action,
+    timestamp: new Date().toISOString()
+  };
+  
+  document.getElementById('evidence-json').textContent = JSON.stringify(fullReport, null, 2);
+}
+
+/**
+ * Handle copy debug report
+ */
+async function handleCopyDebug() {
+  try {
+    const text = document.getElementById('evidence-json').textContent;
+    await navigator.clipboard.writeText(text);
+    showMessage('Debug report copied to clipboard', 'success');
+    setTimeout(hideMessage, 3000);
+  } catch (error) {
+    showMessage('Failed to copy: ' + error.message, 'error');
+  }
+}
+
+/**
+ * Handle continue from needs_user
+ */
+async function handleContinue() {
+  try {
+    // Disable button
+    document.getElementById('btn-continue').disabled = true;
+    
+    const response = await chrome.runtime.sendMessage({
+      action: 'continueFromNeedsUser'
+    });
+    
+    if (response.success) {
+      showMessage('Continuing task...', 'success');
+      setTimeout(() => {
+        hideMessage();
+        refreshState();
+      }, 1000);
+    } else {
+      throw new Error(response.error || 'Unknown error');
+    }
+  } catch (error) {
+    showMessage('Failed to continue: ' + error.message, 'error');
+    document.getElementById('btn-continue').disabled = false;
+  }
 }
 

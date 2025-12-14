@@ -3,8 +3,8 @@
  * Polls backend for tasks and orchestrates execution.
  */
 
-// Import API client
-importScripts('api.js');
+// Import API client and state machine
+importScripts('api.js', 'ats_types.js', 'apply_state_machine.js');
 
 // Worker state
 let currentTask = null;
@@ -111,6 +111,28 @@ async function processTask(task) {
     
     console.log(`Task ${task.id} in progress`);
     
+    // Wait for tab to complete loading, then request detection
+    chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
+      if (tabId === currentJobTab && info.status === 'complete') {
+        chrome.tabs.onUpdated.removeListener(listener);
+        
+        console.log('[Background] Tab loaded, requesting detection from content script');
+        
+        // Request detection from content script
+        chrome.tabs.sendMessage(tabId, { type: 'FW_DETECT_AND_REPORT' })
+          .then(response => {
+            if (response && response.ats && response.stage && response.action) {
+              handleDetectionResult(response);
+            } else {
+              console.error('[Background] Invalid detection response:', response);
+            }
+          })
+          .catch(err => {
+            console.error('[Background] Detection request failed:', err);
+          });
+      }
+    });
+    
   } catch (error) {
     console.error('Failed to process task:', error);
     
@@ -128,6 +150,66 @@ async function processTask(task) {
     currentTask = null;
     currentJobTab = null;
     isProcessing = false;
+  }
+}
+
+/**
+ * Handle detection result from content script
+ */
+async function handleDetectionResult({ ats, stage, action }) {
+  if (!currentTask) {
+    console.log('[Background] No current task for detection result');
+    return;
+  }
+  
+  console.log('[Background] Detection result:', { ats, stage, action });
+  
+  try {
+    if (action.action === 'pause_needs_user') {
+      // Transition to needs_user
+      console.log('[Background] Transitioning to needs_user:', action.reason);
+      await APIClient.transitionTask(
+        currentTask.id,
+        'needs_user',
+        action.reason,
+        { 
+          ats: ats.ats_kind,
+          stage: stage.stage,
+          evidence: action.evidence,
+          detection_timestamp: new Date().toISOString()
+        }
+      );
+      
+      // Keep task reference but mark as not processing
+      // User can continue later via popup
+      isProcessing = false;
+      
+    } else if (action.action === 'fail') {
+      // Transition to failed
+      console.log('[Background] Transitioning to failed:', action.reason);
+      await APIClient.transitionTask(
+        currentTask.id,
+        'failed',
+        action.reason,
+        { 
+          ats: ats.ats_kind,
+          stage: stage.stage
+        }
+      );
+      
+      // Reset state
+      currentTask = null;
+      currentJobTab = null;
+      isProcessing = false;
+      await chrome.storage.local.remove(['activeTask', 'activeJob', 'taskStartTime']);
+    }
+    
+    // For 'continue' and 'noop', do nothing - task stays in_progress
+    // Content script will handle autofill for 'continue'
+    // User will manually mark status for 'noop'
+    
+  } catch (error) {
+    console.error('[Background] Failed to handle detection result:', error);
   }
 }
 
@@ -192,6 +274,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     stopPolling();
     sendResponse({ success: true });
     return false;
+  }
+  
+  if (message.action === 'continueFromNeedsUser') {
+    // User clicked "I finished login, continue" in popup
+    // Transition needs_user -> in_progress
+    if (currentTask) {
+      console.log('[Background] User requested continue from needs_user');
+      APIClient.transitionTask(
+        currentTask.id,
+        'in_progress',
+        'User confirmed ready to continue',
+        { 
+          user_action: 'manual_continue',
+          timestamp: new Date().toISOString()
+        }
+      )
+        .then(() => {
+          // Re-enable processing so detection can run again
+          isProcessing = false;
+          sendResponse({ success: true });
+        })
+        .catch(error => {
+          console.error('[Background] Failed to transition from needs_user:', error);
+          sendResponse({ success: false, error: error.message });
+        });
+    } else {
+      sendResponse({ success: false, error: 'No current task' });
+    }
+    return true; // Async response
+  }
+  
+  if (message.type === 'FW_DETECTION_RESULT') {
+    // Content script is reporting detection result directly
+    handleDetectionResult(message)
+      .then(() => sendResponse({ success: true }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true; // Async response
   }
 });
 

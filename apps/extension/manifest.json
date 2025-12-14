@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FuckWork Apply Worker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Human-in-the-loop job application assistant",
   "permissions": [
     "storage",
@@ -12,7 +12,15 @@
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*",
     "*://*.linkedin.com/*",
-    "*://*.indeed.com/*"
+    "*://*.indeed.com/*",
+    "*://*.myworkdayjobs.com/*",
+    "*://*.myworkdaysite.com/*",
+    "*://boards.greenhouse.io/*",
+    "*://*.greenhouse.io/*",
+    "*://jobs.lever.co/*",
+    "*://*.lever.co/*",
+    "*://*.icims.com/*",
+    "*://candidate.icims.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -22,9 +30,22 @@
       "matches": [
         "*://*.linkedin.com/jobs/*",
         "*://*.indeed.com/viewjob*",
-        "*://*.greenhouse.io/*/jobs/*"
+        "*://*.myworkdayjobs.com/*",
+        "*://*.myworkdaysite.com/*",
+        "*://boards.greenhouse.io/*",
+        "*://*.greenhouse.io/*/jobs/*",
+        "*://jobs.lever.co/*",
+        "*://*.lever.co/*/jobs/*",
+        "*://*.icims.com/*"
       ],
-      "js": ["api.js", "content.js"],
+      "js": [
+        "api.js",
+        "ats_types.js",
+        "ats_detector.js",
+        "apply_stage_detector.js",
+        "apply_state_machine.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
