@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import type { ApplyRun, ApplyEvent } from '../../types'
-import '../../styles/index.css'
 import '../../styles/observability.css'
 
 export default function ObservabilityRunDetail() {
