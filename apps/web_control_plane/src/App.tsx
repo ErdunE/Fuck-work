@@ -9,6 +9,8 @@ import AutomationSettings from './pages/AutomationSettings'
 import Tasks from './pages/Tasks'
 import AuditLog from './pages/AuditLog'
 import Jobs from './pages/Jobs'  // Phase 5.2
+import ObservabilityRuns from './pages/observability/Runs'  // Phase 5.3.0
+import ObservabilityRunDetail from './pages/observability/RunDetail'  // Phase 5.3.0
 
 function App() {
   return (
@@ -24,6 +26,8 @@ function App() {
             <Route path="automation" element={<AutomationSettings />} />
             <Route path="tasks" element={<Tasks />} />
             <Route path="audit" element={<AuditLog />} />
+            <Route path="observability" element={<ObservabilityRuns />} />
+            <Route path="observability/runs/:runId" element={<ObservabilityRunDetail />} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

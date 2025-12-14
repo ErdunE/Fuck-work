@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FuckWork Apply Worker",
-  "version": "0.5.0",
+  "version": "0.5.3",
   "description": "Human-in-the-loop job application assistant",
   "permissions": [
     "storage",
@@ -27,6 +27,7 @@
       "js": [
         "auth.js",
         "api.js",
+        "observability.js",
         "ats_types.js",
         "ats_detector.js",
         "apply_stage_detector.js",

@@ -210,3 +210,49 @@ export interface JobSearchResponse {
   has_more: boolean
 }
 
+// Phase 5.3.0: Observability Console Types
+export interface ApplyRun {
+  id: number
+  task_id?: number
+  job_id?: string
+  initial_url: string
+  current_url: string
+  ats_kind?: string
+  intent?: string
+  stage?: string
+  status: string
+  fill_rate?: number
+  fields_attempted: number
+  fields_filled: number
+  fields_skipped: number
+  failure_reason?: string
+  created_at: string
+  updated_at: string
+  ended_at?: string
+}
+
+export interface ApplyEvent {
+  id: number
+  source: string
+  severity: string
+  event_name: string
+  event_version: number
+  ts: string
+  url?: string
+  payload: Record<string, any>
+  detection_id?: string
+  page_id?: string
+}
+
+export interface RunListResponse {
+  runs: ApplyRun[]
+  total: number
+  limit: number
+  offset: number
+}
+
+export interface RunEventsResponse {
+  events: ApplyEvent[]
+  total: number
+}
+

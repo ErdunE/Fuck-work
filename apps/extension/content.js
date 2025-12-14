@@ -955,7 +955,37 @@ async function executeAutofillIfAuthorized() {
     console.log('[Telemetry] Source field mapping (traceability):', derivedProfile.source_fields || {});
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     
+    // Phase 5.3.0: Log derived profile loaded event
+    observabilityClient.enqueue({
+      source: 'extension',
+      severity: 'info',
+      event_name: 'derived_profile_loaded',
+      url: window.location.href,
+      payload: {
+        profile_source: 'derived_profile',
+        has_legal_name: !!derivedProfile.legal_name,
+        has_email: !!derivedProfile.primary_email,
+        has_phone: !!derivedProfile.phone,
+        highest_degree: derivedProfile.highest_degree,
+        years_of_experience: derivedProfile.years_of_experience,
+        work_auth_category: derivedProfile.work_auth_category,
+        skills_count: derivedProfile.normalized_skills?.length || 0,
+        missing_fields: derivedProfile.missing_fields || []
+      }
+    });
+    
     // Phase 5.2.1: Execute autofill with DERIVED profile
+    observabilityClient.enqueue({
+      source: 'extension',
+      severity: 'info',
+      event_name: 'autofill_triggered',
+      url: window.location.href,
+      payload: {
+        profile_source: 'derived_profile',
+        trigger_reason: 'application_form detected + auto_fill_enabled'
+      }
+    });
+    
     const autofillResult = await attemptAutofill(derivedProfile);
     
     // Phase 5.2.1 Review Fix: Enhanced telemetry
@@ -978,6 +1008,26 @@ async function executeAutofillIfAuthorized() {
       : 0;
     console.log('[Telemetry] fill_rate:', `${fillRate}%`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    
+    // Phase 5.3.0: Log autofill completed event to observability
+    observabilityClient.enqueue({
+      source: 'extension',
+      severity: 'info',
+      event_name: 'autofill_completed',
+      url: window.location.href,
+      payload: {
+        profile_source: 'derived_profile',
+        fields_attempted: autofillResult.attempted,
+        fields_filled: autofillResult.filled,
+        fields_skipped: autofillResult.skipped,
+        fill_rate: fillRate,
+        selectors_not_found: autofillResult.selectorsNotFound || [],
+        skipped_reasons: autofillResult.skippedReasons
+      }
+    });
+    
+    // Flush immediately after critical milestones
+    await observabilityClient.flush();
     
     // Log successful autofill (Phase 5.2.1)
     await logAutomationEvent(createEventPayload(
@@ -1012,6 +1062,19 @@ async function executeAutofillIfAuthorized() {
     
   } catch (error) {
     console.error('[Autofill] Failed:', error);
+    
+    // Phase 5.3.0: Log error to observability
+    observabilityClient.enqueue({
+      source: 'extension',
+      severity: 'error',
+      event_name: 'api_call_failed',
+      url: window.location.href,
+      payload: {
+        endpoint: '/api/users/me/derived-profile',
+        error_message: error.message,
+        error_type: error.name
+      }
+    });
     
     // Log error (Phase 5.0)
     await logAutomationEvent(createEventPayload(
@@ -1615,6 +1678,20 @@ async function executeRecheck(reason) {
       initial_url: activeSession.initial_url,
       current_url: activeSession.current_url
     });
+    
+    // Phase 5.3.0: Start observability run if not already started
+    if (activeSession.active && !observabilityClient.getRunId()) {
+      const atsKind = debugState.lastDetectionAtsKind || 'unknown';
+      const intent = debugState.lastDetectionIntent || 'unknown';
+      const stage = debugState.lastDetectionStage || 'analyzing';
+      
+      await observabilityClient.startRun(activeSession, {
+        initial_url: activeSession.initial_url,
+        ats_kind: atsKind,
+        intent: intent,
+        stage: stage
+      });
+    }
 
     // Explicit invariant logging and enforcement on every recheck page
     enforceOverlayInvariant(activeSession);

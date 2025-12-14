@@ -24,6 +24,7 @@ export default function Layout() {
             <Link to="/automation" style={{ color: 'white', textDecoration: 'none' }}>Automation</Link>
             <Link to="/tasks" style={{ color: 'white', textDecoration: 'none' }}>Tasks</Link>
             <Link to="/audit" style={{ color: 'white', textDecoration: 'none' }}>Audit Log</Link>
+            <Link to="/observability" style={{ color: 'white', textDecoration: 'none' }}>Observability</Link>
             <span style={{ borderLeft: '1px solid white', height: '20px' }}></span>
             <span>{user.email}</span>
             <button onClick={logout} className="btn btn-secondary" style={{ padding: '5px 15px' }}>Logout</button>

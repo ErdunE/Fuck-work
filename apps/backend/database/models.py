@@ -443,3 +443,108 @@ class AutomationEvent(Base):
     def __repr__(self):
         return f"<AutomationEvent(id={self.id}, type='{self.event_type}', decision='{self.automation_decision}')>"
 
+
+# Phase 5.3.0: Observability Console Models
+
+class ApplyRun(Base):
+    """
+    Apply Run - Phase 5.3.0 Observability Console.
+    
+    Represents one end-to-end application attempt/run with full observability.
+    Each run tracks state through detection → autofill → submit flow.
+    Correlated with observability_events for timeline reconstruction.
+    """
+    __tablename__ = 'apply_runs'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)  # run_id
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    job_id = Column(String(255), nullable=True)
+    task_id = Column(Integer, nullable=True, index=True)
+    
+    # URLs
+    initial_url = Column(Text, nullable=False)
+    current_url = Column(Text, nullable=False)
+    
+    # ATS detection results
+    ats_kind = Column(String(100), nullable=True, index=True)  # greenhouse, workday, lever, linkedin_easy_apply, unknown
+    intent = Column(String(100), nullable=True)  # application_form, login_required, unknown
+    stage = Column(String(100), nullable=True)  # analyzing, ready_to_fill, filling, filled, ready_to_submit, manual_review, blocked, completed
+    
+    # Run status
+    status = Column(String(50), nullable=False, default='in_progress', index=True)  # in_progress, success, failed, abandoned
+    
+    # Autofill metrics
+    fill_rate = Column(Float, nullable=True)
+    fields_attempted = Column(Integer, default=0)
+    fields_filled = Column(Integer, default=0)
+    fields_skipped = Column(Integer, default=0)
+    
+    # Error tracking
+    failure_reason = Column(Text, nullable=True)
+    
+    # Timestamps
+    created_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    ended_at = Column(TIMESTAMP, nullable=True)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    events = relationship("ObservabilityEvent", back_populates="run", cascade="all, delete-orphan")
+    
+    # Composite indexes for querying
+    __table_args__ = (
+        Index('idx_apply_runs_user_created', 'user_id', 'created_at'),
+        Index('idx_apply_runs_status_created', 'status', 'created_at'),
+    )
+    
+    def __repr__(self):
+        return f"<ApplyRun(id={self.id}, status='{self.status}', ats='{self.ats_kind}')>"
+
+
+class ObservabilityEvent(Base):
+    """
+    Observability Event - Phase 5.3.0 Observability Console.
+    
+    Append-only structured event stream for full system observability.
+    Captures events from extension, backend, and web app with structured payloads.
+    Enables timeline reconstruction and debugging of apply runs.
+    """
+    __tablename__ = 'observability_events'
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    run_id = Column(Integer, ForeignKey('apply_runs.id'), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True)
+    
+    # Event metadata
+    source = Column(String(20), nullable=False)  # extension, backend, web
+    severity = Column(String(10), nullable=False)  # debug, info, warn, error
+    event_name = Column(String(100), nullable=False, index=True)
+    event_version = Column(Integer, default=1)
+    
+    # Event context
+    ts = Column(TIMESTAMP, default=datetime.utcnow, index=True)
+    url = Column(Text, nullable=True)
+    
+    # Extensible payload
+    payload = Column(JSONB, default={})
+    
+    # Correlation keys
+    dedup_key = Column(String(255), nullable=True)
+    request_id = Column(String(100), nullable=True)
+    detection_id = Column(String(100), nullable=True)
+    page_id = Column(String(100), nullable=True)
+    
+    # Relationships
+    run = relationship("ApplyRun", back_populates="events")
+    user = relationship("User", foreign_keys=[user_id])
+    
+    # Composite indexes for efficient querying
+    __table_args__ = (
+        Index('idx_observability_events_run_ts', 'run_id', 'ts'),
+        Index('idx_observability_events_event_ts', 'event_name', 'ts'),
+        Index('idx_observability_events_payload', 'payload', postgresql_using='gin'),  # GIN index for JSONB
+    )
+    
+    def __repr__(self):
+        return f"<ObservabilityEvent(id={self.id}, event='{self.event_name}', source='{self.source}')>"
+

@@ -14,7 +14,9 @@ import type {
   Project,
   Skill,
   Job,
-  JobSearchResponse
+  JobSearchResponse,
+  RunListResponse,
+  RunEventsResponse
 } from '../types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
@@ -228,6 +230,47 @@ class APIService {
   // Phase 5.2: Task creation
   async createApplyTask(job_id: string): Promise<{ id: number; job_id: string; status: string; created_at: string; message: string }> {
     const response = await this.client.post('/api/users/me/apply-tasks', { job_id })
+    return response.data
+  }
+
+  // ============================================================
+  // Phase 5.3.0: Observability Console API
+  // ============================================================
+
+  /**
+   * Get observability runs with filters
+   */
+  async getObservabilityRuns(filters: {
+    limit?: number
+    offset?: number
+    status?: string
+    ats_kind?: string
+    q?: string
+  }): Promise<RunListResponse> {
+    const params = new URLSearchParams()
+    if (filters.limit) params.append('limit', filters.limit.toString())
+    if (filters.offset) params.append('offset', filters.offset.toString())
+    if (filters.status) params.append('status', filters.status)
+    if (filters.ats_kind) params.append('ats_kind', filters.ats_kind)
+    if (filters.q) params.append('q', filters.q)
+    
+    const response = await this.client.get(`/api/observability/runs?${params.toString()}`)
+    return response.data
+  }
+
+  /**
+   * Get observability run detail
+   */
+  async getObservabilityRun(runId: number): Promise<any> {
+    const response = await this.client.get(`/api/observability/runs/${runId}`)
+    return response.data
+  }
+
+  /**
+   * Get observability run events timeline
+   */
+  async getObservabilityRunEvents(runId: number, limit: number = 500): Promise<RunEventsResponse> {
+    const response = await this.client.get(`/api/observability/runs/${runId}/events?limit=${limit}`)
     return response.data
   }
 }
