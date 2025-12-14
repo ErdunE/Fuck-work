@@ -193,6 +193,7 @@ function ensureFWDebugState() {
 // State variables
 let currentTask = null;
 let activeSession = null;
+let currentAuthContext = null; // Phase 5.3.4.1: Store authContext for observability calls
 let lastDetectionTime = 0;
 const DETECTION_THROTTLE_MS = 2000; // Max once per 2 seconds
 
@@ -864,7 +865,14 @@ async function verifyAuthToken() {
     console.log('API call: GET /api/auth/me');
     console.groupEnd();
     
-    const headers = await APIClient.getAuthHeaders();
+    // Phase 5.3.4.1: Defensive check before API call
+    console.log('[FW Content] Passing token to API', {
+      hasToken: !!auth?.token,
+      tokenType: typeof auth?.token,
+      tokenLength: auth?.token?.length
+    });
+    
+    const headers = APIClient.getAuthHeaders(auth.token);
     const response = await fetch(`${API_BASE_URL}/api/auth/me`, { headers });
     
     // Phase 5.3.3: Backend response logging
@@ -951,6 +959,9 @@ function init() {
         }
         
         console.log('[FW Init] Auth verified for user', authContext.user_id);
+        
+        // Phase 5.3.4.1: Store authContext for observability calls
+        currentAuthContext = authContext;
         
         // Phase 5.3.4: Pass authContext to getActiveSession
         return getActiveSession(authContext);
@@ -1353,8 +1364,10 @@ async function executeAutofillIfAuthorized() {
       }
     });
     
-    // Flush immediately after critical milestones
-    await observabilityClient.flush();
+    // Flush immediately after critical milestones (Phase 5.3.4.1: pass token)
+    if (currentAuthContext?.token) {
+      await observabilityClient.flush(currentAuthContext.token);
+    }
     
     // Log successful autofill (Phase 5.2.1)
     await logAutomationEvent(createEventPayload(
@@ -2012,12 +2025,15 @@ async function executeRecheck(reason) {
       const intent = debugState.lastDetectionIntent || 'unknown';
       const stage = debugState.lastDetectionStage || 'analyzing';
       
-      await observabilityClient.startRun(activeSession, {
-        initial_url: activeSession.initial_url,
-        ats_kind: atsKind,
-        intent: intent,
-        stage: stage
-      });
+      // Phase 5.3.4.1: Pass token to startRun
+      if (currentAuthContext?.token) {
+        await observabilityClient.startRun(currentAuthContext.token, activeSession, {
+          initial_url: activeSession.initial_url,
+          ats_kind: atsKind,
+          intent: intent,
+          stage: stage
+        });
+      }
     }
 
     // Explicit invariant logging and enforcement on every recheck page

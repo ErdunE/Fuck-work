@@ -26,11 +26,19 @@ class ObservabilityClient {
    * Start a new observability run.
    * Call this at the beginning of an apply session.
    * 
+   * @param {string} token - JWT token from content.js authContext (Phase 5.3.4.1)
    * @param {Object} session - Apply session context (task_id, job_id)
    * @param {Object} pageContext - Page detection context (ats_kind, intent, stage, urls)
    * @returns {Promise<number|null>} run_id or null if failed
    */
-  async startRun(session, pageContext) {
+  async startRun(token, session, pageContext) {
+    // Phase 5.3.1: Check if run_id already set from session bridge
+    if (this.currentRunId) {
+      console.log('[Observability] Run already started from session bridge:', this.currentRunId);
+      this.startAutoFlush();
+      return this.currentRunId;
+    }
+    
     const payload = {
       task_id: session.task_id || null,
       job_id: session.job_id || null,
@@ -42,7 +50,7 @@ class ObservabilityClient {
     };
     
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/observability/runs/start`, {
         method: 'POST',
         headers: headers,
@@ -167,27 +175,29 @@ class ObservabilityClient {
   /**
    * Get authentication headers for API calls.
    */
-  async getAuthHeaders() {
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-    
-    // Try to get JWT token from AuthManager
-    if (typeof AuthManager !== 'undefined') {
-      const token = await AuthManager.getToken();
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+  /**
+   * Get auth headers with token (Phase 5.3.4.1: Single Source of Truth)
+   * Token MUST be passed explicitly by caller
+   * @param {string} token - JWT token from content.js authContext
+   * @returns {Object} Headers object with Authorization
+   */
+  getAuthHeaders(token) {
+    if (!token) {
+      throw new Error('[Observability] getAuthHeaders called without token');
     }
     
-    return headers;
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
   }
 
   /**
    * Flush queued events to backend (batch).
    * Called automatically on timer and manually.
+   * @param {string} token - JWT token from content.js authContext (Phase 5.3.4.1)
    */
-  async flush() {
+  async flush(token) {
     if (this.eventQueue.length === 0 || !this.currentRunId) {
       return;
     }
@@ -196,7 +206,7 @@ class ObservabilityClient {
     this.eventQueue = [];
     
     try {
-      const headers = await this.getAuthHeaders();
+      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/observability/events/batch`, {
         method: 'POST',
         headers: headers,
