@@ -10,6 +10,12 @@ let currentTask = null;
 let lastDetectionTime = 0;
 const DETECTION_THROTTLE_MS = 2000; // Max once per 2 seconds
 
+// Recheck state
+let recheckTimeout = null;
+let recheckCount = 0;
+let lastRecheckUrl = '';
+const RECHECK_DEBOUNCE_MS = 800;
+
 // Wait for page to be fully loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -36,6 +42,9 @@ async function init() {
   
   // Run detection
   await runDetection();
+  
+  // Initialize lifecycle observers
+  initializePageLifecycle();
   
   // Start monitoring for resume conditions
   startResumeMonitoring();
@@ -365,6 +374,193 @@ function sleep(ms) {
 }
 
 /**
+ * Trigger a re-check of detection pipeline
+ * @param {string} reason - Why recheck was triggered
+ */
+async function triggerRecheck(reason) {
+  // Clear existing timeout
+  if (recheckTimeout) {
+    clearTimeout(recheckTimeout);
+  }
+  
+  // Debounce to avoid rapid fire
+  recheckTimeout = setTimeout(async () => {
+    await executeRecheck(reason);
+  }, RECHECK_DEBOUNCE_MS);
+}
+
+/**
+ * Execute the recheck detection pipeline
+ * @param {string} reason - Trigger reason
+ */
+async function executeRecheck(reason) {
+  // Guard: Don't recheck if no active task
+  if (!currentTask) {
+    console.log('[Recheck] No active task, skipping');
+    return;
+  }
+  
+  // Guard: Don't recheck same URL repeatedly
+  const currentUrl = window.location.href;
+  if (reason === 'url_changed' && currentUrl === lastRecheckUrl) {
+    console.log('[Recheck] Same URL, skipping');
+    return;
+  }
+  lastRecheckUrl = currentUrl;
+  
+  console.log(`[Recheck] Executing detection pipeline (reason: ${reason})`);
+  recheckCount++;
+  
+  // Show loading state in overlay if it exists
+  const existingOverlay = document.getElementById('fw-needs-user-overlay');
+  if (existingOverlay) {
+    showRecheckingOverlay();
+  }
+  
+  try {
+    // Run full detection pipeline
+    const atsResult = detectATS();
+    const stageResult = detectApplyStage(atsResult.ats_kind);
+    const actionResult = computeWorkerAction({
+      task: currentTask,
+      ats: atsResult,
+      stage: stageResult
+    });
+    
+    // Detect intent if pausing
+    let intentResult = null;
+    let guidance = null;
+    
+    if (actionResult.action === 'pause_needs_user') {
+      intentResult = detectUserActionIntent(atsResult, stageResult);
+      guidance = generateGuidance(intentResult.intent, atsResult, stageResult);
+    }
+    
+    // Add recheck evidence
+    const recheckEvidence = makeEvidence(
+      'recheck_trigger',
+      `Re-detection triggered by ${reason}`,
+      { 
+        reason,
+        recheck_count: recheckCount,
+        url: currentUrl,
+        timestamp: new Date().toISOString()
+      }
+    );
+    
+    // Update storage with recheck metadata
+    await chrome.storage.local.set({
+      detectionState: {
+        ats: atsResult,
+        stage: stageResult,
+        action: actionResult,
+        intent: intentResult,
+        guidance: guidance,
+        last_recheck_reason: reason,
+        recheck_count: recheckCount,
+        page_url: currentUrl,
+        recheck_evidence: recheckEvidence
+      }
+    });
+    
+    // Update UI based on new state
+    if (actionResult.action === 'pause_needs_user') {
+      showNeedsUserOverlay(atsResult, stageResult, actionResult, intentResult, guidance);
+    } else if (actionResult.action === 'continue') {
+      // Remove overlay if it exists
+      const overlay = document.getElementById('fw-needs-user-overlay');
+      if (overlay) overlay.remove();
+      
+      // Run autofill
+      const userProfile = await APIClient.getUserProfile(1);
+      if (userProfile && userProfile.profile) {
+        await attemptAutofill(userProfile.profile, userProfile.user);
+      }
+    } else if (actionResult.action === 'noop') {
+      // Remove overlay, user will handle via popup
+      const overlay = document.getElementById('fw-needs-user-overlay');
+      if (overlay) overlay.remove();
+    }
+    
+    console.log('[Recheck] Detection pipeline complete:', {
+      ats: atsResult.ats_kind,
+      stage: stageResult.stage,
+      action: actionResult.action,
+      intent: intentResult?.intent
+    });
+    
+  } catch (error) {
+    console.error('[Recheck] Detection pipeline failed:', error);
+  }
+}
+
+/**
+ * Show temporary "rechecking" overlay
+ */
+function showRecheckingOverlay() {
+  const overlay = document.getElementById('fw-needs-user-overlay');
+  if (!overlay) return;
+  
+  // Find the guidance content div (the one with the guidance box)
+  const guidanceDiv = overlay.querySelector('div[style*="margin-bottom: 16px"][style*="padding: 12px"]');
+  if (guidanceDiv) {
+    guidanceDiv.innerHTML = `
+      <div style="text-align: center; padding: 20px;">
+        <div style="font-size: 14px; color: #666; margin-bottom: 8px;">
+          🔄 Checking new page...
+        </div>
+        <div style="font-size: 12px; color: #999;">
+          Detecting what to do next
+        </div>
+      </div>
+    `;
+  }
+}
+
+/**
+ * Initialize page lifecycle observers
+ */
+function initializePageLifecycle() {
+  console.log('[Page Lifecycle] Initializing observers...');
+  
+  // 1. Visibility change
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      console.log('[Page Lifecycle] Tab became visible');
+      triggerRecheck('visibility_change');
+    }
+  });
+  
+  // 2. History API hooks for SPA navigation
+  const originalPushState = history.pushState;
+  const originalReplaceState = history.replaceState;
+  
+  history.pushState = function(...args) {
+    originalPushState.apply(this, args);
+    console.log('[Page Lifecycle] pushState detected');
+    triggerRecheck('url_changed');
+  };
+  
+  history.replaceState = function(...args) {
+    originalReplaceState.apply(this, args);
+    console.log('[Page Lifecycle] replaceState detected');
+    triggerRecheck('url_changed');
+  };
+  
+  window.addEventListener('popstate', () => {
+    console.log('[Page Lifecycle] popstate detected');
+    triggerRecheck('url_changed');
+  });
+  
+  // 3. Page load (if we're loaded dynamically)
+  if (document.readyState === 'complete') {
+    console.log('[Page Lifecycle] Page already loaded');
+  }
+  
+  console.log('[Page Lifecycle] All observers initialized');
+}
+
+/**
  * Resume monitoring
  */
 let resumeMonitor = null;
@@ -406,14 +602,17 @@ function handlePageChange() {
   }
   
   resumeCheckTimeout = setTimeout(async () => {
-    console.log('[Resume Monitor] Page changed, checking if can resume...');
+    console.log('[Page Lifecycle] DOM changed significantly');
     
     // Get current state
     const { detectionState } = await chrome.storage.local.get(['detectionState']);
     
-    // Only check if currently paused
+    // If paused, check for resume (existing behavior)
     if (detectionState && detectionState.action && detectionState.action.action === 'pause_needs_user') {
       await checkResumeCondition(detectionState);
+    } else {
+      // Otherwise, just recheck to update guidance
+      triggerRecheck('dom_changed');
     }
   }, 1000);
 }
@@ -422,61 +621,33 @@ function handlePageChange() {
  * Check if resume condition is met
  */
 async function checkResumeCondition(previousState) {
-  // Re-run detection
-  const atsResult = detectATS();
-  const stageResult = detectApplyStage(atsResult.ats_kind);
-  const actionResult = computeWorkerAction({
-    task: currentTask,
-    ats: atsResult,
-    stage: stageResult
-  });
+  // Re-run detection using the new pipeline
+  await executeRecheck('resume_check');
   
-  console.log('[Resume Monitor] New action:', actionResult.action);
+  // Get updated state
+  const { detectionState } = await chrome.storage.local.get(['detectionState']);
   
-  // If action changed from pause to continue
-  if (actionResult.action === 'continue' && 
+  // Check if we can resume
+  if (detectionState && 
+      detectionState.action.action === 'continue' &&
       previousState.action.action === 'pause_needs_user') {
     
     console.log('[Resume Monitor] ✓ Resume condition met!');
-    
-    // Remove overlay
-    const overlay = document.getElementById('fw-needs-user-overlay');
-    if (overlay) overlay.remove();
-    
-    // Detect intent to log what changed
-    const intentResult = detectUserActionIntent(atsResult, stageResult);
-    
-    // Update storage
-    await chrome.storage.local.set({
-      detectionState: {
-        ats: atsResult,
-        stage: stageResult,
-        action: actionResult,
-        intent: intentResult,
-        resumed_from: previousState.intent?.intent || 'unknown'
-      }
-    });
     
     // Notify background of resume
     chrome.runtime.sendMessage({
       type: 'FW_TASK_RESUMED',
       previous_intent: previousState.intent?.intent,
-      new_stage: stageResult.stage,
+      new_stage: detectionState.stage.stage,
       evidence: {
         what_changed: 'User completed required action',
         previous_stage: previousState.stage.stage,
-        new_stage: stageResult.stage,
+        new_stage: detectionState.stage.stage,
         can_continue: true
       }
     }).catch(err => {
       console.error('[Resume Monitor] Failed to notify background:', err);
     });
-    
-    // Run autofill
-    const userProfile = await APIClient.getUserProfile(1);
-    if (userProfile && userProfile.profile) {
-      await attemptAutofill(userProfile.profile, userProfile.user);
-    }
   }
 }
 

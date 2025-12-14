@@ -17,6 +17,17 @@ async function init() {
   document.getElementById('btn-copy-debug').addEventListener('click', handleCopyDebug);
 }
 
+// Listen for storage changes to auto-update popup
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'local' && changes.detectionState) {
+    console.log('[Popup] Detection state changed, refreshing display');
+    const newState = changes.detectionState.newValue;
+    if (newState) {
+      showDetectionInfo(newState);
+    }
+  }
+});
+
 /**
  * Refresh current state
  */
@@ -146,7 +157,7 @@ function hideMessage() {
  * Show detection info panel
  */
 function showDetectionInfo(detectionState) {
-  const { ats, stage, action, intent, guidance } = detectionState;
+  const { ats, stage, action, intent, guidance, last_recheck_reason, recheck_count, page_url } = detectionState;
   
   document.getElementById('detection-info').style.display = 'block';
   document.getElementById('ats-kind').textContent = ats.ats_kind || 'unknown';
@@ -163,13 +174,16 @@ function showDetectionInfo(detectionState) {
     document.getElementById('intent-info').style.display = 'none';
   }
   
-  // Format evidence as JSON
+  // Format evidence as JSON with recheck metadata
   const fullReport = {
     ats: ats,
     stage: stage,
     action: action,
     intent: intent,
     guidance: guidance,
+    page_url: page_url,
+    last_recheck_reason: last_recheck_reason,
+    recheck_count: recheck_count,
     timestamp: new Date().toISOString()
   };
   
