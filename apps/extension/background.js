@@ -166,40 +166,73 @@ async function handleDetectionResult({ ats, stage, action }) {
     return;
   }
   
+  // VALIDATION: Check session matches
+  const session = await getActiveSession();
+  if (!session || !session.active) {
+    console.warn('[Background] No active session, skipping transition');
+    return;
+  }
+  
+  if (session.task_id !== currentTask.id) {
+    console.warn('[Background] Session/task mismatch, skipping transition', {
+      session_task: session.task_id,
+      current_task: currentTask.id
+    });
+    return;
+  }
+  
   console.log('[Background] Detection result:', { ats, stage, action });
   
   try {
     if (action.action === 'pause_needs_user') {
       // Transition to needs_user
       console.log('[Background] Transitioning to needs_user:', action.reason);
-      await APIClient.transitionTask(
-        currentTask.id,
-        'needs_user',
-        action.reason,
-        { 
-          ats: ats.ats_kind,
-          stage: stage.stage,
-          evidence: action.evidence,
-          detection_timestamp: new Date().toISOString()
+      
+      try {
+        await APIClient.transitionTask(
+          currentTask.id,
+          'needs_user',
+          action.reason,
+          { 
+            ats: ats.ats_kind,
+            stage: stage.stage,
+            evidence: action.evidence,
+            detection_timestamp: new Date().toISOString()
+          }
+        );
+      } catch (error) {
+        // If 400 error (already in this state), don't retry
+        if (error.message && error.message.includes('400')) {
+          console.log('[Background] Task already in needs_user state, skipping');
+        } else {
+          throw error;
         }
-      );
+      }
       
       // Keep task reference but mark as not processing
-      // User can continue later via popup
       isProcessing = false;
       
     } else if (action.action === 'fail') {
       // Transition to failed
       console.log('[Background] Transitioning to failed:', action.reason);
-      await APIClient.transitionTask(
-        currentTask.id,
-        'failed',
-        action.reason,
-        { 
-          ats: ats.ats_kind,
-          stage: stage.stage
+      
+      try {
+        await APIClient.transitionTask(
+          currentTask.id,
+          'failed',
+          action.reason,
+          { 
+            ats: ats.ats_kind,
+            stage: stage.stage
+          }
+        );
+      } catch (error) {
+        if (error.message && error.message.includes('400')) {
+          console.log('[Background] Task already in failed state, skipping');
+        } else {
+          throw error;
         }
-      );
+      }
       
       // Reset state
       currentTask = null;
@@ -209,8 +242,6 @@ async function handleDetectionResult({ ats, stage, action }) {
     }
     
     // For 'continue' and 'noop', do nothing - task stays in_progress
-    // Content script will handle autofill for 'continue'
-    // User will manually mark status for 'noop'
     
   } catch (error) {
     console.error('[Background] Failed to handle detection result:', error);
@@ -324,31 +355,51 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Task automatically resumed after user action
     console.log('[Background] Task resumed:', message);
     
-    if (currentTask && currentTask.status === 'needs_user') {
-      // Transition needs_user -> in_progress
-      APIClient.transitionTask(
-        currentTask.id,
-        'in_progress',
-        `Resumed after user completed: ${message.previous_intent}`,
-        {
-          auto_resume: true,
-          previous_intent: message.previous_intent,
-          new_stage: message.new_stage,
-          evidence: message.evidence,
-          timestamp: new Date().toISOString()
-        }
-      )
-        .then(() => {
-          console.log('[Background] Task transitioned to in_progress');
-          sendResponse({ success: true });
-        })
-        .catch(error => {
-          console.error('[Background] Resume transition failed:', error);
-          sendResponse({ success: false, error: error.message });
-        });
-    } else {
-      sendResponse({ success: false, error: 'No current task in needs_user state' });
+    // VALIDATION: Check current task and session
+    if (!currentTask) {
+      console.warn('[Background] No current task for resume');
+      sendResponse({ success: false, error: 'No current task' });
+      return true;
     }
+    
+    getActiveSession().then(session => {
+      if (!session || !session.active || session.task_id !== currentTask.id) {
+        console.warn('[Background] Session validation failed for resume');
+        sendResponse({ success: false, error: 'Invalid session' });
+        return;
+      }
+      
+      // Only transition if currently in needs_user
+      if (currentTask.status === 'needs_user') {
+        APIClient.transitionTask(
+          currentTask.id,
+          'in_progress',
+          `Resumed after user completed: ${message.previous_intent}`,
+          {
+            auto_resume: true,
+            previous_intent: message.previous_intent,
+            new_stage: message.new_stage,
+            evidence: message.evidence,
+            timestamp: new Date().toISOString()
+          }
+        )
+          .then(() => {
+            console.log('[Background] Task transitioned to in_progress');
+            sendResponse({ success: true });
+          })
+          .catch(error => {
+            console.error('[Background] Resume transition failed:', error);
+            sendResponse({ success: false, error: error.message });
+          });
+      } else {
+        console.log('[Background] Task not in needs_user state, skipping resume');
+        sendResponse({ success: false, error: 'Task not in needs_user state' });
+      }
+    }).catch(error => {
+      console.error('[Background] Failed to get session:', error);
+      sendResponse({ success: false, error: error.message });
+    });
+    
     return true; // Async response
   }
 });

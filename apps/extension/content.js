@@ -5,6 +5,23 @@
 
 console.log('FuckWork content script loaded');
 
+/**
+ * Ensure FW debug state exists globally
+ * MUST be called before any access to _FW_DEBUG_STATE__
+ * @returns {object} Debug state object
+ */
+function ensureFWDebugState() {
+  if (!window._FW_DEBUG_STATE__) {
+    window._FW_DEBUG_STATE__ = {
+      recheckCount: 0,
+      lastRecheckReason: null,
+      initializedAt: Date.now()
+    };
+    console.log('[FW Debug State] Initialized:', window._FW_DEBUG_STATE__);
+  }
+  return window._FW_DEBUG_STATE__;
+}
+
 // State variables
 let currentTask = null;
 let activeSession = null;
@@ -17,6 +34,9 @@ let recheckCount = 0;
 let lastRecheckUrl = '';
 const RECHECK_DEBOUNCE_MS = 800;
 
+// Deduplication guard
+let lastRecheckSignature = null;
+
 // Wait for page to be fully loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -25,41 +45,46 @@ if (document.readyState === 'loading') {
 }
 
 async function init() {
-  console.log('Initializing content script...');
+  console.log('[FW Init] Starting initialization...');
   
-  // Load active apply session FIRST
+  // STEP 1: Ensure debug state exists
+  const debugState = ensureFWDebugState();
+  
+  // STEP 2: Load or initialize session (MUST be first)
   activeSession = await getActiveSession();
   
   if (!activeSession || !activeSession.active) {
-    console.log('[Content] No active apply session, skipping initialization');
+    console.log('[FW Init] No active session found, skipping initialization');
     return;
   }
   
-  console.log('[Content] Active apply session found:', activeSession);
+  console.log('[FW Init] Active session found:', activeSession.task_id);
   
-  // Get task from session
+  // STEP 3: Get task from storage
   const { activeTask } = await chrome.storage.local.get(['activeTask']);
   if (!activeTask) {
-    console.log('[Content] No active task in storage');
+    console.log('[FW Init] No active task in storage');
     return;
   }
   
   currentTask = activeTask;
   
-  // Update session with current URL
+  // STEP 4: Update session with current URL
   await updateActiveSession({ current_url: window.location.href });
   
-  // Wait for page to settle
+  // STEP 5: Wait for page to settle
   await sleep(2000);
   
-  // Run detection
+  // STEP 6: Run detection
   await runDetection();
   
-  // Initialize lifecycle observers
+  // STEP 7: Initialize page lifecycle observers (AFTER detection)
   initializePageLifecycle();
   
-  // Start monitoring for resume conditions
+  // STEP 8: Start monitoring for resume conditions
   startResumeMonitoring();
+  
+  console.log('[FW Init] Initialization complete');
 }
 
 /**
@@ -390,10 +415,16 @@ function sleep(ms) {
  * @param {string} reason - Why recheck was triggered
  */
 async function triggerRecheck(reason) {
+  // DEFENSIVE: Ensure debug state exists
+  const debugState = ensureFWDebugState();
+  
   // Clear existing timeout
   if (recheckTimeout) {
     clearTimeout(recheckTimeout);
   }
+  
+  // Update debug state
+  debugState.lastRecheckReason = reason;
   
   // Debounce to avoid rapid fire
   recheckTimeout = setTimeout(async () => {
@@ -406,6 +437,9 @@ async function triggerRecheck(reason) {
  * @param {string} reason - Trigger reason
  */
 async function executeRecheck(reason) {
+  // DEFENSIVE: Ensure debug state exists
+  const debugState = ensureFWDebugState();
+  
   // Load active session
   activeSession = await getActiveSession();
   
@@ -431,6 +465,20 @@ async function executeRecheck(reason) {
   
   const currentUrl = window.location.href;
   
+  // Classify page type early for signature
+  const pageType = classifyPageType();
+  
+  // DEDUPLICATION: Create signature
+  const signature = `${currentUrl}|${pageType}|${activeSession.task_id}`;
+  
+  if (signature === lastRecheckSignature) {
+    console.log('[Recheck] Skipping duplicate recheck for same page/stage');
+    return;
+  }
+  
+  lastRecheckSignature = signature;
+  console.log(`[Recheck] New recheck signature: ${signature}`);
+  
   // Update session state
   await updateActiveSession({
     current_url: currentUrl,
@@ -440,7 +488,10 @@ async function executeRecheck(reason) {
   // Reload updated session
   activeSession = await getActiveSession();
   
-  console.log(`[Recheck] Executing detection pipeline (reason: ${reason}, task: ${activeSession.task_id})`);
+  // Update debug state
+  debugState.recheckCount = activeSession.recheck_count;
+  
+  console.log(`[Recheck] Executing detection pipeline (reason: ${reason}, task: ${activeSession.task_id}, count: ${debugState.recheckCount})`);
   
   // Show loading state in overlay if it exists
   const existingOverlay = document.getElementById('fw-needs-user-overlay');
@@ -449,8 +500,6 @@ async function executeRecheck(reason) {
   }
   
   try {
-    // Classify page type
-    const pageType = classifyPageType();
     
     // Run full detection pipeline
     const atsResult = detectATS();
