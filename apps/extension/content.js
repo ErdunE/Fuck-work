@@ -37,6 +37,147 @@ const RECHECK_DEBOUNCE_MS = 800;
 // Deduplication guard
 let lastRecheckSignature = null;
 
+// Overlay lifecycle management (session-scoped singleton)
+let fwOverlayInstance = null;
+
+/**
+ * Ensure overlay exists for active session
+ * Creates overlay if it doesn't exist
+ * @param {object} session - Active apply session
+ */
+function ensureOverlay(session) {
+  if (!fwOverlayInstance) {
+    console.log('[Overlay] Creating session-scoped overlay for task:', session.task_id);
+    fwOverlayInstance = createOverlayElement(session);
+    document.body.appendChild(fwOverlayInstance);
+  }
+}
+
+/**
+ * Update overlay content based on detection results
+ * Does NOT control visibility - only updates content
+ * @param {object} guidance - Guidance object from detection
+ */
+function updateOverlayContent(guidance) {
+  if (!fwOverlayInstance) {
+    console.warn('[Overlay] Cannot update - overlay does not exist');
+    return;
+  }
+  
+  console.log('[Overlay] Updating content:', guidance.intent);
+  
+  // Update overlay DOM with new guidance
+  const titleEl = fwOverlayInstance.querySelector('.fw-overlay-title');
+  const whatEl = fwOverlayInstance.querySelector('.fw-overlay-what');
+  const actionEl = fwOverlayInstance.querySelector('.fw-overlay-action');
+  const nextEl = fwOverlayInstance.querySelector('.fw-overlay-next');
+  const taskIdEl = fwOverlayInstance.querySelector('.fw-overlay-task-id');
+  const jobIdEl = fwOverlayInstance.querySelector('.fw-overlay-job-id');
+  
+  if (titleEl) titleEl.textContent = guidance.title;
+  if (whatEl) whatEl.textContent = guidance.what_happening;
+  if (actionEl) actionEl.textContent = guidance.user_action;
+  if (nextEl) nextEl.textContent = guidance.what_next;
+  if (taskIdEl) taskIdEl.textContent = guidance.task_id;
+  if (jobIdEl) jobIdEl.textContent = guidance.job_id;
+}
+
+/**
+ * Remove overlay ONLY if session is closed
+ * @param {object} session - Session object (may be inactive)
+ */
+function removeOverlayIfSessionClosed(session) {
+  if (!session || !session.active) {
+    if (fwOverlayInstance) {
+      console.log('[Overlay] Removing overlay - session closed');
+      fwOverlayInstance.remove();
+      fwOverlayInstance = null;
+    }
+  }
+}
+
+/**
+ * Create overlay DOM element
+ * @param {object} session - Active apply session
+ * @returns {HTMLElement} Overlay element
+ */
+function createOverlayElement(session) {
+  const overlay = document.createElement('div');
+  overlay.id = 'fw-needs-user-overlay';
+  overlay.className = 'fw-overlay-persistent';
+  
+  overlay.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 360px;
+    background: white;
+    border: 2px solid #ff9800;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    z-index: 999999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    padding: 20px;
+  `;
+  
+  overlay.innerHTML = `
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+      <div style="flex: 1;">
+        <div style="font-size: 16px; font-weight: 600; color: #ff9800; margin-bottom: 4px;">
+          FuckWork Apply Assistant
+        </div>
+        <div style="font-size: 12px; color: #999;">
+          Task #<span class="fw-overlay-task-id">${session.task_id}</span> | 
+          Job <span class="fw-overlay-job-id">${session.job_id}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div style="margin-bottom: 16px; padding: 12px; background: #fff3e0; border-radius: 6px; border-left: 3px solid #ff9800;">
+      <div style="font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px;">
+        <span class="fw-overlay-title">Loading...</span>
+      </div>
+      <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
+        <strong>What's happening:</strong> <span class="fw-overlay-what">Analyzing page...</span>
+      </div>
+      <div style="font-size: 14px; color: #1a1a1a; font-weight: 500; margin-bottom: 8px;">
+        <strong>→ <span class="fw-overlay-action">Please wait...</span></strong>
+      </div>
+      <div style="font-size: 12px; color: #666;">
+        <em>After you do this:</em> <span class="fw-overlay-next">Detection in progress...</span>
+      </div>
+    </div>
+    
+    <div style="display: flex; gap: 8px;">
+      <button class="fw-overlay-copy-debug" style="
+        flex: 1;
+        padding: 10px;
+        background: #e0e0e0;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #333;
+        font-weight: 500;
+      ">
+        📋 Copy Debug
+      </button>
+    </div>
+  `;
+  
+  // Add copy debug handler
+  overlay.querySelector('.fw-overlay-copy-debug').addEventListener('click', async () => {
+    const { detectionState } = await chrome.storage.local.get(['detectionState']);
+    if (detectionState) {
+      const debugInfo = JSON.stringify(detectionState, null, 2);
+      navigator.clipboard.writeText(debugInfo);
+      console.log('[Overlay] Debug info copied to clipboard');
+    }
+  });
+  
+  return overlay;
+}
+
 // Wait for page to be fully loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', init);
@@ -69,19 +210,22 @@ async function init() {
   
   currentTask = activeTask;
   
-  // STEP 4: Update session with current URL
+  // STEP 4: CREATE OVERLAY (before detection)
+  ensureOverlay(activeSession);
+  
+  // STEP 5: Update session with current URL
   await updateActiveSession({ current_url: window.location.href });
   
-  // STEP 5: Wait for page to settle
+  // STEP 6: Wait for page to settle
   await sleep(2000);
   
-  // STEP 6: Run detection
+  // STEP 7: Run detection (will update overlay content)
   await runDetection();
   
-  // STEP 7: Initialize page lifecycle observers (AFTER detection)
+  // STEP 8: Initialize page lifecycle observers (AFTER detection)
   initializePageLifecycle();
   
-  // STEP 8: Start monitoring for resume conditions
+  // STEP 9: Start monitoring for resume conditions
   startResumeMonitoring();
   
   console.log('[FW Init] Initialization complete');
@@ -119,31 +263,38 @@ async function runDetection() {
     console.log('[Detection] Action result:', actionResult);
     
     // Step 4: Detect user action intent and generate guidance
-    let intentResult = null;
-    let guidance = null;
+    const intentResult = detectUserActionIntent(atsResult, stageResult);
+    const guidance = generateSessionAwareGuidance(
+      intentResult.intent,
+      atsResult,
+      stageResult,
+      activeSession
+    );
+    console.log('[Detection] Intent result:', intentResult);
+    console.log('[Detection] Guidance:', guidance);
     
-    if (actionResult.action === 'pause_needs_user') {
-      intentResult = detectUserActionIntent(atsResult, stageResult);
-      guidance = generateGuidance(intentResult.intent, atsResult, stageResult);
-      console.log('[Detection] Intent result:', intentResult);
-      console.log('[Detection] Guidance:', guidance);
-    }
+    // Step 5: UPDATE OVERLAY CONTENT (not visibility)
+    updateOverlayContent(guidance);
     
-    // Step 5: Store detection state for popup access
+    // Step 6: Store detection state for popup access
     await chrome.storage.local.set({
       detectionState: {
         ats: atsResult,
         stage: stageResult,
         action: actionResult,
         intent: intentResult,
-        guidance: guidance
+        guidance: guidance,
+        timestamp: new Date().toISOString(),
+        session: {
+          task_id: activeSession.task_id,
+          job_id: activeSession.job_id,
+          recheck_count: activeSession.recheck_count
+        }
       }
     });
     
-    // Step 6: Take action based on result
-    if (actionResult.action === 'pause_needs_user') {
-      showNeedsUserOverlay(atsResult, stageResult, actionResult, intentResult, guidance);
-    } else if (actionResult.action === 'continue') {
+    // Step 7: Take action based on result (NO overlay manipulation)
+    if (actionResult.action === 'continue') {
       // Get user profile and run autofill
       const userProfile = await APIClient.getUserProfile(1);
       
@@ -152,11 +303,9 @@ async function runDetection() {
       } else {
         console.log('No user profile found for autofill');
       }
-    } else if (actionResult.action === 'noop') {
-      console.log('[Detection] No action needed - user must confirm via popup');
     }
     
-    // Step 6: Report back to background worker
+    // Step 8: Report back to background worker
     chrome.runtime.sendMessage({
       type: 'FW_DETECTION_RESULT',
       ats: atsResult,
@@ -173,130 +322,24 @@ async function runDetection() {
     };
     
   } catch (error) {
-    console.error('[Detection] Error during detection:', error);
+    console.error('[Detection] Pipeline failed:', error);
+    
+    // Even on error, show fallback guidance
+    updateOverlayContent({
+      title: 'Detection Error',
+      what_happening: 'Unable to analyze page',
+      user_action: 'Please continue manually or cancel this task',
+      what_next: 'I will retry on next page transition',
+      task_id: activeSession.task_id,
+      job_id: activeSession.job_id,
+      intent: 'unknown_manual'
+    });
+    
     return null;
   }
 }
 
-/**
- * Show needs_user overlay with guidance
- */
-function showNeedsUserOverlay(ats, stage, action, intent, guidance) {
-  // Remove existing overlay
-  const existing = document.getElementById('fw-needs-user-overlay');
-  if (existing) existing.remove();
-  
-  console.log('[Overlay] Showing needs_user overlay with guidance');
-  
-  // Create overlay container
-  const overlay = document.createElement('div');
-  overlay.id = 'fw-needs-user-overlay';
-  overlay.style.cssText = `
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    width: 360px;
-    background: white;
-    border: 2px solid #ff9800;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-    z-index: 999999;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    padding: 20px;
-  `;
-  
-  // Create content with guidance
-  overlay.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
-      <div>
-        <div style="font-size: 18px; font-weight: 600; color: #ff9800; margin-bottom: 4px;">
-          ${guidance ? guidance.title : 'Action Required'}
-        </div>
-        <div style="font-size: 12px; color: #999;">
-          ${ats.ats_kind} • ${intent ? intent.confidence : 'low'} confidence
-        </div>
-      </div>
-      <button id="fw-overlay-close" style="
-        background: none;
-        border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: #999;
-        padding: 0;
-        width: 28px;
-        height: 28px;
-        line-height: 1;
-      ">&times;</button>
-    </div>
-    
-    <div style="margin-bottom: 16px; padding: 12px; background: #fff3e0; border-radius: 6px; border-left: 3px solid #ff9800;">
-      <div style="font-size: 13px; color: #666; margin-bottom: 8px;">
-        <strong>What's happening:</strong> ${guidance ? guidance.what_happening : action.reason}
-      </div>
-      <div style="font-size: 14px; color: #1a1a1a; font-weight: 500; margin-bottom: 8px;">
-        <strong>→ ${guidance ? guidance.user_action : 'Complete the required action'}</strong>
-      </div>
-      <div style="font-size: 12px; color: #666;">
-        <em>After you do this:</em> ${guidance ? guidance.what_next : 'The application will continue'}
-      </div>
-    </div>
-    
-    <div style="display: flex; gap: 8px;">
-      <button id="fw-overlay-copy" style="
-        flex: 1;
-        padding: 10px;
-        background: #e0e0e0;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-        color: #333;
-        font-weight: 500;
-      ">
-        📋 Copy Debug
-      </button>
-      <button id="fw-overlay-dismiss" style="
-        flex: 1;
-        padding: 10px;
-        background: #f5f5f5;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 13px;
-        color: #666;
-      ">
-        Dismiss
-      </button>
-    </div>
-  `;
-  
-  // Add to page
-  document.body.appendChild(overlay);
-  
-  // Add event listeners
-  document.getElementById('fw-overlay-close').addEventListener('click', () => overlay.remove());
-  document.getElementById('fw-overlay-dismiss').addEventListener('click', () => overlay.remove());
-  
-  document.getElementById('fw-overlay-copy').addEventListener('click', async () => {
-    const debugReport = {
-      ats,
-      stage,
-      action,
-      intent,
-      guidance,
-      timestamp: new Date().toISOString()
-    };
-    
-    try {
-      await navigator.clipboard.writeText(JSON.stringify(debugReport, null, 2));
-      const btn = document.getElementById('fw-overlay-copy');
-      btn.textContent = '✓ Copied!';
-      setTimeout(() => btn.textContent = '📋 Copy Debug', 2000);
-    } catch (err) {
-      console.error('[Overlay] Failed to copy:', err);
-    }
-  });
-}
+// Legacy overlay function removed - now using session-scoped lifecycle manager
 
 /**
  * Attempt to autofill basic fields
@@ -493,11 +536,16 @@ async function executeRecheck(reason) {
   
   console.log(`[Recheck] Executing detection pipeline (reason: ${reason}, task: ${activeSession.task_id}, count: ${debugState.recheckCount})`);
   
-  // Show loading state in overlay if it exists
-  const existingOverlay = document.getElementById('fw-needs-user-overlay');
-  if (existingOverlay) {
-    showRecheckingOverlay();
-  }
+  // Show "rechecking" state in existing overlay
+  updateOverlayContent({
+    title: 'Analyzing New Page',
+    what_happening: `Detected ${reason}, checking what to do next...`,
+    user_action: 'Please wait while I analyze this page',
+    what_next: 'Guidance will appear in a moment',
+    task_id: activeSession.task_id,
+    job_id: activeSession.job_id,
+    intent: 'analyzing'
+  });
   
   try {
     
@@ -566,20 +614,17 @@ async function executeRecheck(reason) {
       }
     });
     
-    // Update UI based on new state
-    if (actionResult.action === 'pause_needs_user') {
-      showNeedsUserOverlay(atsResult, stageResult, actionResult, intentResult, guidance);
-    } else if (actionResult.action === 'continue') {
-      const overlay = document.getElementById('fw-needs-user-overlay');
-      if (overlay) overlay.remove();
-      
+    // Update overlay content with new guidance (NO visibility control)
+    if (guidance) {
+      updateOverlayContent(guidance);
+    }
+    
+    // Handle autofill if action is continue
+    if (actionResult.action === 'continue') {
       const userProfile = await APIClient.getUserProfile(1);
       if (userProfile && userProfile.profile) {
         await attemptAutofill(userProfile.profile, userProfile.user);
       }
-    } else if (actionResult.action === 'noop') {
-      const overlay = document.getElementById('fw-needs-user-overlay');
-      if (overlay) overlay.remove();
     }
     
     console.log('[Recheck] Detection pipeline complete:', {
@@ -592,32 +637,25 @@ async function executeRecheck(reason) {
     });
     
   } catch (error) {
-    console.error('[Recheck] Detection pipeline failed:', error);
+    console.error('[Recheck] Detection failed:', error);
+    
+    // Show error in overlay (don't remove it)
+    updateOverlayContent({
+      title: 'Recheck Failed',
+      what_happening: 'Could not analyze this page',
+      user_action: 'You can continue manually or cancel the task',
+      what_next: 'I will retry on next page change',
+      task_id: activeSession.task_id,
+      job_id: activeSession.job_id,
+      intent: 'error'
+    });
   }
 }
 
 /**
  * Show temporary "rechecking" overlay
  */
-function showRecheckingOverlay() {
-  const overlay = document.getElementById('fw-needs-user-overlay');
-  if (!overlay) return;
-  
-  // Find the guidance content div (the one with the guidance box)
-  const guidanceDiv = overlay.querySelector('div[style*="margin-bottom: 16px"][style*="padding: 12px"]');
-  if (guidanceDiv) {
-    guidanceDiv.innerHTML = `
-      <div style="text-align: center; padding: 20px;">
-        <div style="font-size: 14px; color: #666; margin-bottom: 8px;">
-          🔄 Checking new page...
-        </div>
-        <div style="font-size: 12px; color: #999;">
-          Detecting what to do next
-        </div>
-      </div>
-    `;
-  }
-}
+// Legacy showRecheckingOverlay function removed - now using updateOverlayContent
 
 /**
  * Classify the current page type
@@ -852,6 +890,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         console.error('[Content] Detection error:', error);
         sendResponse({ error: error.message });
       });
+    
+    return true; // Async response
+  }
+  
+  if (message.type === 'FW_SESSION_CLOSED') {
+    console.log('[Content] Received session closed notification');
+    
+    // Reload session and remove overlay if closed
+    getActiveSession().then(session => {
+      removeOverlayIfSessionClosed(session);
+      sendResponse({ success: true });
+    }).catch(error => {
+      console.error('[Content] Failed to handle session close:', error);
+      sendResponse({ success: false, error: error.message });
+    });
     
     return true; // Async response
   }

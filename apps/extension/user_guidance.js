@@ -120,10 +120,10 @@ function generateSessionAwareGuidance(intent, ats, stage, session) {
     },
     
     unknown_manual: {
-      title: 'Manual Action Needed',
-      what: `Application in progress for job ${jobId} (Task #${taskId}). The page requires human attention.`,
-      action: 'Review the page and complete any required actions',
-      after: 'I\'ll detect when you\'re ready to continue'
+      title: 'Manual Action Required',
+      what: `You are applying for job ${jobId} (Task #${taskId}). I'm not sure what specific action is needed on this page.`,
+      action: 'Please review the page and take the appropriate action (Apply, Continue, Sign In, etc.)',
+      after: 'I will automatically detect when you move to the next step'
     }
   };
   

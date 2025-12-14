@@ -91,6 +91,20 @@ async function closeActiveSession() {
     session.active = false;
     await chrome.storage.local.set({ [APPLY_SESSION_KEY]: session });
     console.log('[ApplySession] Closed session:', session.task_id);
+    
+    // Notify content script to remove overlay
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tabs[0]) {
+        await chrome.tabs.sendMessage(tabs[0].id, {
+          type: 'FW_SESSION_CLOSED',
+          session_id: session.task_id
+        });
+      }
+    } catch (error) {
+      // Content script may not be loaded
+      console.log('[ApplySession] Could not notify content script:', error.message);
+    }
   }
 }
 
