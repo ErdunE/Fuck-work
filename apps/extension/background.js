@@ -12,6 +12,9 @@ let currentJobTab = null;
 let isProcessing = false;
 let pollInterval = null;
 
+// Content script injection tracking
+let lastContentHello = null;
+
 // Configuration
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 const TASK_TIMEOUT_MS = 600000; // 10 minutes
@@ -419,6 +422,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     
     return true; // Async response
   }
+  
+  // ============================================================
+  // FW_CONTENT_HELLO: Content script injection confirmation
+  // ============================================================
+  if (message.type === 'FW_CONTENT_HELLO') {
+    lastContentHello = {
+      host: message.host,
+      href: message.href,
+      ts: message.ts,
+      version: message.version,
+      receivedAt: Date.now()
+    };
+    console.log('[FW BG] Content script hello received:', lastContentHello);
+    sendResponse({ success: true, received: true });
+    return true;
+  }
 });
 
 /**
@@ -428,6 +447,44 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   if (tabId === currentJobTab) {
     console.log('Job tab closed');
     // Don't auto-complete, user might have multiple tabs open
+  }
+});
+
+/**
+ * Navigation logging for injection debugging.
+ * Logs when navigating while apply session is active.
+ */
+chrome.webNavigation.onCommitted.addListener(async (details) => {
+  // Only log main frame navigations
+  if (details.frameId !== 0) return;
+  
+  try {
+    const session = await getActiveSession();
+    const sessionActive = session && session.active;
+    
+    let host = '';
+    try {
+      host = new URL(details.url).hostname;
+    } catch (_) {
+      host = 'invalid_url';
+    }
+    
+    // Only log if session is active (during apply flow)
+    if (sessionActive) {
+      console.log('[FW BG] nav', {
+        tabId: details.tabId,
+        url: details.url,
+        host: host,
+        transitionType: details.transitionType,
+        sessionActive: sessionActive,
+        taskId: session.task_id,
+        willInject: true,
+        reason: 'content_scripts.matches=https://*/*'
+      });
+    }
+  } catch (error) {
+    // Don't let navigation logging crash the extension
+    console.warn('[FW BG] nav logging error:', error.message);
   }
 });
 

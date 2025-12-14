@@ -3,19 +3,85 @@
  * Runs on job application pages with ATS detection and state machine.
  */
 
-(() => {
-  const ts = new Date().toISOString();
-  const url = window.location.href;
-  const readyState = document.readyState;
-  let version = 'unknown';
+// ============================================================
+// INJECTION MARKER - First executable code (must not throw)
+// ============================================================
+const FW_EXT_VERSION = (() => {
   try {
-    version = chrome?.runtime?.getManifest?.().version || 'unknown';
+    return chrome?.runtime?.getManifest?.().version || 'unknown';
   } catch (_) {
-    // ignore
+    return 'unknown';
+  }
+})();
+
+(() => {
+  const ts = Date.now();
+  const tsISO = new Date(ts).toISOString();
+  const href = window.location.href;
+  const host = window.location.hostname;
+  const readyState = document.readyState;
+
+  // 1. Console log with domain info
+  console.log('[FW Injected] domain=', host, 'href=', href, 'ts=', ts);
+
+  // 2. Global marker for verification
+  window.__FW_CONTENT_LOADED__ = {
+    href: href,
+    host: host,
+    ts: ts,
+    tsISO: tsISO,
+    version: FW_EXT_VERSION,
+    readyState: readyState
+  };
+
+  // 3. Notify background script that content script loaded
+  try {
+    chrome.runtime.sendMessage({
+      type: 'FW_CONTENT_HELLO',
+      host: host,
+      href: href,
+      ts: ts,
+      version: FW_EXT_VERSION
+    }).catch(() => {
+      // Background may not be ready yet, ignore
+    });
+  } catch (_) {
+    // Ignore errors during injection phase
+  }
+})();
+
+// ============================================================
+// ERROR FILTERING - Only log errors from our extension
+// ============================================================
+(() => {
+  let ourExtensionId = '';
+  try {
+    ourExtensionId = chrome.runtime.id || '';
+  } catch (_) {}
+
+  // Check if error is from our extension
+  function isOurExtensionError(stack) {
+    if (!stack || !ourExtensionId) return false;
+    return stack.includes(`chrome-extension://${ourExtensionId}/`);
   }
 
-  console.log('[FW Injected] content.js loaded', { url, readyState, ts, version });
-  window.__FW_CONTENT_LOADED__ = { url, ts, version };
+  // Global error handler
+  window.addEventListener('error', (event) => {
+    if (event.error && event.error.stack && isOurExtensionError(event.error.stack)) {
+      console.error('[FW ERROR] Uncaught error:', event.error.message, event.error.stack);
+    }
+    // Don't log errors from other extensions (e.g., Simplify)
+  });
+
+  // Unhandled promise rejection handler
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = event.reason;
+    const stack = reason?.stack || '';
+    if (isOurExtensionError(stack)) {
+      console.error('[FW ERROR] Unhandled rejection:', reason?.message || reason, stack);
+    }
+    // Don't log rejections from other extensions
+  });
 })();
 
 /**
@@ -183,9 +249,12 @@ function isFWDebugUIEnabled() {
 
 function getFWDebugSnapshot() {
   const debugState = ensureFWDebugState();
+  const marker = window.__FW_CONTENT_LOADED__ || null;
   return {
-    injected: Boolean(window.__FW_CONTENT_LOADED__),
-    injected_marker: window.__FW_CONTENT_LOADED__ || null,
+    injected: Boolean(marker),
+    injected_marker: marker,
+    injected_host: marker?.host ?? null,
+    injected_ts: marker?.ts ?? null,
     session_active: Boolean(activeSession && activeSession.active),
     task_id: activeSession?.task_id ?? null,
     job_id: activeSession?.job_id ?? null,
@@ -206,6 +275,8 @@ function updateOverlayDebugPanel() {
   const snap = getFWDebugSnapshot();
   panel.textContent =
     `content.js injected: ${snap.injected ? 'yes' : 'no'}\n` +
+    `injectedHost: ${snap.injected_host}\n` +
+    `injectedTs: ${snap.injected_ts}\n` +
     `session active: ${snap.session_active ? 'yes' : 'no'}\n` +
     `task_id: ${snap.task_id}\n` +
     `job_id: ${snap.job_id}\n` +

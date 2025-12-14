@@ -1,26 +1,19 @@
 {
   "manifest_version": 3,
   "name": "FuckWork Apply Worker",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Human-in-the-loop job application assistant",
   "permissions": [
     "storage",
     "tabs",
-    "activeTab"
+    "activeTab",
+    "scripting",
+    "webNavigation"
   ],
   "host_permissions": [
     "http://localhost:8000/*",
     "http://127.0.0.1:8000/*",
-    "*://*.linkedin.com/*",
-    "*://*.indeed.com/*",
-    "*://*.myworkdayjobs.com/*",
-    "*://*.myworkdaysite.com/*",
-    "*://boards.greenhouse.io/*",
-    "*://*.greenhouse.io/*",
-    "*://jobs.lever.co/*",
-    "*://*.lever.co/*",
-    "*://*.icims.com/*",
-    "*://candidate.icims.com/*"
+    "<all_urls>"
   ],
   "background": {
     "service_worker": "background.js"
@@ -28,15 +21,8 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.linkedin.com/jobs/*",
-        "*://*.indeed.com/viewjob*",
-        "*://*.myworkdayjobs.com/*",
-        "*://*.myworkdaysite.com/*",
-        "*://boards.greenhouse.io/*",
-        "*://*.greenhouse.io/*/jobs/*",
-        "*://jobs.lever.co/*",
-        "*://*.lever.co/*/jobs/*",
-        "*://*.icims.com/*"
+        "https://*/*",
+        "http://*/*"
       ],
       "js": [
         "api.js",
