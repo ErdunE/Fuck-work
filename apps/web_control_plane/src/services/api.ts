@@ -233,6 +233,19 @@ class APIService {
     return response.data
   }
 
+  /**
+   * Execute a queued apply task
+   */
+  async executeApplyTask(taskId: number): Promise<{
+    run_id: number
+    job_url: string
+    ats_type?: string
+    message: string
+  }> {
+    const response = await this.client.post(`/api/users/me/apply-tasks/${taskId}/execute`)
+    return response.data
+  }
+
   // ============================================================
   // Phase 5.3.0: Observability Console API
   // ============================================================

@@ -166,6 +166,13 @@ export interface ApplyTask {
   blocked_reason?: string
   created_at: string
   updated_at: string
+  task_metadata?: {
+    url?: string
+    company?: string
+    title?: string
+    platform?: string
+    [key: string]: any
+  }
 }
 
 // Automation Event types

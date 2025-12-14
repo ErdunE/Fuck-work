@@ -6,6 +6,8 @@ export default function Tasks() {
   const [tasks, setTasks] = useState<ApplyTask[]>([])
   const [loading, setLoading] = useState(true)
   const [statusFilter, setStatusFilter] = useState<string>('')
+  const [executing, setExecuting] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadTasks()
@@ -35,10 +37,46 @@ export default function Tasks() {
     }
   }
 
+  const handleStartApply = async (taskId: number, jobUrl: string) => {
+    setExecuting(taskId)
+    setError(null)
+    
+    try {
+      const result = await api.executeApplyTask(taskId)
+      
+      // Open job URL in new tab
+      window.open(result.job_url, '_blank')
+      
+      // Refresh task list
+      await loadTasks()
+      
+      // Optional: Show success message
+      alert(`Application started! Run ID: ${result.run_id}`)
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to start application')
+      console.error('Failed to execute task:', err)
+    } finally {
+      setExecuting(null)
+    }
+  }
+
   return (
     <div>
       <h1>Apply Tasks</h1>
       <p style={{ marginBottom: '20px' }}>Read-only visibility into automation activity</p>
+
+      {error && (
+        <div style={{
+          padding: '10px',
+          marginBottom: '15px',
+          backgroundColor: '#f8d7da',
+          color: '#721c24',
+          border: '1px solid #f5c6cb',
+          borderRadius: '4px'
+        }}>
+          <strong>Error:</strong> {error}
+        </div>
+      )}
 
       <div className="card">
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
@@ -93,7 +131,7 @@ export default function Tasks() {
                   borderBottom: '1px solid #eee',
                   padding: '15px 0',
                   display: 'grid',
-                  gridTemplateColumns: '1fr 120px 150px 150px',
+                  gridTemplateColumns: '1fr 120px 150px 150px 180px',
                   gap: '10px',
                   alignItems: 'center'
                 }}
@@ -139,6 +177,46 @@ export default function Tasks() {
 
                 <div style={{ fontSize: '13px', color: '#666' }}>
                   {new Date(task.updated_at).toLocaleDateString()}
+                </div>
+
+                <div>
+                  {task.status === 'queued' && (
+                    <button
+                      onClick={() => {
+                        const metadata = task.task_metadata || {}
+                        const jobUrl = metadata.url || `https://linkedin.com/jobs/view/${task.job_id}`
+                        handleStartApply(task.id, jobUrl)
+                      }}
+                      disabled={executing === task.id}
+                      className="btn btn-primary"
+                      style={{ width: '100%', fontSize: '13px' }}
+                    >
+                      {executing === task.id ? 'Starting...' : 'Start Apply'}
+                    </button>
+                  )}
+                  {task.status === 'running' && (
+                    <button
+                      onClick={() => window.location.href = '/observability'}
+                      className="btn btn-secondary"
+                      style={{ width: '100%', fontSize: '13px' }}
+                    >
+                      View Run
+                    </button>
+                  )}
+                  {task.status === 'failed' && (
+                    <button
+                      onClick={() => {
+                        const metadata = task.task_metadata || {}
+                        const jobUrl = metadata.url || `https://linkedin.com/jobs/view/${task.job_id}`
+                        handleStartApply(task.id, jobUrl)
+                      }}
+                      disabled={executing === task.id}
+                      className="btn btn-secondary"
+                      style={{ width: '100%', fontSize: '13px' }}
+                    >
+                      {executing === task.id ? 'Retrying...' : 'Retry'}
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

@@ -11,8 +11,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
 from database import get_db
-from database.models import User, ApplyTask, Job
+from database.models import User, ApplyTask, Job, ApplyRun
 from api.auth import get_current_user
+from api.observability_logger import log_event
 
 router = APIRouter(prefix="/api/users/me", tags=["apply-tasks"])
 
@@ -76,6 +77,14 @@ class CreateTaskResponse(BaseModel):
     job_id: str
     status: str
     created_at: datetime
+    message: str
+
+
+class ExecuteTaskResponse(BaseModel):
+    """Response for task execution."""
+    run_id: int
+    job_url: str
+    ats_type: Optional[str] = None
     message: str
 
 
@@ -262,5 +271,91 @@ def create_apply_task(
         status=task.status,
         created_at=task.created_at,
         message="Task created successfully"
+    )
+
+
+@router.post("/apply-tasks/{task_id}/execute", response_model=ExecuteTaskResponse)
+def execute_apply_task(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Execute a queued apply task.
+    
+    Transitions task from queued -> running and creates an observability run.
+    Returns job_url for browser navigation.
+    """
+    # Fetch task
+    task = db.query(ApplyTask).filter(
+        ApplyTask.id == task_id,
+        ApplyTask.user_id == current_user.id
+    ).first()
+    
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    # Validate status
+    if task.status != 'queued':
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Task cannot be executed. Current status: {task.status}"
+        )
+    
+    # Get job details
+    job = db.query(Job).filter(Job.job_id == task.job_id).first()
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Associated job not found"
+        )
+    
+    # Update task status
+    task.status = 'running'
+    task.updated_at = datetime.utcnow()
+    
+    # Create apply_run
+    run = ApplyRun(
+        user_id=current_user.id,
+        task_id=task.id,
+        job_id=task.job_id,
+        initial_url=job.url,
+        current_url=job.url,
+        ats_kind=job.platform if job.platform else 'unknown',
+        intent='unknown',
+        stage='queued',
+        status='in_progress'
+    )
+    
+    db.add(run)
+    db.commit()
+    db.refresh(run)
+    
+    # Log observability event
+    log_event(
+        db=db,
+        user_id=current_user.id,
+        run_id=run.id,
+        event_name='run_started',
+        source='web_control_plane',
+        severity='info',
+        payload={
+            'task_id': task.id,
+            'job_id': task.job_id,
+            'job_url': job.url,
+            'ats_type': job.platform,
+            'triggered_by': 'user_action'
+        },
+        url=job.url
+    )
+    
+    return ExecuteTaskResponse(
+        run_id=run.id,
+        job_url=job.url,
+        ats_type=job.platform,
+        message="Task execution started"
     )
 
