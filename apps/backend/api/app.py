@@ -4,7 +4,7 @@ Main FastAPI application.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import jobs, users
+from .routers import jobs, users, ai_answer
 
 app = FastAPI(
     title="FuckWork API",
@@ -24,6 +24,7 @@ app.add_middleware(
 # Include routers
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(users.router, prefix="/users", tags=["users"])
+app.include_router(ai_answer.router, prefix="/ai", tags=["ai"])
 
 @app.get("/")
 def read_root():

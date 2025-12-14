@@ -1,0 +1,86 @@
+{
+  "total_jobs": 1624,
+  "platforms": {
+    "Indeed": 965,
+    "LinkedIn": 659
+  },
+  "job_levels": {
+    "mid": 436,
+    "staff": 134,
+    "senior": 250,
+    "intern": 128,
+    "junior": 17,
+    "new_grad": 17
+  },
+  "work_modes": {
+    "onsite": 778,
+    "remote": 71,
+    "hybrid": 133
+  },
+  "employment_types": {
+    "full_time": 906,
+    "contract": 27,
+    "internship": 43,
+    "part_time": 6
+  },
+  "visa_signals": {
+    "unclear": 954,
+    "explicit_no": 28
+  },
+  "salary_availability": {
+    "no_salary": 471,
+    "with_salary": 511
+  },
+  "geo_distribution": {
+    "OR": 10,
+    "NY": 84,
+    "VA": 75,
+    "MD": 7,
+    "SC": 4,
+    "CA": 234,
+    "GA": 10,
+    "NM": 5,
+    "NV": 2,
+    "TX": 67,
+    "WI": 2,
+    "MN": 10,
+    "OH": 13,
+    "CO": 15,
+    "AZ": 10,
+    "PA": 13,
+    "ID": 5,
+    "WA": 97,
+    "NC": 12,
+    "VT": 1,
+    "UT": 8,
+    "DC": 4,
+    "FL": 19,
+    "US": 16,
+    "TN": 13,
+    "CT": 3,
+    "IN": 4,
+    "MI": 12,
+    "IL": 20,
+    "United States": 19,
+    "MO": 10,
+    "OK": 3,
+    "MA": 41,
+    "KS": 4,
+    "LA": 1,
+    "NJ": 11,
+    "MT": 2,
+    "IA": 3,
+    "MS": 1,
+    "KY": 1,
+    "AL": 4,
+    "NE": 1,
+    "SD": 1,
+    "WV": 1,
+    "Nebraska Metropolitan Area": 1,
+    "DE": 1,
+    "PR": 1,
+    "ME": 1,
+    "RI": 1,
+    "AR": 1
+  }
+}
