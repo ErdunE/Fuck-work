@@ -13,6 +13,10 @@ class APIClient {
    * Returns headers object with JWT token if available
    */
   static async getAuthHeaders() {
+    // Phase 5.3.3: Auth headers construction logging
+    console.group('[FW API][Auth Headers]');
+    console.log('Loading auth for API request');
+    
     const headers = {
       'Content-Type': 'application/json'
     };
@@ -20,10 +24,19 @@ class APIClient {
     // Try to get JWT token (Phase 5.0)
     if (typeof AuthManager !== 'undefined') {
       const token = await AuthManager.getToken();
+      console.log('Has token:', !!token);
       if (token) {
+        // Get user info for logging (don't log token itself)
+        const userInfo = await AuthManager.getUserInfo();
+        console.log('user_id:', userInfo?.user_id);
+        console.log('email:', userInfo?.email);
         headers['Authorization'] = `Bearer ${token}`;
       }
+    } else {
+      console.log('AuthManager not available');
     }
+    
+    console.groupEnd();
     
     return headers;
   }
@@ -317,6 +330,50 @@ class APIClient {
       return await response.json();
     } catch (error) {
       console.error('[FW API] Failed to get apply task:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Get active apply session from backend (Phase 5.3.1 - Session Bridge)
+   * Extension uses this to deterministically attach to the correct apply run.
+   */
+  static async getMyActiveSession() {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/api/users/me/active-session`, { headers });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch active session: ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error('[FW API] Failed to get active session:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Clear active apply session (Phase 5.3.1 - Session Bridge)
+   * Called when run completes, fails, or user cancels.
+   */
+  static async clearMyActiveSession() {
+    try {
+      const headers = await this.getAuthHeaders();
+      const response = await fetch(`${API_BASE_URL}/api/users/me/active-session`, {
+        method: 'DELETE',
+        headers
+      });
+      
+      if (!response.ok) {
+        console.warn('[FW API] Failed to clear active session:', response.status);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.warn('[FW API] Failed to clear active session:', error);
+      // Don't throw - clearing session failure should not break flow
       return null;
     }
   }

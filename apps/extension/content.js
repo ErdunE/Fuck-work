@@ -828,8 +828,17 @@ async function getActiveSession() {
  */
 async function verifyAuthToken() {
   try {
+    // Phase 5.3.3: Token read logging
+    console.group('[FW Content][Auth Check]');
+    console.log('Reading token from chrome.storage.local');
+    
     // Load token from storage
     const auth = await window.authStorage.loadAuthToken();
+    
+    console.log('Result:', auth ? { user_id: auth.user_id, fingerprint: auth.fingerprint, expires_at: auth.expires_at } : null);
+    console.log('token exists:', !!auth?.token);
+    console.log('expires_at:', auth?.expires_at);
+    console.groupEnd();
     
     if (!auth || !auth.token) {
       console.log('[FW Auth] No token found in storage');
@@ -843,18 +852,32 @@ async function verifyAuthToken() {
       return null;
     }
     
-    // Verify with backend
-    console.log('[FW Auth] Verifying token with backend...', {
-      user_id: auth.user_id,
-      fingerprint: auth.fingerprint
-    });
+    // Phase 5.3.3: Backend verify request logging
+    console.group('[FW Content → Backend][Verify Auth]');
+    console.log('Verifying token with backend');
+    console.log('href:', location.href);
+    console.log('user_id from token:', auth.user_id);
+    console.log('fingerprint:', auth.fingerprint);
+    console.log('API call: GET /api/auth/me');
+    console.groupEnd();
     
     const headers = await APIClient.getAuthHeaders();
     const response = await fetch(`${API_BASE_URL}/api/auth/me`, { headers });
     
+    // Phase 5.3.3: Backend response logging
+    console.group('[FW Content][Backend Response]');
+    console.log('Status:', response.status);
+    console.log('OK:', response.ok);
+    console.groupEnd();
+    
     if (!response.ok) {
       if (response.status === 401) {
-        console.warn('[FW Auth] Backend auth failed (401) -> clearing token');
+        console.group('[FW Content][Auth Failed]');
+        console.warn('Backend auth failed (401) -> clearing token');
+        console.log('user_id was:', auth.user_id);
+        console.log('fingerprint was:', auth.fingerprint);
+        console.groupEnd();
+        
         await window.authStorage.clearAuthToken('backend_401');
         return null;
       }
@@ -873,10 +896,12 @@ async function verifyAuthToken() {
       return null;
     }
     
-    console.log('[FW Auth] Token verified successfully', {
-      user_id: userData.user_id,
-      email: userData.email
-    });
+    // Phase 5.3.3: Auth success logging
+    console.group('[FW Content][Auth Success]');
+    console.log('Backend confirmed user:', { id: userData.user_id, email: userData.email });
+    console.log('Token user_id:', auth.user_id);
+    console.log('Match:', userData.user_id === auth.user_id);
+    console.groupEnd();
     
     return {
       user_id: userData.user_id,
@@ -899,6 +924,14 @@ if (document.readyState === 'loading') {
 function init() {
   // Phase 5.3.2: Init must verify auth before proceeding
   try {
+    // Phase 5.3.3: Init environment logging
+    console.group('[FW Content][Init]');
+    console.log('href:', location.href);
+    console.log('isLinkedInJob:', /linkedin\.com\/jobs\/view/.test(location.href));
+    console.log('chrome exists:', !!chrome);
+    console.log('chrome.storage.local exists:', !!chrome?.storage?.local);
+    console.groupEnd();
+    
     console.log('[FW Init] Starting initialization...');
     ensureFWDebugState();
 
