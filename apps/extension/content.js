@@ -85,75 +85,6 @@ const FW_EXT_VERSION = (() => {
 })();
 
 // ============================================================
-// Phase A: Auth event listener removed - using cookie auth only
-/*
-// Phase 5.3.2: Auth Event Listener - Web Control Plane Bridge
-// ============================================================
-/**
- * Listen for auth events from Web Control Plane.
- * Enables secure, cross-user-safe authentication sync.
- */
-/*
-window.addEventListener('message', async (event) => {
-  // Security: Only accept messages from same origin
-  if (event.origin !== window.location.origin) {
-    return;
-  }
-  
-  const message = event.data;
-  
-  // Phase 5.3.2: Auth bootstrap (login/account switch)
-  if (message.type === 'FW_AUTH_BOOTSTRAP') {
-    console.log('[FW Auth Content] Received auth bootstrap from Web Control Plane', {
-      user_id: message.user_id,
-      mode: message.mode
-    });
-    
-    // Always clear existing auth first (mode: replace ensures no cross-user contamination)
-    await window.authStorage.clearAuthToken('bootstrap_replace');
-    
-    // Store new auth
-    await window.authStorage.storeAuthToken({
-      token: message.token,
-      user_id: message.user_id,
-      expires_at: message.expires_at
-    });
-    
-    console.log('[FW Auth Content] Auth bootstrap complete, notifying background');
-    
-    // Phase 5.3.2: Forward to background for logging and confirmation
-    try {
-      chrome.runtime.sendMessage({
-        type: 'FW_AUTH_BOOTSTRAP_COMPLETE',
-        user_id: message.user_id,
-        expires_at: message.expires_at
-      });
-    } catch (err) {
-      console.warn('[FW Auth Content] Failed to notify background:', err);
-    }
-  }
-  
-  // Phase 5.3.2: Auth clear (logout)
-  if (message.type === 'FW_AUTH_CLEAR') {
-    console.log('[FW Auth Content] Received auth clear from Web Control Plane', {
-      reason: message.reason
-    });
-    
-    await window.authStorage.clearAuthToken(`web_${message.reason}`);
-    console.log('[FW Auth Content] Auth cleared, notifying background');
-    
-    // Phase 5.3.2: Forward to background
-    try {
-      chrome.runtime.sendMessage({
-        type: 'FW_AUTH_CLEAR_COMPLETE',
-        reason: message.reason
-      });
-    } catch (err) {
-      console.warn('[FW Auth Content] Failed to notify background:', err);
-    }
-  }
-});
-*/
 
 /**
  * Ensure FW debug state exists globally
@@ -197,7 +128,7 @@ function ensureFWDebugState() {
 // State variables
 let currentTask = null;
 let activeSession = null;
-let currentAuthContext = null; // Phase 5.3.4.1: Store authContext for observability calls
+// Phase A: Cookie auth only - no auth context needed
 let lastDetectionTime = 0;
 const DETECTION_THROTTLE_MS = 2000; // Max once per 2 seconds
 
@@ -750,274 +681,7 @@ function validateUrlMatch(currentUrl, sessionUrl) {
   }
 }
 
-// Phase A: Tab session functions removed - using cookie auth only
-/*
-/**
- * Phase 5.3.5: Check if current tab has an active session registered by background
- * @returns {Promise<Object>} { has_session, run_id?, task_id?, job_url? }
- */
-/*
-async function getTabSession() {
-  try {
-    const response = await chrome.runtime.sendMessage({ type: 'FW_GET_TAB_SESSION' });
-    return response || { has_session: false };
-  } catch (error) {
-    console.warn('[FW Session] Failed to query tab session:', error);
-    return { has_session: false };
-  }
-}
 
-/**
- * Phase 5.3.5: Register current tab with background for session tracking
- * @param {Object} sessionData - { run_id, task_id, job_url, user_id }
- */
-/*
-async function registerCurrentTab(sessionData) {
-  try {
-    console.log('[FW Session] Sending FW_REGISTER_TAB_SESSION', {
-      run_id: sessionData.run_id,
-      task_id: sessionData.task_id,
-      job_url: sessionData.job_url,
-      user_id: sessionData.user_id
-    });
-    
-    await chrome.runtime.sendMessage({
-      type: 'FW_REGISTER_TAB_SESSION',
-      run_id: sessionData.run_id,
-      task_id: sessionData.task_id,
-      job_url: sessionData.job_url,
-      user_id: sessionData.user_id
-    });
-    
-    // Phase 5.3.5: Debug - registration success
-    console.log('[FW Session] Tab registration ACK received', {
-      run_id: sessionData.run_id,
-      task_id: sessionData.task_id,
-      note: 'Background should have stored this tab session'
-    });
-    
-    console.log('[FW Session] Tab registered with background', {
-      run_id: sessionData.run_id,
-      task_id: sessionData.task_id
-    });
-  } catch (error) {
-    // Phase 5.3.5: Debug - registration failure
-    console.error('[FW Session] Tab registration FAILED', {
-      error_message: error.message,
-      error_name: error.name,
-      run_id: sessionData.run_id,
-      task_id: sessionData.task_id,
-      critical: true,
-      impact: 'Tab ownership NOT established in background'
-    });
-    console.warn('[FW Session] Failed to register tab:', error);
-  }
-}
-*/
-
-/**
- * Get active session from backend (Phase 5.3.1 - Session Bridge)
- * This overrides the function from apply_session.js to fetch from backend API.
- * @returns {Promise<Object>} Session object with { active, task_id, run_id, job_url, ats_type }
- */
-async function getActiveSession(authContext) {
-  try {
-    // Phase 5.3.5: Check if this tab has a registered session
-    const tabSession = await getTabSession();
-    
-    console.group('[FW Session][Tab Check]');
-    console.log('Tab has registered session:', tabSession.has_session);
-    if (tabSession.has_session) {
-      console.log('Tab-owned run_id:', tabSession.run_id);
-      console.log('Tab-owned task_id:', tabSession.task_id);
-    }
-    console.groupEnd();
-    
-    // Phase 5.3.4: Log token passing to API
-    console.group('[FW Content][API Call Prep]');
-    console.log('Passing token explicitly to API');
-    console.log('token exists:', !!authContext.token);
-    console.log('fingerprint:', authContext.fingerprint);
-    console.groupEnd();
-    
-    // Fetch active session from backend
-    console.log('[FW Session] Fetching active session from backend...');
-    const sess = await APIClient.getMyActiveSession(authContext.token);
-    
-    console.log('[FW Session] Active session fetch result:', {
-      active: sess.active,
-      has_run_id: !!sess.run_id,
-      has_task_id: !!sess.task_id
-    });
-    
-    if (!sess.active) {
-      // Phase 5.3.5: Debug - decision path
-      console.log('[FW Session][Decision] return active=false', {
-        reason: 'backend_session_not_active',
-        sess_active: sess.active,
-        sess: sess
-      });
-      console.log('[FW Session] No active apply session (backend)');
-      return { active: false };
-    }
-    
-    // Phase 5.3.5: Register tab ownership as soon as backend confirms active session
-    // This must happen BEFORE URL match check, so third-party pages stay registered
-    if (!tabSession.has_session) {
-      console.log('[FW Session] Tab not yet registered, registering now', {
-        current_url: window.location.href,
-        run_id: sess.run_id,
-        task_id: sess.task_id,
-        reason: 'backend_session_active'
-      });
-      
-      await registerCurrentTab({
-        run_id: sess.run_id,
-        task_id: sess.task_id,
-        job_url: sess.job_url,
-        user_id: authContext.user_id
-      });
-      
-      // Update local tabSession reference so subsequent checks see it as registered
-      tabSession = {
-        has_session: true,
-        run_id: sess.run_id,
-        task_id: sess.task_id,
-        job_url: sess.job_url
-      };
-    } else {
-      console.log('[FW Session] Tab already registered, skipping re-registration', {
-        existing_run_id: tabSession.run_id,
-        backend_run_id: sess.run_id
-      });
-    }
-    
-    // Phase 5.3.5: If tab has registered session matching backend session, proceed
-    console.log('[FW Session] Tab ownership check', {
-      tabSession_has_session: tabSession.has_session,
-      tabSession_run_id: tabSession.run_id,
-      backend_run_id: sess.run_id,
-      match: tabSession.run_id === sess.run_id
-    });
-    
-    if (tabSession.has_session && tabSession.run_id === sess.run_id) {
-      console.log('[FW Session] Proceeding due to tab-owned run (URL match not required)');
-      
-      // Store in chrome.storage.local for compatibility
-      await chrome.storage.local.set({
-        fw_active_session: {
-          ...sess,
-          detected_at: Date.now(),
-          tab_owned: true
-        }
-      });
-      
-      console.log('[FW Session] active_session_attached:', {
-        task_id: sess.task_id,
-        run_id: sess.run_id,
-        ats_type: sess.ats_type,
-        tab_owned: true
-      });
-      
-      // Phase 5.3.5: Debug - decision path
-      console.log('[FW Session][Decision] return active=true (tab_owned)', {
-        reason: 'tab_owned_run_match',
-        tabSession_run_id: tabSession.run_id,
-        backend_run_id: sess.run_id,
-        url_check_skipped: true,
-        current_url: window.location.href
-      });
-      
-      return {
-        active: true,
-        task_id: sess.task_id,
-        run_id: sess.run_id,
-        job_id: sess.job_id || `run_${sess.run_id}`,
-        job_url: sess.job_url,
-        ats_type: sess.ats_type,
-        initial_url: sess.job_url,
-        current_url: window.location.href,
-        recheck_count: 0,
-        tab_owned: true
-      };
-    }
-    
-    // Phase 5.3.5: Fall back to URL matching (backward compatibility)
-    const currentUrl = window.location.href;
-    const sessionUrl = sess.job_url;
-    const urlMatch = validateUrlMatch(currentUrl, sessionUrl);
-    
-    console.log('[FW Session] active_session_url_match:', urlMatch, {
-      current: currentUrl,
-      expected: sessionUrl,
-      tab_owned: false
-    });
-    
-    if (!urlMatch) {
-      // Phase 5.3.5: Debug - decision path
-      console.log('[FW Session][Decision] return active=false', {
-        reason: 'url_mismatch_and_no_tab_ownership',
-        current_url: window.location.href,
-        expected_url: sess.job_url,
-        tabSession_has_session: tabSession.has_session,
-        tabSession_run_id: tabSession.run_id
-      });
-      console.warn('[FW Session] URL mismatch and no tab ownership - not initializing');
-      return { active: false };
-    }
-    
-    // Phase 5.3.5: Tab already registered earlier (after backend session confirmed)
-    // No need to register again here
-    
-    // Store in chrome.storage.local for compatibility
-    await chrome.storage.local.set({
-      fw_active_session: {
-        ...sess,
-        detected_at: Date.now(),
-        tab_owned: false
-      }
-    });
-    
-    console.log('[FW Session] active_session_attached:', {
-      task_id: sess.task_id,
-      run_id: sess.run_id,
-      ats_type: sess.ats_type,
-      tab_owned: false
-    });
-    
-    // Phase 5.3.5: Debug - decision path
-    console.log('[FW Session][Decision] return active=true (url_match)', {
-      reason: 'url_match_success',
-      current_url: currentUrl,
-      matched_url: sess.job_url,
-      tab_owned: false
-    });
-    
-    // Return session in expected format
-    return {
-      active: true,
-      task_id: sess.task_id,
-      run_id: sess.run_id,
-      job_id: sess.job_id || `run_${sess.run_id}`,
-      job_url: sess.job_url,
-      ats_type: sess.ats_type,
-      initial_url: sess.job_url,
-      current_url: currentUrl,
-      recheck_count: 0,
-      tab_owned: false
-    };
-    
-  } catch (error) {
-    // Phase 5.3.5: Debug - decision path
-    console.log('[FW Session][Decision] return active=false', {
-      reason: 'exception_caught',
-      error_message: error.message,
-      error_stack: error.stack
-    });
-    console.error('[FW Session] Failed to fetch active session:', error);
-    return { active: false };
-  }
-}
 
 /**
  * Phase 5.3.2: Verify auth token with backend before proceeding (self-healing)
@@ -1054,107 +718,6 @@ async function requireAuth() {
   }
 }
 
-// Phase A: Token auth removed - using cookie auth only
-/*
-async function verifyAuthToken() {
-  try {
-    // Phase 5.3.3: Token read logging
-    console.group('[FW Content][Auth Check]');
-    console.log('Reading token from chrome.storage.local');
-    
-    // Load token from storage
-    const auth = await window.authStorage.loadAuthToken();
-    
-    console.log('Result:', auth ? { user_id: auth.user_id, fingerprint: auth.fingerprint, expires_at: auth.expires_at } : null);
-    console.log('token exists:', !!auth?.token);
-    console.log('expires_at:', auth?.expires_at);
-    console.groupEnd();
-    
-    if (!auth || !auth.token) {
-      console.log('[FW Auth] No token found in storage');
-      return null;
-    }
-    
-    // Check expiration
-    if (await window.authStorage.isTokenExpired()) {
-      console.log('[FW Auth] Token expired, clearing');
-      await window.authStorage.clearAuthToken('expired');
-      return null;
-    }
-    
-    // Phase 5.3.3: Backend verify request logging
-    console.group('[FW Content → Backend][Verify Auth]');
-    console.log('Verifying token with backend');
-    console.log('href:', location.href);
-    console.log('user_id from token:', auth.user_id);
-    console.log('fingerprint:', auth.fingerprint);
-    console.log('API call: GET /api/auth/me');
-    console.groupEnd();
-    
-    // Phase 5.3.4.1: Defensive check before API call
-    console.log('[FW Content] Passing token to API', {
-      hasToken: !!auth?.token,
-      tokenType: typeof auth?.token,
-      tokenLength: auth?.token?.length
-    });
-    
-    const headers = APIClient.getAuthHeaders(auth.token);
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, { headers });
-    
-    // Phase 5.3.3: Backend response logging
-    console.group('[FW Content][Backend Response]');
-    console.log('Status:', response.status);
-    console.log('OK:', response.ok);
-    console.groupEnd();
-    
-    if (!response.ok) {
-      if (response.status === 401) {
-        console.group('[FW Content][Auth Failed]');
-        console.warn('Backend auth failed (401) -> clearing token');
-        console.log('user_id was:', auth.user_id);
-        console.log('fingerprint was:', auth.fingerprint);
-        console.groupEnd();
-        
-        await window.authStorage.clearAuthToken('backend_401');
-        return null;
-      }
-      throw new Error(`Backend returned ${response.status}`);
-    }
-    
-    const userData = await response.json();
-    
-    // Verify user_id matches (critical for cross-user safety)
-    if (userData.user_id !== auth.user_id) {
-      console.error('[FW Auth] User mismatch (token user != backend user) -> clearing token', {
-        token_user: auth.user_id,
-        backend_user: userData.user_id
-      });
-      await window.authStorage.clearAuthToken('user_mismatch');
-      return null;
-    }
-    
-    // Phase 5.3.3: Auth success logging
-    console.group('[FW Content][Auth Success]');
-    console.log('Backend confirmed user:', { id: userData.user_id, email: userData.email });
-    console.log('Token user_id:', auth.user_id);
-    console.log('Match:', userData.user_id === auth.user_id);
-    console.groupEnd();
-    
-    // Phase 5.3.4: Return full authContext including token for API calls
-    return {
-      token: auth.token,
-      user_id: userData.user_id,
-      email: userData.email,
-      fingerprint: auth.fingerprint,
-      expires_at: auth.expires_at
-    };
-    
-  } catch (error) {
-    console.error('[FW Auth] Token verification failed:', error);
-    return null;
-  }
-}
-*/
 
 // Wait for page to be fully loaded
 if (document.readyState === 'loading') {
@@ -1498,10 +1061,8 @@ async function executeAutofillIfAuthorized() {
       }
     });
     
-    // Flush immediately after critical milestones (Phase 5.3.4.1: pass token)
-    if (currentAuthContext?.token) {
-      await observabilityClient.flush(currentAuthContext.token);
-    }
+    // Flush immediately after critical milestones
+    await observabilityClient.flush();
     
     // Log successful autofill (Phase 5.2.1)
     await logAutomationEvent(createEventPayload(
@@ -2160,14 +1721,12 @@ async function executeRecheck(reason) {
       const stage = debugState.lastDetectionStage || 'analyzing';
       
       // Phase 5.3.4.1: Pass token to startRun
-      if (currentAuthContext?.token) {
-        await observabilityClient.startRun(currentAuthContext.token, activeSession, {
-          initial_url: activeSession.initial_url,
-          ats_kind: atsKind,
-          intent: intent,
-          stage: stage
-        });
-      }
+      await observabilityClient.startRun(activeSession, {
+        initial_url: activeSession.initial_url,
+        ats_kind: atsKind,
+        intent: intent,
+        stage: stage
+      });
     }
 
     // Explicit invariant logging and enforcement on every recheck page
