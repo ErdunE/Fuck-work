@@ -17,6 +17,15 @@ let pollInterval = null;
 let lastContentHello = null;
 
 // ============================================================
+// Authentication State (Single Source of Truth)
+// ============================================================
+const authState = {
+  isAuthenticated: false,
+  user: null,
+  lastCheckTime: null
+};
+
+// ============================================================
 // Phase A: Tab session system removed - Extension uses cookie auth only
 // ============================================================
 /*
@@ -35,7 +44,8 @@ console.log('[FW BG][LIFECYCLE] background started or restarted', {
 // Configuration
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 const TASK_TIMEOUT_MS = 600000; // 10 minutes
-const API_BASE_URL = 'http://127.0.0.1:8000'; // Backend API URL
+// background.js
+const BG_API_BASE_URL = 'http://127.0.0.1:8000'; // Backend API URL
 
 // ============================================================
 // Phase A: Cookie-Based Auth (Single Source of Truth)
@@ -51,7 +61,7 @@ async function checkAuthViaBackend() {
   console.log('[FW Auth] Checking auth via backend cookies');
   
   try {
-    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const res = await fetch(`${BG_API_BASE_URL}/api/auth/me`, {
       method: 'GET',
       credentials: 'include', // Send cookies
       headers: {
@@ -78,14 +88,44 @@ console.log('[FW BG][LIFECYCLE] Cookie-based auth architecture', {
   note: 'Extension uses backend session cookies only - no token storage'
 });
 
+/**
+ * Verify authentication and update authState.
+ * Called on extension load, login, and auth change events.
+ * 
+ * @returns {Promise<boolean>} true if authenticated, false otherwise
+ */
+async function verifyAndUpdateAuthState() {
+  console.log('[FW Auth] Verifying authentication state');
+  
+  const result = await checkAuthViaBackend();
+  
+  authState.isAuthenticated = result.authenticated;
+  authState.user = result.user || null;
+  authState.lastCheckTime = Date.now();
+  
+  console.log('[FW Auth] State updated', {
+    isAuthenticated: authState.isAuthenticated,
+    user_id: authState.user?.user_id || null,
+    email: authState.user?.email || null
+  });
+  
+  return authState.isAuthenticated;
+}
+
 
 /**
  * Start polling for tasks
  */
 function startPolling() {
-  console.log('Starting task polling...');
+  // Idempotency check
+  if (pollInterval !== null) {
+    console.log('[FW Poll] Already polling, skipping start');
+    return;
+  }
+
+  console.log('[FW Poll] Starting task polling');
   
-  // Poll immediately
+  // Poll immediately (will be gated by auth check)
   pollForTask();
   
   // Set up interval
@@ -96,17 +136,26 @@ function startPolling() {
  * Stop polling
  */
 function stopPolling() {
-  console.log('Stopping task polling...');
-  if (pollInterval) {
-    clearInterval(pollInterval);
-    pollInterval = null;
+  if (pollInterval === null) {
+    console.log('[FW Poll] Already stopped, skipping');
+    return;
   }
+
+  console.log('[FW Poll] Stopping task polling');
+  clearInterval(pollInterval);
+  pollInterval = null;
 }
 
 /**
  * Poll for next task
  */
 async function pollForTask() {
+  // Authentication gate - MUST be authenticated to poll
+  if (!authState.isAuthenticated) {
+    console.log('[FW Poll] Skipped: not authenticated');
+    return;
+  }
+
   // Don't poll if already processing
   if (isProcessing || currentTask) {
     console.log('Already processing task, skipping poll');
@@ -128,6 +177,14 @@ async function pollForTask() {
     
   } catch (error) {
     console.error('Poll failed:', error);
+    
+    // If 401/403, mark as unauthenticated and stop polling
+    if (error.message && (error.message.includes('401') || error.message.includes('403'))) {
+      console.warn('[FW Poll] Authentication failure detected - stopping polling');
+      authState.isAuthenticated = false;
+      authState.user = null;
+      stopPolling();
+    }
   }
 }
 
@@ -431,6 +488,35 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Async response
   }
   
+  // ============================================================
+  // Phase A: Auth Change Handler (from Web App)
+  // ============================================================
+  if (message.type === 'FW_AUTH_CHANGED') {
+    console.log('[FW Auth] Auth change event received');
+    
+    verifyAndUpdateAuthState().then(isAuth => {
+      if (isAuth) {
+        console.log('[FW Auth] Authenticated - starting polling');
+        startPolling();
+      } else {
+        console.log('[FW Auth] Not authenticated - stopping polling');
+        stopPolling();
+        
+        // Clear any active task state
+        currentTask = null;
+        currentJobTab = null;
+        isProcessing = false;
+      }
+      
+      sendResponse({ success: true, isAuthenticated: isAuth });
+    }).catch(err => {
+      console.error('[FW Auth] Auth verification failed', err);
+      sendResponse({ success: false, error: err.message });
+    });
+    
+    return true; // Async response
+  }
+  
   if (message.type === 'FW_DETECTION_RESULT') {
     // Content script is reporting detection result directly
     handleDetectionResult(message)
@@ -562,22 +648,21 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 });
 
 /**
- * Phase 5.0: Initialize authentication and preference sync
+ * Initialize background script with auth verification.
+ * Only start polling after authentication is confirmed.
  */
-async function initializePhase5() {
-  console.log('[FW Phase 5.0] Initializing Web Control Plane integration');
+async function initialize() {
+  console.log('[FW BG] Initializing background script');
+  console.log('[FW BG] Cookie-based auth architecture active');
   
-  // Validate authentication
-  const userInfo = await AuthManager.validateToken();
-  if (userInfo) {
-    console.log('[FW Phase 5.0] Authenticated', { user_id: userInfo.user_id });
-    
-    // Start preference sync service
-    await PreferenceSyncService.start();
+  const isAuth = await verifyAndUpdateAuthState();
+  
+  if (isAuth) {
+    console.log('[FW BG] Authenticated - starting task polling');
+    startPolling();
   } else {
-    console.log('[FW Phase 5.0] Not authenticated - running in offline mode');
-    console.log('[FW Phase 5.0] Extension will use local preference cache');
-    console.log('[FW Phase 5.0] Open popup to log in');
+    console.log('[FW BG] Not authenticated - polling disabled');
+    console.log('[FW BG] Waiting for FW_AUTH_CHANGED event from Web App');
   }
 }
 
@@ -585,8 +670,5 @@ async function initializePhase5() {
  * Initialize on extension load
  */
 console.log('FuckWork Apply Worker initialized');
-startPolling();
-
-// Phase 5.0 initialization
-initializePhase5();
+initialize();
 
