@@ -17,6 +17,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Phase A: Fetch extension token from backend
+  const fetchExtensionToken = async (): Promise<string | null> => {
+    try {
+      const response = await fetch('http://localhost:8000/api/auth/extension-token', {
+        method: 'POST',
+        credentials: 'include',  // Web App uses cookie auth
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[FW Web] Extension token fetched successfully')
+        return data.token
+      }
+      
+      console.warn('[FW Web] Failed to fetch extension token:', response.status)
+      return null
+    } catch (err) {
+      console.error('[FW Web] Extension token fetch error:', err)
+      return null
+    }
+  }
+
   useEffect(() => {
     // Check if user is already logged in
     const initAuth = async () => {
@@ -25,6 +48,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const currentUser = await api.getCurrentUser()
           setUser(currentUser)
+          
+          // Phase A: Broadcast extension token to extension on page load
+          const extToken = await fetchExtensionToken()
+          if (extToken) {
+            window.postMessage({ type: 'FW_EXTENSION_TOKEN', token: extToken }, '*')
+            console.log('[FW Web] Extension token broadcasted on init')
+          }
         } catch (error) {
           console.error('Failed to get current user:', error)
           api.clearAuth()
@@ -84,7 +114,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       authData.user_id
     )
     
-    // Phase A: Notify extension background of auth change
+    // Phase A: Fetch and broadcast extension token
+    const extToken = await fetchExtensionToken()
+    if (extToken) {
+      window.postMessage({ type: 'FW_EXTENSION_TOKEN', token: extToken }, '*')
+      console.log('[FW Web] Sent FW_EXTENSION_TOKEN to extension')
+    }
+    
+    // Phase A: Notify extension background of auth change (legacy)
     notifyExtensionAuthChanged(true)
   }
 
@@ -95,10 +132,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
-    // Phase 5.3.2: Broadcast clear BEFORE calling backend
+    // Phase 5.3.2: Broadcast clear BEFORE calling backend (legacy)
     broadcastAuthClear('logout')
     
-    // Phase A: Notify extension background of auth change
+    // Phase A: Broadcast extension logout (new token-based)
+    window.postMessage({ type: 'FW_EXTENSION_LOGOUT' }, '*')
+    console.log('[FW Web] Sent FW_EXTENSION_LOGOUT to extension')
+    
+    // Phase A: Notify extension background of auth change (legacy)
     notifyExtensionAuthChanged(false)
     
     // Call backend logout to increment token_version
