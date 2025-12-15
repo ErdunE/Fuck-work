@@ -1,14 +1,8 @@
 /**
- * Observability Client - Phase 5.3.0
+ * Observability Client - Phase A
  * 
  * Production-grade observability logging for browser extension.
- * Features:
- * - Run-based correlation
- * - Batch event streaming
- * - Auto-flush with configurable interval
- * - Automatic redaction of sensitive data
- * - Queue management with cap
- * - Resilient to backend failures
+ * Cookie-based auth only - no token management.
  */
 
 const API_BASE_URL = 'http://127.0.0.1:8000';
@@ -25,14 +19,9 @@ class ObservabilityClient {
   /**
    * Start a new observability run.
    * Call this at the beginning of an apply session.
-   * 
-   * @param {string} token - JWT token from content.js authContext (Phase 5.3.4.1)
-   * @param {Object} session - Apply session context (task_id, job_id)
-   * @param {Object} pageContext - Page detection context (ats_kind, intent, stage, urls)
-   * @returns {Promise<number|null>} run_id or null if failed
    */
-  async startRun(token, session, pageContext) {
-    // Phase 5.3.1: Check if run_id already set from session bridge
+  async startRun(session, pageContext) {
+    // Check if run_id already set from session bridge
     if (this.currentRunId) {
       console.log('[Observability] Run already started from session bridge:', this.currentRunId);
       this.startAutoFlush();
@@ -50,10 +39,12 @@ class ObservabilityClient {
     };
     
     try {
-      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/observability/runs/start`, {
         method: 'POST',
-        headers: headers,
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify(payload)
       });
       
@@ -89,9 +80,6 @@ class ObservabilityClient {
 
   /**
    * Enqueue an event for batch sending.
-   * Events are automatically redacted and timestamped.
-   * 
-   * @param {Object} event - Event payload
    */
   enqueue(event) {
     if (!this.currentRunId) {
@@ -116,10 +104,6 @@ class ObservabilityClient {
 
   /**
    * Redact sensitive data from event payload.
-   * Phase 5.3.0: Non-negotiable redaction rules.
-   * 
-   * @param {Object} event - Event to redact
-   * @returns {Object} Redacted event
    */
   redact(event) {
     if (event.payload) {
@@ -150,54 +134,25 @@ class ObservabilityClient {
     return event;
   }
 
-  /**
-   * Mask email address for logging.
-   * Example: john.doe@example.com -> jo***@example.com
-   */
   maskEmail(email) {
-    if (!email || typeof email !== 'string') return null;
+    if (!email || typeof email !== 'string') return '[MASKED]';
     const parts = email.split('@');
-    if (parts.length !== 2) return email;
-    const [local, domain] = parts;
-    return `${local.substring(0, 2)}***@${domain}`;
+    if (parts.length !== 2) return '[MASKED]';
+    const local = parts[0];
+    return local.substring(0, 2) + '***@' + parts[1];
   }
 
-  /**
-   * Mask phone number for logging.
-   * Example: +1-555-123-4567 -> +1-555-***-4567
-   */
   maskPhone(phone) {
-    if (!phone || typeof phone !== 'string') return null;
-    // Keep last 4 digits, mask others
-    return phone.replace(/\d(?=\d{4})/g, '*');
-  }
-
-  /**
-   * Get authentication headers for API calls.
-   */
-  /**
-   * Get auth headers with token (Phase 5.3.4.1: Single Source of Truth)
-   * Token MUST be passed explicitly by caller
-   * @param {string} token - JWT token from content.js authContext
-   * @returns {Object} Headers object with Authorization
-   */
-  getAuthHeaders(token) {
-    if (!token) {
-      throw new Error('[Observability] getAuthHeaders called without token');
-    }
-    
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
+    if (!phone || typeof phone !== 'string') return '[MASKED]';
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 4) return '***';
+    return '***' + digits.slice(-4);
   }
 
   /**
    * Flush queued events to backend (batch).
-   * Called automatically on timer and manually.
-   * @param {string} token - JWT token from content.js authContext (Phase 5.3.4.1)
    */
-  async flush(token) {
+  async flush() {
     if (this.eventQueue.length === 0 || !this.currentRunId) {
       return;
     }
@@ -206,10 +161,12 @@ class ObservabilityClient {
     this.eventQueue = [];
     
     try {
-      const headers = this.getAuthHeaders(token);
       const response = await fetch(`${API_BASE_URL}/api/observability/events/batch`, {
         method: 'POST',
-        headers: headers,
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           run_id: this.currentRunId,
           events: eventsToSend
@@ -232,7 +189,6 @@ class ObservabilityClient {
 
   /**
    * Start auto-flush timer.
-   * Events are flushed every N seconds while run is active.
    */
   startAutoFlush() {
     this.stopAutoFlush();
@@ -250,67 +206,19 @@ class ObservabilityClient {
   }
 
   /**
-   * End the current run and perform final flush.
-   * Call this when apply session completes/fails/abandons.
-   */
-  async endRun(status = 'completed', failure_reason = null) {
-    if (!this.currentRunId) {
-      return;
-    }
-    
-    // Log run_completed/run_failed/run_abandoned event
-    const event_name = status === 'success' ? 'run_completed' : 
-                       status === 'failed' ? 'run_failed' : 
-                       'run_abandoned';
-    
-    this.enqueue({
-      source: 'extension',
-      severity: status === 'failed' ? 'error' : 'info',
-      event_name: event_name,
-      url: window.location.href,
-      payload: {
-        run_id: this.currentRunId,
-        status: status,
-        failure_reason: failure_reason
-      }
-    });
-    
-    // Final flush
-    await this.flush();
-    
-    // Cleanup
-    this.stopAutoFlush();
-    this.currentRunId = null;
-    console.log('[Observability] Run ended:', event_name);
-  }
-
-  /**
-   * Get current run ID.
-   * @returns {number|null}
+   * Get current run_id.
    */
   getRunId() {
     return this.currentRunId;
   }
-}
 
-// Global singleton instance
-const observabilityClient = new ObservabilityClient();
-
-// Best-effort flush on page unload
-window.addEventListener('beforeunload', () => {
-  if (observabilityClient.getRunId()) {
-    // Use sendBeacon for best-effort delivery
-    const headers = { 'Content-Type': 'application/json' };
-    const eventsToSend = observabilityClient.eventQueue;
-    if (eventsToSend.length > 0) {
-      navigator.sendBeacon(
-        `${API_BASE_URL}/api/observability/events/batch`,
-        JSON.stringify({
-          run_id: observabilityClient.getRunId(),
-          events: eventsToSend
-        })
-      );
-    }
+  /**
+   * End run (flush and stop auto-flush).
+   */
+  async endRun() {
+    await this.flush();
+    this.stopAutoFlush();
+    this.currentRunId = null;
+    console.log('[Observability] Run ended');
   }
-});
-
+}

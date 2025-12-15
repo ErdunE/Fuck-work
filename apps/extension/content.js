@@ -1163,141 +1163,30 @@ if (document.readyState === 'loading') {
   init();
 }
 
-function init() {
-  // Phase 5.3.2: Init must verify auth before proceeding
+// Phase A: Simplified init() - cookie auth only
+async function init() {
+  console.log('[FW Init] Starting initialization');
+
+  const isAuthenticated = await requireAuth();
+
+  if (!isAuthenticated) {
+    console.log('[FW Init] Not authenticated — extension inactive');
+    return;
+  }
+
+  console.log('[FW Init] Authenticated — proceeding');
+
+  // Initialize debug state
+  ensureFWDebugState();
+
+  // Run detection and start monitoring
   try {
-    // Phase 5.3.3: Init environment logging
-    console.group('[FW Content][Init]');
-    console.log('href:', location.href);
-    console.log('isLinkedInJob:', /linkedin\.com\/jobs\/view/.test(location.href));
-    console.log('chrome exists:', !!chrome);
-    console.log('chrome.storage.local exists:', !!chrome?.storage?.local);
-    console.groupEnd();
-    
-    console.log('[FW Init] Starting initialization...');
-    ensureFWDebugState();
-
-    // Phase 5.3.2: Verify auth before fetching session
-    verifyAuthToken()
-      .then((authContext) => {
-        if (!authContext) {
-          console.log('[FW Init] Not authenticated or token invalid, skipping initialization');
-          return;
-        }
-        
-        console.log('[FW Init] Auth verified for user', authContext.user_id);
-        
-        // Phase 5.3.4.1: Store authContext for observability calls
-        currentAuthContext = authContext;
-        
-        // Phase 5.3.4: Pass authContext to getActiveSession
-        return getActiveSession(authContext);
-      })
-      .then((session) => {
-        if (!session) {
-          // Auth failed in previous step, already logged
-          return;
-        }
-        
-        activeSession = session;
-
-        if (!activeSession || !activeSession.active) {
-          // Phase 5.3.5: Debug - init decision
-          console.log('[FW Init][Decision] Skipping init', {
-            reason: 'no_active_session',
-            activeSession_exists: !!activeSession,
-            activeSession_active: activeSession?.active,
-            will_not_show_overlay: true
-          });
-          console.log('[FW Session] No active apply session on this page');
-          console.log('[FW Init] No active session found, skipping initialization');
-          return;
-        }
-
-        console.log('[FW Session] Loaded', {
-          active: activeSession.active,
-          task_id: activeSession.task_id,
-          run_id: activeSession.run_id,  // Phase 5.3.1
-          job_url: activeSession.job_url,
-          ats_type: activeSession.ats_type  // Phase 5.3.1
-        });
-        
-        // Phase 5.3.5: Debug - init decision
-        console.log('[FW Init][Decision] Proceeding with init', {
-          reason: 'active_session_confirmed',
-          run_id: activeSession.run_id,
-          task_id: activeSession.task_id,
-          tab_owned: activeSession.tab_owned,
-          ats_type: activeSession.ats_type,
-          will_show_overlay: true,
-          will_run_detection: true
-        });
-        
-        console.log('[FW Init] Proceeding with initialization');
-
-        // Overlay-first invariant: create overlay before any awaits/detection/url parsing.
-        ensureOverlay(activeSession);
-        enforceOverlayInvariant(activeSession);
-
-        // Continue async pipeline after overlay exists.
-        (async () => {
-          try {
-            console.log('[FW Init] Active session found:', activeSession.task_id);
-            
-            // Phase 5.3.1: Use run_id from backend session
-            if (activeSession.active && activeSession.run_id && !observabilityClient.getRunId()) {
-              const debugState = ensureFWDebugState();
-              const atsKind = activeSession.ats_type || debugState.lastDetectionAtsKind || 'unknown';
-              const intent = debugState.lastDetectionIntent || 'unknown';
-              const stage = debugState.lastDetectionStage || 'analyzing';
-              
-              // Set run_id from backend session (don't create new run)
-              observabilityClient.currentRunId = activeSession.run_id;
-              console.log('[Observability] Using existing run_id from session:', activeSession.run_id);
-              
-              // Log session_attached event
-              observabilityClient.enqueue({
-                source: 'extension',
-                severity: 'info',
-                event_name: 'session_attached',
-                url: window.location.href,
-                payload: {
-                  task_id: activeSession.task_id,
-                  run_id: activeSession.run_id,
-                  job_url: activeSession.job_url,
-                  ats_type: activeSession.ats_type
-                }
-              });
-              
-              observabilityClient.startAutoFlush();
-            }
-
-            const { activeTask } = await chrome.storage.local.get(['activeTask']);
-            if (!activeTask) {
-              console.log('[FW Init] No active task in storage');
-              return;
-            }
-
-            currentTask = activeTask;
-
-            await updateActiveSession({ current_url: window.location.href });
-            await sleep(2000);
-            await runDetection();
-
-            initializePageLifecycle();
-            startResumeMonitoring();
-
-            console.log('[FW Init] Initialization complete');
-          } catch (error) {
-            fatalManualFallback('init_async', error);
-          }
-        })().catch((error) => fatalManualFallback('init_async_outer', error));
-      })
-      .catch((error) => {
-        fatalManualFallback('session_load', error);
-      });
+    await runDetection();
+    initializePageLifecycle();
+    startResumeMonitoring();
+    console.log('[FW Init] Initialization complete');
   } catch (error) {
-    fatalManualFallback('init_sync', error);
+    console.error('[FW Init] Initialization error:', error);
   }
 }
 
