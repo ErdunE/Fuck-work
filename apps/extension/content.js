@@ -146,11 +146,11 @@ let fwOverlayInstance = null;
 let fwOverlayEnsureLoggedThisPage = false;
 
 // ============================================================
-// Phase A: Auth Change Message Relay (Web App → Background)
+// Phase A: Extension Token Message Relay (Web App → Background)
 // ============================================================
 
 /**
- * Relay FW_AUTH_CHANGED messages from Web App to background script.
+ * Relay FW_EXTENSION_TOKEN and FW_EXTENSION_LOGOUT messages from Web App to background script.
  * Web App uses window.postMessage (no extension context).
  * Content script bridges: window.postMessage → chrome.runtime.sendMessage
  */
@@ -158,23 +158,48 @@ window.addEventListener('message', (event) => {
   // Only accept messages from same origin
   if (event.source !== window) return;
   
-  // Filter for FW_AUTH_CHANGED messages
-  if (!event.data || event.data.type !== 'FW_AUTH_CHANGED') return;
+  // Handle FW_EXTENSION_TOKEN
+  if (event.data?.type === 'FW_EXTENSION_TOKEN') {
+    const token = event.data.token;
+    console.log('[FW CS] Received FW_EXTENSION_TOKEN (len=' + (token?.length || 0) + '), forwarding to background');
+    
+    chrome.runtime.sendMessage({
+      type: 'FW_EXTENSION_TOKEN',
+      token: token
+    }).catch(err => {
+      console.error('[FW CS] Failed to forward token:', err);
+    });
+    return;
+  }
   
-  console.log('[FW CS] Forwarding FW_AUTH_CHANGED to background', {
-    isAuthenticated: event.data.isAuthenticated
-  });
+  // Handle FW_EXTENSION_LOGOUT
+  if (event.data?.type === 'FW_EXTENSION_LOGOUT') {
+    console.log('[FW CS] Received FW_EXTENSION_LOGOUT, forwarding to background');
+    
+    chrome.runtime.sendMessage({
+      type: 'FW_EXTENSION_LOGOUT'
+    }).catch(err => {
+      console.error('[FW CS] Failed to forward logout:', err);
+    });
+    return;
+  }
   
-  // Forward to background script
-  chrome.runtime.sendMessage({
-    type: 'FW_AUTH_CHANGED',
-    isAuthenticated: event.data.isAuthenticated
-  }).catch(err => {
-    console.error('[FW CS] Failed to forward auth change:', err);
-  });
+  // Legacy: FW_AUTH_CHANGED (keep for backward compatibility)
+  if (event.data?.type === 'FW_AUTH_CHANGED') {
+    console.log('[FW CS] Forwarding FW_AUTH_CHANGED to background (legacy)', {
+      isAuthenticated: event.data.isAuthenticated
+    });
+    
+    chrome.runtime.sendMessage({
+      type: 'FW_AUTH_CHANGED',
+      isAuthenticated: event.data.isAuthenticated
+    }).catch(err => {
+      console.error('[FW CS] Failed to forward auth change:', err);
+    });
+  }
 });
 
-console.log('[FW CS] Auth change relay listener registered');
+console.log('[FW CS] Extension token relay listener registered');
 
 // ============================================================
 

@@ -48,7 +48,43 @@ const TASK_TIMEOUT_MS = 600000; // 10 minutes
 const BG_API_BASE_URL = 'http://127.0.0.1:8000'; // Backend API URL
 
 // ============================================================
-// Phase A: Cookie-Based Auth (Single Source of Truth)
+// Phase A: Token-Based Auth (Explicit Authorization)
+// ============================================================
+let authToken = null;
+
+async function loadToken() {
+  try {
+    const result = await chrome.storage.local.get(['fw_extension_token']);
+    authToken = result.fw_extension_token || null;
+    console.log('[FW Auth] Token loaded from storage', { hasToken: !!authToken });
+  } catch (err) {
+    console.error('[FW Auth] Failed to load token:', err);
+    authToken = null;
+  }
+}
+
+async function saveToken(token) {
+  try {
+    await chrome.storage.local.set({ fw_extension_token: token });
+    authToken = token;
+    console.log('[FW Auth] Token saved to storage');
+  } catch (err) {
+    console.error('[FW Auth] Failed to save token:', err);
+  }
+}
+
+async function clearToken() {
+  try {
+    await chrome.storage.local.remove(['fw_extension_token']);
+    authToken = null;
+    console.log('[FW Auth] Token cleared from storage');
+  } catch (err) {
+    console.error('[FW Auth] Failed to clear token:', err);
+  }
+}
+
+// ============================================================
+// Phase A: Cookie-Based Auth (LEGACY - Will be removed)
 // ============================================================
 
 /**
@@ -148,11 +184,12 @@ function stopPolling() {
 
 /**
  * Poll for next task
+ * Phase A: Token-based auth - must have valid token to poll
  */
 async function pollForTask() {
-  // Authentication gate - MUST be authenticated to poll
-  if (!authState.isAuthenticated) {
-    console.log('[FW Poll] Skipped: not authenticated');
+  // Authentication gate - MUST have token to poll
+  if (!authToken) {
+    console.log('[FW Poll] Skipped: no token');
     return;
   }
 
@@ -178,9 +215,10 @@ async function pollForTask() {
   } catch (error) {
     console.error('Poll failed:', error);
     
-    // If 401/403, mark as unauthenticated and stop polling
-    if (error.message && (error.message.includes('401') || error.message.includes('403'))) {
-      console.warn('[FW Poll] Authentication failure detected - stopping polling');
+    // Phase A: If 401, token is invalid/expired - clear and stop polling
+    if (error.message && error.message.includes('401')) {
+      console.warn('[FW Auth] Token invalid/expired - stopping polling');
+      await clearToken();
       authState.isAuthenticated = false;
       authState.user = null;
       stopPolling();
@@ -489,10 +527,62 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   // ============================================================
-  // Phase A: Auth Change Handler (from Web App)
+  // Phase A: Extension Token Message Handlers
+  // ============================================================
+  if (message.type === 'FW_EXTENSION_TOKEN') {
+    console.log('[FW BG] Received FW_EXTENSION_TOKEN');
+    
+    (async () => {
+      try {
+        await saveToken(message.token);
+        authState.isAuthenticated = true;
+        authState.user = null;  // We don't parse token here, just mark as authenticated
+        
+        console.log('[FW Auth] Token received - starting polling');
+        startPolling();
+        
+        sendResponse({ success: true });
+      } catch (err) {
+        console.error('[FW Auth] Failed to save token:', err);
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    
+    return true; // Async response
+  }
+  
+  if (message.type === 'FW_EXTENSION_LOGOUT') {
+    console.log('[FW BG] Received FW_EXTENSION_LOGOUT');
+    
+    (async () => {
+      try {
+        await clearToken();
+        authState.isAuthenticated = false;
+        authState.user = null;
+        
+        console.log('[FW Auth] Logout - stopping polling');
+        stopPolling();
+        
+        // Clear any active task state
+        currentTask = null;
+        currentJobTab = null;
+        isProcessing = false;
+        
+        sendResponse({ success: true });
+      } catch (err) {
+        console.error('[FW Auth] Failed to clear token:', err);
+        sendResponse({ success: false, error: err.message });
+      }
+    })();
+    
+    return true; // Async response
+  }
+  
+  // ============================================================
+  // Phase A: Auth Change Handler (LEGACY - Keep for compatibility)
   // ============================================================
   if (message.type === 'FW_AUTH_CHANGED') {
-    console.log('[FW Auth] Auth change event received');
+    console.log('[FW Auth] Auth change event received (legacy)');
     
     verifyAndUpdateAuthState().then(isAuth => {
       if (isAuth) {
@@ -648,21 +738,23 @@ chrome.webNavigation.onCommitted.addListener(async (details) => {
 });
 
 /**
- * Initialize background script with auth verification.
- * Only start polling after authentication is confirmed.
+ * Initialize background script with token-based auth.
+ * Phase A: Extension uses explicit token authorization, no cookies.
+ * Only start polling after token is loaded.
  */
 async function initialize() {
   console.log('[FW BG] Initializing background script');
-  console.log('[FW BG] Cookie-based auth architecture active');
+  console.log('[FW BG] Token-based auth architecture active');
   
-  const isAuth = await verifyAndUpdateAuthState();
+  await loadToken();
   
-  if (isAuth) {
-    console.log('[FW BG] Authenticated - starting task polling');
+  if (authToken) {
+    console.log('[FW BG] Token found - starting task polling');
+    authState.isAuthenticated = true;
     startPolling();
   } else {
-    console.log('[FW BG] Not authenticated - polling disabled');
-    console.log('[FW BG] Waiting for FW_AUTH_CHANGED event from Web App');
+    console.log('[FW BG] No token - polling disabled');
+    console.log('[FW BG] Waiting for FW_EXTENSION_TOKEN from Web App');
   }
 }
 
