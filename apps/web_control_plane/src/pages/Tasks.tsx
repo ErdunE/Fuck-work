@@ -42,19 +42,36 @@ export default function Tasks() {
     setError(null)
     
     try {
+      // Step 1: Execute task (creates run)
       const result = await api.executeApplyTask(taskId)
+      console.log('[FW Web] Task executed:', result)
       
-      // Open job URL in new tab
+      // Step 2: Set active session (CRITICAL - must succeed before opening URL)
+      try {
+        const session = await api.setActiveSession({
+          task_id: taskId,
+          run_id: result.run_id,
+          job_url: result.job_url,
+          ats_type: result.ats_type
+        })
+        console.log('[FW Web] Active session set:', { task_id: taskId, run_id: result.run_id })
+      } catch (sessionErr: any) {
+        // BLOCKING ERROR - do not open job URL
+        throw new Error(`Failed to set active session: ${sessionErr.response?.data?.detail || sessionErr.message}`)
+      }
+      
+      // Step 3: Only now open job URL
       window.open(result.job_url, '_blank')
+      console.log('[FW Web] Job URL opened in new tab')
       
       // Refresh task list
       await loadTasks()
       
-      // Optional: Show success message
+      // Show success
       alert(`Application started! Run ID: ${result.run_id}`)
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to start application')
-      console.error('Failed to execute task:', err)
+      setError(err.message || err.response?.data?.detail || 'Failed to start application')
+      console.error('[FW Web] Failed to execute task:', err)
     } finally {
       setExecuting(null)
     }

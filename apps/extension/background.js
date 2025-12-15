@@ -16,6 +16,10 @@ let pollInterval = null;
 // Content script injection tracking
 let lastContentHello = null;
 
+// ============================================================
+// Phase A: Tab session system removed - Extension uses cookie auth only
+// ============================================================
+/*
 // Phase 5.3.5: Tab-based session tracking
 // Maps tabId → { run_id, task_id, job_url, created_at, user_id }
 const activeTabSessions = new Map();
@@ -26,11 +30,13 @@ console.log('[FW BG][LIFECYCLE] background started or restarted', {
   activeTabSessions_size: activeTabSessions.size,
   warning: activeTabSessions.size > 0 ? 'BUG: Map should be empty on fresh start' : 'OK: Map is empty as expected'
 });
+*/
 
 // Configuration
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 const TASK_TIMEOUT_MS = 600000; // 10 minutes
 
+/*
 // ============================================================
 // Phase 5.3.5: Tab Session Management
 // ============================================================
@@ -40,6 +46,7 @@ const TASK_TIMEOUT_MS = 600000; // 10 minutes
  * @param {number} tabId - Chrome tab ID
  * @param {Object} sessionData - { run_id, task_id, job_url, user_id }
  */
+/*
 function registerTabSession(tabId, sessionData) {
   // Phase 5.3.5: Debug - before Map.set
   console.log('[FW BG][Register] BEFORE Map.set', {
@@ -79,6 +86,7 @@ function registerTabSession(tabId, sessionData) {
  * @param {number} tabId - Chrome tab ID
  * @returns {Object|null} Session data or null
  */
+/*
 function getTabSession(tabId) {
   return activeTabSessions.get(tabId) || null;
 }
@@ -87,6 +95,7 @@ function getTabSession(tabId) {
  * Clear tab session when run completes
  * @param {number} tabId - Chrome tab ID
  */
+/*
 function clearTabSession(tabId) {
   const session = activeTabSessions.get(tabId);
   if (session) {
@@ -94,6 +103,7 @@ function clearTabSession(tabId) {
     activeTabSessions.delete(tabId);
   }
 }
+*/
 
 /**
  * Start polling for tasks
@@ -500,6 +510,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   // ============================================================
+  // ============================================================
+  // Phase A: Token auth and tab session handlers removed
+  // ============================================================
+  /*
   // Phase 5.3.2: Auth Bridge - Content → Background Relay
   // ============================================================
   if (message.type === 'FW_AUTH_BOOTSTRAP_COMPLETE') {
@@ -622,6 +636,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ sessions: allSessions, size: activeTabSessions.size });
     return true;
   }
+  */
   
   // ============================================================
   // FW_CONTENT_HELLO: Content script injection confirmation
@@ -649,8 +664,8 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     // Don't auto-complete, user might have multiple tabs open
   }
   
-  // Phase 5.3.5: Clear tab session on tab close
-  clearTabSession(tabId);
+  // Phase A: Tab session system removed
+  // clearTabSession(tabId);
 });
 
 /**

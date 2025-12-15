@@ -85,12 +85,15 @@ const FW_EXT_VERSION = (() => {
 })();
 
 // ============================================================
+// Phase A: Auth event listener removed - using cookie auth only
+/*
 // Phase 5.3.2: Auth Event Listener - Web Control Plane Bridge
 // ============================================================
 /**
  * Listen for auth events from Web Control Plane.
  * Enables secure, cross-user-safe authentication sync.
  */
+/*
 window.addEventListener('message', async (event) => {
   // Security: Only accept messages from same origin
   if (event.origin !== window.location.origin) {
@@ -150,6 +153,7 @@ window.addEventListener('message', async (event) => {
     }
   }
 });
+*/
 
 /**
  * Ensure FW debug state exists globally
@@ -746,10 +750,13 @@ function validateUrlMatch(currentUrl, sessionUrl) {
   }
 }
 
+// Phase A: Tab session functions removed - using cookie auth only
+/*
 /**
  * Phase 5.3.5: Check if current tab has an active session registered by background
  * @returns {Promise<Object>} { has_session, run_id?, task_id?, job_url? }
  */
+/*
 async function getTabSession() {
   try {
     const response = await chrome.runtime.sendMessage({ type: 'FW_GET_TAB_SESSION' });
@@ -764,6 +771,7 @@ async function getTabSession() {
  * Phase 5.3.5: Register current tab with background for session tracking
  * @param {Object} sessionData - { run_id, task_id, job_url, user_id }
  */
+/*
 async function registerCurrentTab(sessionData) {
   try {
     console.log('[FW Session] Sending FW_REGISTER_TAB_SESSION', {
@@ -805,6 +813,7 @@ async function registerCurrentTab(sessionData) {
     console.warn('[FW Session] Failed to register tab:', error);
   }
 }
+*/
 
 /**
  * Get active session from backend (Phase 5.3.1 - Session Bridge)
@@ -1014,6 +1023,8 @@ async function getActiveSession(authContext) {
  * Phase 5.3.2: Verify auth token with backend before proceeding (self-healing)
  * @returns {Promise<Object|null>} {user_id, email} or null if invalid
  */
+// Phase A: Token auth removed - using cookie auth only
+/*
 async function verifyAuthToken() {
   try {
     // Phase 5.3.3: Token read logging
@@ -1112,6 +1123,7 @@ async function verifyAuthToken() {
     return null;
   }
 }
+*/
 
 // Wait for page to be fully loaded
 if (document.readyState === 'loading') {

@@ -21,6 +21,7 @@ export interface AuthResponse {
   token_type: string
   user_id: number
   email: string
+  expires_at: string  // Phase 5.3.2: ISO timestamp for extension auth
 }
 
 // Profile types

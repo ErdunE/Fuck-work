@@ -79,6 +79,11 @@ class APIService {
     return authData
   }
 
+  async logout(): Promise<{ ok: boolean; message: string }> {
+    const response = await this.client.post('/api/auth/logout')
+    return response.data
+  }
+
   async getCurrentUser(): Promise<User> {
     const response = await this.client.get('/api/auth/me')
     return response.data
@@ -284,6 +289,58 @@ class APIService {
    */
   async getObservabilityRunEvents(runId: number, limit: number = 500): Promise<RunEventsResponse> {
     const response = await this.client.get(`/api/observability/runs/${runId}/events?limit=${limit}`)
+    return response.data
+  }
+
+  // ============================================================
+  // Phase 5.3.1: Active Session Bridge API
+  // ============================================================
+
+  /**
+   * Set active apply session
+   * Phase 5.3.1: Enables deterministic session handoff to extension
+   */
+  async setActiveSession(data: {
+    task_id: number
+    run_id: number
+    job_url: string
+    ats_type?: string
+  }): Promise<{
+    active: boolean
+    task_id: number
+    run_id: number
+    job_url: string
+    ats_type?: string
+    created_at: string
+    expires_at: string
+  }> {
+    const response = await this.client.post('/api/users/me/active-session', data)
+    return response.data
+  }
+
+  /**
+   * Get active apply session
+   * Phase 5.3.1: Extension uses this to attach to the correct run
+   */
+  async getActiveSession(): Promise<{
+    active: boolean
+    task_id?: number
+    run_id?: number
+    job_url?: string
+    ats_type?: string
+    created_at?: string
+    expires_at?: string
+  }> {
+    const response = await this.client.get('/api/users/me/active-session')
+    return response.data
+  }
+
+  /**
+   * Clear active apply session
+   * Phase 5.3.1: Called when run completes or user cancels
+   */
+  async clearActiveSession(): Promise<{ ok: boolean; message: string }> {
+    const response = await this.client.delete('/api/users/me/active-session')
     return response.data
   }
 }

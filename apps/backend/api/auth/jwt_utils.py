@@ -21,16 +21,17 @@ JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", "10080"))  # 7 
 security = HTTPBearer()
 
 
-def create_access_token(user_id: int, email: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(user_id: int, email: str, token_version: int, expires_delta: Optional[timedelta] = None) -> str:
     """
-    Create a JWT access token.
+    Create a JWT access token with version for revocation support.
     
     CRITICAL: sub claim MUST be string (JWT RFC 7519 requirement).
-    This ensures compatibility with python-jose, OAuth, SSO, and future refresh tokens.
+    Phase 5.3.2: Added token_version for secure logout/account-switching.
     
     Args:
         user_id: User ID to encode in 'sub' claim (will be converted to string)
         email: User email to include in token
+        token_version: Token version for revocation support (Phase 5.3.2)
         expires_delta: Custom expiration time, defaults to JWT_EXPIRATION_MINUTES
     
     Returns:
@@ -44,6 +45,7 @@ def create_access_token(user_id: int, email: str, expires_delta: Optional[timede
     to_encode = {
         "sub": str(user_id),  # MUST be string per JWT RFC
         "email": email,
+        "ver": token_version,  # Phase 5.3.2: Token version for revocation
         "iat": datetime.utcnow(),
         "exp": expire
     }
@@ -85,6 +87,8 @@ async def get_current_user(
     """
     FastAPI dependency to get the current authenticated user from JWT token.
     
+    Phase 5.3.2: Added token version verification for revocation support.
+    
     Args:
         credentials: HTTP Bearer credentials
         db: Database session
@@ -93,7 +97,7 @@ async def get_current_user(
         Current authenticated User object
     
     Raises:
-        HTTPException: If token is invalid or user not found
+        HTTPException: If token is invalid, revoked, or user not found
     """
     token = credentials.credentials
     payload = verify_token(token)
@@ -126,6 +130,15 @@ async def get_current_user(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive"
+        )
+    
+    # Phase 5.3.2: Verify token version matches current user.token_version
+    token_ver = payload.get("ver", 0)
+    if token_ver != user.token_version:
+        print(f"[Auth] Token version mismatch for user {user.id}: token={token_ver}, db={user.token_version}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked"
         )
     
     return user

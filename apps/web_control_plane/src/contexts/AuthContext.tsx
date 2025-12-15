@@ -36,10 +36,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     initAuth()
   }, [])
 
+  // Phase 5.3.2: Broadcast auth events to extension
+  const broadcastAuthBootstrap = (token: string, expiresAt: string, userId: number) => {
+    console.log('[FW Web Auth] Broadcasting auth bootstrap to extension', { userId })
+    
+    window.postMessage({
+      type: 'FW_AUTH_BOOTSTRAP',
+      token,
+      expires_at: expiresAt,
+      user_id: userId,
+      mode: 'replace'  // Always replace (clears any existing token)
+    }, '*')
+  }
+
+  const broadcastAuthClear = (reason: string) => {
+    console.log('[FW Web Auth] Broadcasting auth clear to extension', { reason })
+    
+    window.postMessage({
+      type: 'FW_AUTH_CLEAR',
+      reason
+    }, '*')
+  }
+
   const login = async (email: string, password: string) => {
     const authData = await api.login({ email, password })
     const currentUser = await api.getCurrentUser()
     setUser(currentUser)
+    
+    // Phase 5.3.2: Broadcast to extension
+    broadcastAuthBootstrap(
+      authData.access_token,
+      authData.expires_at,
+      authData.user_id
+    )
   }
 
   const register = async (email: string, password: string) => {
@@ -49,8 +78,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = () => {
+    // Phase 5.3.2: Broadcast clear BEFORE calling backend
+    broadcastAuthClear('logout')
+    
+    // Call backend logout to increment token_version
+    api.logout().catch(err => {
+      console.warn('Backend logout failed (non-blocking):', err)
+    })
+    
+    // Clear frontend state
     api.clearAuth()
     setUser(null)
+    
+    console.log('[FW Web Auth] Logout complete')
     window.location.href = '/login'
   }
 

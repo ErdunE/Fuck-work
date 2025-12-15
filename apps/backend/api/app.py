@@ -10,7 +10,8 @@ from .routers import (
     jobs, users, ai_answer, apply, auth, profile, preferences, events, tasks,
     profile_education, profile_experience, profile_projects, profile_skills,  # Phase 5.2
     derived_profile,  # Phase 5.2.1
-    observability  # Phase 5.3.0
+    observability,  # Phase 5.3.0
+    active_session  # Phase 5.3.1
 )
 
 app = FastAPI(
@@ -59,6 +60,8 @@ app.include_router(profile_skills.router, tags=["profile", "skills"])  # /api/us
 app.include_router(derived_profile.router, tags=["derived-profile"])  # /api/users/me/derived-profile
 # Phase 5.3.0: Observability Console
 app.include_router(observability.router, tags=["observability"])  # /api/observability/*
+# Phase 5.3.1: Session Bridge
+app.include_router(active_session.router, tags=["active-session"])  # /api/users/me/active-session
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(ai_answer.router, prefix="/ai", tags=["ai"])
@@ -68,8 +71,8 @@ app.include_router(apply.router, prefix="/apply", tags=["apply"])
 def read_root():
     return {
         "name": "FuckWork API",
-        "version": "0.5.3.0",
-        "phase": "5.3.0 - Observability Console (MVP)"
+        "version": "0.5.3.1",
+        "phase": "5.3.1 - Session Bridge (E2E Unblock)"
     }
 
 @app.get("/health")

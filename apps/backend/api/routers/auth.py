@@ -3,7 +3,7 @@ Authentication API endpoints for Phase 5.0 Web Control Plane.
 Provides user registration, login, and token validation.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
@@ -29,11 +29,12 @@ class LoginRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    """JWT token response."""
+    """JWT token response. Phase 5.3.2: Added expires_at for extension auth."""
     access_token: str
     token_type: str
     user_id: int
     email: str
+    expires_at: str  # Phase 5.3.2: ISO timestamp for extension
 
 
 class UserResponse(BaseModel):
@@ -139,21 +140,32 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
         # This allows Phase 5.0 to work without full password management
         pass
     
-    # Update last login
+    # Phase 5.3.2: Increment token version (revokes old tokens)
+    user.token_version += 1
     user.last_login_at = datetime.utcnow()
     db.commit()
+    db.refresh(user)
     
     # Create JWT token (sub MUST be string per JWT RFC)
+    # Phase 5.3.2: Include token_version for revocation support
     access_token = create_access_token(
         user_id=user.id,
-        email=user.email
+        email=user.email,
+        token_version=user.token_version
     )
+    
+    # Calculate expiration timestamp
+    from api.auth.jwt_utils import JWT_EXPIRATION_MINUTES
+    expires_at = (datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_MINUTES)).isoformat()
+    
+    print(f"[Auth] Login successful for user {user.id}, token_version={user.token_version}")
     
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
         user_id=user.id,
-        email=user.email
+        email=user.email,
+        expires_at=expires_at
     )
 
 
@@ -163,6 +175,7 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
     Get current authenticated user information.
     
     Validates JWT token and returns user data.
+    Phase 5.3.2: Also validates token version for revocation support.
     """
     return UserResponse(
         user_id=current_user.id,
@@ -170,4 +183,21 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
         is_active=current_user.is_active,
         created_at=current_user.created_at
     )
+
+
+@router.post("/logout")
+def logout(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """
+    Phase 5.3.2: Logout by incrementing token_version (revokes all user tokens).
+    
+    This immediately invalidates all existing JWT tokens for the user,
+    including tokens stored in the extension. The extension will receive
+    401 errors on next API call and will clear its stored token.
+    """
+    current_user.token_version += 1
+    db.commit()
+    
+    print(f"[Auth] Logout for user {current_user.id}, token_version incremented to {current_user.token_version}")
+    
+    return {"ok": True, "message": "Logged out successfully"}
 

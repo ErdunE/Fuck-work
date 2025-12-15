@@ -98,12 +98,14 @@ class Job(Base):
 class User(Base):
     """
     User account - Phase 5.0: JWT authentication enabled.
+    Phase 5.3.2: Added token_version for secure token revocation.
     """
     __tablename__ = 'users'
     
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255))  # Phase 5.0: nullable for stub auth
+    token_version = Column(Integer, nullable=False, default=1, index=True)  # Phase 5.3.2: Token revocation
     last_login_at = Column(TIMESTAMP)  # Phase 5.0: track last login
     is_active = Column(Boolean, default=True)  # Phase 5.0: soft deletion
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
@@ -547,4 +549,33 @@ class ObservabilityEvent(Base):
     
     def __repr__(self):
         return f"<ObservabilityEvent(id={self.id}, event='{self.event_name}', source='{self.source}')>"
+
+
+class ActiveApplySession(Base):
+    """
+    Active Apply Session - Phase 5.3.1 Session Bridge.
+    
+    One active session per user. Enables extension to deterministically 
+    attach to the correct apply run when user opens job from Control Plane.
+    
+    TTL: 2 hours default. Expired sessions are automatically cleaned on read.
+    """
+    __tablename__ = 'active_apply_sessions'
+    
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    task_id = Column(Integer, ForeignKey('apply_tasks.id'), nullable=False, index=True)
+    run_id = Column(Integer, ForeignKey('apply_runs.id'), nullable=False, index=True)
+    job_url = Column(Text, nullable=False)
+    ats_type = Column(String(100), nullable=True)
+    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    expires_at = Column(TIMESTAMP, nullable=False, index=True)
+    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", foreign_keys=[user_id])
+    task = relationship("ApplyTask", foreign_keys=[task_id])
+    run = relationship("ApplyRun", foreign_keys=[run_id])
+    
+    def __repr__(self):
+        return f"<ActiveApplySession(user_id={self.user_id}, run_id={self.run_id}, task_id={self.task_id})>"
 
