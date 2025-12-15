@@ -58,17 +58,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, '*')
   }
 
+  // Phase A: Notify extension background script of auth state changes
+  const notifyExtensionAuthChanged = (isAuthenticated: boolean) => {
+    // Check if Chrome extension APIs are available
+    if (typeof window !== 'undefined' && window.chrome?.runtime?.sendMessage) {
+      console.log('[FW Web] Auth state changed →', isAuthenticated ? 'authenticated' : 'logged out')
+      
+      try {
+        window.chrome.runtime.sendMessage({
+          type: 'FW_AUTH_CHANGED',
+          isAuthenticated
+        })
+      } catch (err) {
+        // Extension might not be installed or listening - this is non-blocking
+        console.warn('[FW Web] Failed to notify extension:', err)
+      }
+    }
+  }
+
   const login = async (email: string, password: string) => {
     const authData = await api.login({ email, password })
     const currentUser = await api.getCurrentUser()
     setUser(currentUser)
     
-    // Phase 5.3.2: Broadcast to extension
+    // Phase 5.3.2: Broadcast to extension (legacy token-based)
     broadcastAuthBootstrap(
       authData.access_token,
       authData.expires_at,
       authData.user_id
     )
+    
+    // Phase A: Notify extension background of auth change
+    notifyExtensionAuthChanged(true)
   }
 
   const register = async (email: string, password: string) => {
@@ -80,6 +101,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     // Phase 5.3.2: Broadcast clear BEFORE calling backend
     broadcastAuthClear('logout')
+    
+    // Phase A: Notify extension background of auth change
+    notifyExtensionAuthChanged(false)
     
     // Call backend logout to increment token_version
     api.logout().catch(err => {
