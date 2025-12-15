@@ -35,7 +35,7 @@ console.log('[FW BG][LIFECYCLE] background started or restarted', {
 // Configuration
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 const TASK_TIMEOUT_MS = 600000; // 10 minutes
-const API_BASE_URL = 'http://localhost:8000'; // Backend API URL
+const API_BASE_URL = 'http://127.0.0.1:8000'; // Backend API URL
 
 // ============================================================
 // Phase A: Cookie-Based Auth (Single Source of Truth)

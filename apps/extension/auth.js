@@ -3,6 +3,9 @@
  * Manages JWT token storage and validation.
  */
 
+// Phase A: Shared API_BASE_URL for all content scripts
+const API_BASE_URL = 'http://127.0.0.1:8000';
+
 const AUTH_STORAGE_KEY = 'fw_jwt_token';
 const USER_INFO_STORAGE_KEY = 'fw_user_info';
 

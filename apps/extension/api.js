@@ -4,8 +4,6 @@
  * Handles all HTTP communication with the backend.
  */
 
-const API_BASE_URL = 'http://127.0.0.1:8000';
-
 class APIClient {
   /**
    * Get next queued apply task
