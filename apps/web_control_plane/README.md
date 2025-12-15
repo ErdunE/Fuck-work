@@ -38,7 +38,7 @@ npm run preview
 Create `.env` file:
 
 ```bash
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=http://127.0.0.1:8000
 VITE_JWT_STORAGE_KEY=fw_jwt_token
 ```
 
@@ -73,7 +73,7 @@ VITE_JWT_STORAGE_KEY=fw_jwt_token
 
 ## Development
 
-The app uses Vite's proxy to forward `/api` requests to `http://localhost:8000`.
+The app uses Vite's proxy to forward `/api` requests to `http://127.0.0.1:8000`.
 
 Ensure the backend is running:
 

@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Phase A: Fetch extension token from backend
   const fetchExtensionToken = async (): Promise<string | null> => {
     try {
-      const response = await fetch('http://localhost:8000/api/auth/extension-token', {
+      const response = await fetch('http://127.0.0.1:8000/api/auth/extension-token', {
         method: 'POST',
         credentials: 'include',  // Web App uses cookie auth
         headers: { 'Content-Type': 'application/json' }
