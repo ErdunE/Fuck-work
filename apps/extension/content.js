@@ -1023,6 +1023,37 @@ async function getActiveSession(authContext) {
  * Phase 5.3.2: Verify auth token with backend before proceeding (self-healing)
  * @returns {Promise<Object|null>} {user_id, email} or null if invalid
  */
+// ============================================================
+// Phase A: Cookie-Based Auth (Simple Backend Check)
+// ============================================================
+
+/**
+ * Check if user is authenticated via backend session cookies.
+ * Extension stores nothing - backend is the single source of truth.
+ * 
+ * @returns {Promise<boolean>} true if authenticated, false otherwise
+ */
+async function requireAuth() {
+  console.log('[FW Auth] Checking authentication status');
+  
+  try {
+    const result = await chrome.runtime.sendMessage({
+      type: 'FW_CHECK_AUTH'
+    });
+
+    console.log('[FW Auth] Auth check result:', {
+      authenticated: result?.authenticated,
+      user_id: result?.user?.user_id,
+      email: result?.user?.email
+    });
+    
+    return result?.authenticated === true;
+  } catch (error) {
+    console.error('[FW Auth] Auth check failed:', error);
+    return false;
+  }
+}
+
 // Phase A: Token auth removed - using cookie auth only
 /*
 async function verifyAuthToken() {

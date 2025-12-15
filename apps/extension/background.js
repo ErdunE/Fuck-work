@@ -35,6 +35,48 @@ console.log('[FW BG][LIFECYCLE] background started or restarted', {
 // Configuration
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 const TASK_TIMEOUT_MS = 600000; // 10 minutes
+const API_BASE_URL = 'http://localhost:8000'; // Backend API URL
+
+// ============================================================
+// Phase A: Cookie-Based Auth (Single Source of Truth)
+// ============================================================
+
+/**
+ * Check authentication status via backend cookies.
+ * Extension stores nothing - backend session cookies are the only source of truth.
+ * 
+ * @returns {Promise<Object>} { authenticated: boolean, user?: { user_id, email } }
+ */
+async function checkAuthViaBackend() {
+  console.log('[FW Auth] Checking auth via backend cookies');
+  
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      method: 'GET',
+      credentials: 'include', // Send cookies
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (res.status === 200) {
+      const user = await res.json();
+      console.log('[FW Auth] Authenticated as user', user.user_id, user.email);
+      return { authenticated: true, user };
+    }
+
+    console.log('[FW Auth] Not authenticated (status:', res.status, ')');
+    return { authenticated: false };
+  } catch (err) {
+    console.error('[FW Auth] Backend auth check failed', err);
+    return { authenticated: false };
+  }
+}
+
+console.log('[FW BG][LIFECYCLE] Cookie-based auth architecture', {
+  ts: Date.now(),
+  note: 'Extension uses backend session cookies only - no token storage'
+});
 
 /*
 // ============================================================
@@ -446,6 +488,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     } else {
       sendResponse({ success: false, error: 'No current task' });
     }
+    return true; // Async response
+  }
+  
+  // ============================================================
+  // Phase A: Cookie Auth Check
+  // ============================================================
+  if (message.type === 'FW_CHECK_AUTH') {
+    checkAuthViaBackend().then(sendResponse);
     return true; // Async response
   }
   

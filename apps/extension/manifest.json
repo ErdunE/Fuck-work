@@ -26,7 +26,6 @@
       ],
       "js": [
         "auth.js",
-        "auth_storage.js",
         "api.js",
         "observability.js",
         "ats_types.js",

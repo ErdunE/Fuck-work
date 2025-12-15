@@ -35,12 +35,16 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(RequestIDMiddleware)
 
-# CORS middleware for local development
+# Phase A: CORS middleware - allow Web App and Extension with credentials (cookies)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure properly for production
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=[
+        "http://localhost:3000",      # Web Control Plane
+        "http://localhost:5173",      # Vite dev server
+        "chrome-extension://*"        # Browser extension
+    ],
+    allow_credentials=True,  # Required for cookie auth
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
     expose_headers=["X-FW-Detection-Id", "X-Request-ID"],
 )

@@ -4,9 +4,10 @@ Provides user registration, login, and token validation.
 """
 
 from datetime import datetime, timedelta
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Cookie
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
+from typing import Optional
 from database import get_db
 from database.models import User, UserProfile, AutomationPreference
 from api.auth import create_access_token, verify_password, hash_password, get_current_user
@@ -107,9 +108,10 @@ def register(request: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(request: LoginRequest, db: Session = Depends(get_db)):
+def login(request: LoginRequest, response: Response, db: Session = Depends(get_db)):
     """
     Authenticate user and issue JWT token.
+    Also sets HttpOnly cookie for browser extension auth (Phase A).
     
     For stub auth (no password set), any password is accepted.
     """
@@ -158,7 +160,18 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     from api.auth.jwt_utils import JWT_EXPIRATION_MINUTES
     expires_at = (datetime.utcnow() + timedelta(minutes=JWT_EXPIRATION_MINUTES)).isoformat()
     
-    print(f"[Auth] Login successful for user {user.id}, token_version={user.token_version}")
+    # Phase A: Set HttpOnly cookie for browser extension
+    response.set_cookie(
+        key="fw_session",
+        value=access_token,
+        httponly=True,
+        secure=False,  # Set to True in production with HTTPS
+        samesite="lax",
+        max_age=JWT_EXPIRATION_MINUTES * 60,  # Convert minutes to seconds
+        path="/"
+    )
+    
+    print(f"[Auth] Login successful for user {user.id}, token_version={user.token_version}, cookie set")
     
     return TokenResponse(
         access_token=access_token,
@@ -186,18 +199,21 @@ async def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/logout")
-def logout(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def logout(response: Response, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
-    Phase 5.3.2: Logout by incrementing token_version (revokes all user tokens).
+    Phase A: Logout by incrementing token_version and clearing session cookie.
     
     This immediately invalidates all existing JWT tokens for the user,
     including tokens stored in the extension. The extension will receive
-    401 errors on next API call and will clear its stored token.
+    401 errors on next API call.
     """
     current_user.token_version += 1
     db.commit()
     
-    print(f"[Auth] Logout for user {current_user.id}, token_version incremented to {current_user.token_version}")
+    # Phase A: Clear session cookie
+    response.delete_cookie(key="fw_session", path="/")
+    
+    print(f"[Auth] Logout for user {current_user.id}, token_version incremented to {current_user.token_version}, cookie cleared")
     
     return {"ok": True, "message": "Logged out successfully"}
 

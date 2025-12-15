@@ -6,7 +6,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Cookie, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from database import get_db
@@ -17,8 +17,8 @@ JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-in-producti
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", "10080"))  # 7 days
 
-# Security scheme
-security = HTTPBearer()
+# Security scheme (optional for Phase A cookie auth)
+security = HTTPBearer(auto_error=False)
 
 
 def create_access_token(user_id: int, email: str, token_version: int, expires_delta: Optional[timedelta] = None) -> str:
@@ -81,16 +81,20 @@ def verify_token(token: str) -> dict:
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+    fw_session: Optional[str] = Cookie(None),
     db: Session = Depends(get_db)
 ) -> User:
     """
-    FastAPI dependency to get the current authenticated user from JWT token.
+    FastAPI dependency to get the current authenticated user.
     
+    Phase A: Supports both Bearer token (Web App) and session cookie (Extension).
+    Tries Bearer token first, then falls back to cookie.
     Phase 5.3.2: Added token version verification for revocation support.
     
     Args:
-        credentials: HTTP Bearer credentials
+        credentials: HTTP Bearer credentials (optional)
+        fw_session: Session cookie (optional)
         db: Database session
     
     Returns:
@@ -99,7 +103,19 @@ async def get_current_user(
     Raises:
         HTTPException: If token is invalid, revoked, or user not found
     """
-    token = credentials.credentials
+    # Phase A: Try Bearer token first, then cookie
+    token = None
+    if credentials and credentials.credentials:
+        token = credentials.credentials
+    elif fw_session:
+        token = fw_session
+    
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated"
+        )
+    
     payload = verify_token(token)
     
     user_id_str = payload.get("sub")
