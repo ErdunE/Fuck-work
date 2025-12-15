@@ -502,8 +502,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Phase 5.3.5: Tab Session Query & Registration
   // ============================================================
   if (message.type === 'FW_GET_TAB_SESSION') {
+    console.log('[FW BG] Received FW_GET_TAB_SESSION', {
+      from_tab: sender.tab?.id,
+      from_url: sender.tab?.url
+    });
+    
     const tabId = sender.tab?.id;
     if (!tabId) {
+      console.warn('[FW BG] FW_GET_TAB_SESSION: No tab ID from sender', {
+        sender_tab: sender.tab,
+        sender_url: sender.url
+      });
       sendResponse({ has_session: false });
       return true;
     }
@@ -531,8 +540,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   
   // Phase 5.3.5: Register tab session (called by content script)
   if (message.type === 'FW_REGISTER_TAB_SESSION') {
+    console.log('[FW BG] Received FW_REGISTER_TAB_SESSION', {
+      from_tab: sender.tab?.id,
+      from_url: sender.tab?.url,
+      payload: {
+        run_id: message.run_id,
+        task_id: message.task_id,
+        job_url: message.job_url,
+        user_id: message.user_id
+      }
+    });
+    
     const tabId = sender.tab?.id;
     if (!tabId) {
+      console.warn('[FW BG] FW_REGISTER_TAB_SESSION: No tab ID from sender', {
+        sender_tab: sender.tab,
+        sender_url: sender.url
+      });
       sendResponse({ ok: false, error: 'No tab ID' });
       return true;
     }
@@ -544,7 +568,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       user_id: message.user_id
     });
     
+    console.log('[FW BG] activeTabSessions size after register:', activeTabSessions.size);
+    console.log('[FW BG] activeTabSessions keys:', Array.from(activeTabSessions.keys()));
+    
     sendResponse({ ok: true });
+    return true;
+  }
+  
+  // Phase 5.3.5: Debug command to dump all tab sessions
+  if (message.type === 'FW_DEBUG_TAB_SESSIONS') {
+    const allSessions = {};
+    activeTabSessions.forEach((value, key) => {
+      allSessions[key] = value;
+    });
+    console.log('[FW BG] All active tab sessions:', allSessions);
+    console.log('[FW BG] activeTabSessions size:', activeTabSessions.size);
+    sendResponse({ sessions: allSessions, size: activeTabSessions.size });
     return true;
   }
   

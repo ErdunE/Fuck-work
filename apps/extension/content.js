@@ -766,6 +766,13 @@ async function getTabSession() {
  */
 async function registerCurrentTab(sessionData) {
   try {
+    console.log('[FW Session] Sending FW_REGISTER_TAB_SESSION', {
+      run_id: sessionData.run_id,
+      task_id: sessionData.task_id,
+      job_url: sessionData.job_url,
+      user_id: sessionData.user_id
+    });
+    
     await chrome.runtime.sendMessage({
       type: 'FW_REGISTER_TAB_SESSION',
       run_id: sessionData.run_id,
@@ -822,7 +829,45 @@ async function getActiveSession(authContext) {
       return { active: false };
     }
     
+    // Phase 5.3.5: Register tab ownership as soon as backend confirms active session
+    // This must happen BEFORE URL match check, so third-party pages stay registered
+    if (!tabSession.has_session) {
+      console.log('[FW Session] Tab not yet registered, registering now', {
+        current_url: window.location.href,
+        run_id: sess.run_id,
+        task_id: sess.task_id,
+        reason: 'backend_session_active'
+      });
+      
+      await registerCurrentTab({
+        run_id: sess.run_id,
+        task_id: sess.task_id,
+        job_url: sess.job_url,
+        user_id: authContext.user_id
+      });
+      
+      // Update local tabSession reference so subsequent checks see it as registered
+      tabSession = {
+        has_session: true,
+        run_id: sess.run_id,
+        task_id: sess.task_id,
+        job_url: sess.job_url
+      };
+    } else {
+      console.log('[FW Session] Tab already registered, skipping re-registration', {
+        existing_run_id: tabSession.run_id,
+        backend_run_id: sess.run_id
+      });
+    }
+    
     // Phase 5.3.5: If tab has registered session matching backend session, proceed
+    console.log('[FW Session] Tab ownership check', {
+      tabSession_has_session: tabSession.has_session,
+      tabSession_run_id: tabSession.run_id,
+      backend_run_id: sess.run_id,
+      match: tabSession.run_id === sess.run_id
+    });
+    
     if (tabSession.has_session && tabSession.run_id === sess.run_id) {
       console.log('[FW Session] Proceeding due to tab-owned run (URL match not required)');
       
@@ -872,13 +917,8 @@ async function getActiveSession(authContext) {
       return { active: false };
     }
     
-    // Phase 5.3.5: Register this tab since URL matched
-    await registerCurrentTab({
-      run_id: sess.run_id,
-      task_id: sess.task_id,
-      job_url: sess.job_url,
-      user_id: authContext.user_id
-    });
+    // Phase 5.3.5: Tab already registered earlier (after backend session confirmed)
+    // No need to register again here
     
     // Store in chrome.storage.local for compatibility
     await chrome.storage.local.set({
