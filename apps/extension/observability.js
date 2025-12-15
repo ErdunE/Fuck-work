@@ -2,7 +2,7 @@
  * Observability Client - Phase A
  * 
  * Production-grade observability logging for browser extension.
- * Cookie-based auth only - no token management.
+ * Token-based auth with Bearer authorization.
  */
 
 class ObservabilityClient {
@@ -39,9 +39,9 @@ class ObservabilityClient {
     try {
       const response = await fetch(`${API_BASE_URL}/api/observability/runs/start`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : ''
         },
         body: JSON.stringify(payload)
       });
@@ -161,9 +161,9 @@ class ObservabilityClient {
     try {
       const response = await fetch(`${API_BASE_URL}/api/observability/events/batch`, {
         method: 'POST',
-        credentials: 'include',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : ''
         },
         body: JSON.stringify({
           run_id: this.currentRunId,

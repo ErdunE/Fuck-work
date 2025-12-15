@@ -1,22 +1,39 @@
 /**
  * API client for FuckWork backend.
- * Phase A: Cookie-based authentication only.
+ * Phase A: Token-based authentication with Bearer authorization.
  * Handles all HTTP communication with the backend.
  */
+
+/**
+ * Get auth headers with Bearer token.
+ * MUST be called from background context where authToken is available.
+ * @returns {Object} Headers object with Authorization if token exists
+ */
+function getAuthHeaders() {
+  if (!authToken) {
+    console.warn('[FW API] No token available for request');
+    return {
+      'Content-Type': 'application/json'
+    };
+  }
+  
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${authToken}`
+  };
+}
 
 class APIClient {
   /**
    * Get next queued apply task
+   * Phase A: Uses Bearer token auth, user_id extracted from token
    */
   static async getNextTask() {
     try {
       const response = await fetch(
         `${API_BASE_URL}/apply/tasks?status=queued&limit=1`,
         {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+          headers: getAuthHeaders()
         }
       );
       
@@ -34,14 +51,12 @@ class APIClient {
   
   /**
    * Get task by ID
+   * Phase A: Uses Bearer token auth
    */
   static async getTask(taskId) {
     try {
       const response = await fetch(`${API_BASE_URL}/apply/tasks/${taskId}`, {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: getAuthHeaders()
       });
       
       if (!response.ok) {
@@ -64,10 +79,7 @@ class APIClient {
         `${API_BASE_URL}/apply/tasks/${taskId}/transition`,
         {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             to_status: toStatus,
             reason: reason,
@@ -102,10 +114,7 @@ class APIClient {
         `${API_BASE_URL}/jobs/search`,
         {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             filters: { job_id: jobId },
             limit: 1
@@ -186,10 +195,7 @@ class APIClient {
         `${API_BASE_URL}/api/users/me/automation-preferences`,
         {
           method: 'PUT',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify(updates)
         }
       );
@@ -214,10 +220,7 @@ class APIClient {
         `${API_BASE_URL}/api/users/me/automation-events`,
         {
           method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify(eventData)
         }
       );
