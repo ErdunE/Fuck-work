@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
 from database import get_db
 from database.models import User
+from api.auth.jwt_utils import get_current_user_from_extension_token
 from apply_engine import (
     create_tasks_from_job_ids,
     list_tasks,
@@ -69,14 +70,17 @@ def queue_apply_tasks(
 
 @router.get("/tasks", response_model=ApplyTaskListResponse)
 def list_apply_tasks(
-    user_id: int = Query(..., description="User ID"),
     status: str = Query(None, description="Filter by status"),
     limit: int = Query(50, ge=1, le=100, description="Max results"),
     offset: int = Query(0, ge=0, description="Pagination offset"),
+    current_user: User = Depends(get_current_user_from_extension_token),
     db: Session = Depends(get_db)
 ):
     """
-    List apply tasks for user.
+    List apply tasks for authenticated user.
+    
+    Phase A: Requires extension token authentication (Authorization: Bearer).
+    User ID is extracted from the token, not from query parameters.
     
     Returns tasks ordered by priority (desc) then created_at (asc).
     Use this to get next task to process.
@@ -84,7 +88,7 @@ def list_apply_tasks(
     try:
         tasks, total = list_tasks(
             db=db,
-            user_id=user_id,
+            user_id=current_user.id,  # From token, not query param
             status=status,
             limit=limit,
             offset=offset
@@ -104,14 +108,25 @@ def list_apply_tasks(
 @router.get("/tasks/{task_id}", response_model=ApplyTaskResponse)
 def get_apply_task(
     task_id: int,
+    current_user: User = Depends(get_current_user_from_extension_token),
     db: Session = Depends(get_db)
 ):
     """
     Get single apply task by ID.
+    
+    Phase A: Requires extension token authentication.
+    Verifies that the task belongs to the authenticated user.
     """
     task = get_task(db, task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    
+    # Verify task ownership
+    if task.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: task belongs to another user"
+        )
     
     return task
 
@@ -121,10 +136,14 @@ def transition_apply_task(
     task_id: int,
     request: ApplyTransitionRequest,
     response: Response,
+    current_user: User = Depends(get_current_user_from_extension_token),
     db: Session = Depends(get_db)
 ):
     """
     Transition task to new status.
+    
+    Phase A: Requires extension token authentication.
+    Verifies that the task belongs to the authenticated user.
     
     **Valid Transitions:**
     - `queued` → `in_progress`, `canceled`
@@ -141,6 +160,17 @@ def transition_apply_task(
     - `failed`: Error occurred
     - `canceled`: User canceled
     """
+    # Verify task ownership before transition
+    existing_task = get_task(db, task_id)
+    if not existing_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    if existing_task.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied: task belongs to another user"
+        )
+    
     try:
         task, event = transition_task(
             db=db,

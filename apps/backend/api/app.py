@@ -35,17 +35,19 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(RequestIDMiddleware)
 
-# Phase A: CORS middleware - allow Web App and Extension with credentials (cookies)
+# Phase A: CORS middleware - allow Web App and Extension with token auth
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",      # Web Control Plane
+        "http://127.0.0.1:3000",      # Web Control Plane (IP-based)
         "http://localhost:5173",      # Vite dev server
+        "http://127.0.0.1:5173",      # Vite dev server (IP-based)
         "chrome-extension://*"        # Browser extension
     ],
-    allow_credentials=True,  # Required for cookie auth
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["*"],
+    allow_credentials=True,  # Required for Web App cookie auth
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit OPTIONS for preflight
+    allow_headers=["*", "Authorization", "Content-Type"],  # Explicit Authorization header
     expose_headers=["X-FW-Detection-Id", "X-Request-ID"],
 )
 

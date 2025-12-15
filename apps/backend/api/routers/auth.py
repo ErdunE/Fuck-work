@@ -11,6 +11,7 @@ from typing import Optional
 from database import get_db
 from database.models import User, UserProfile, AutomationPreference
 from api.auth import create_access_token, verify_password, hash_password, get_current_user
+from api.auth.jwt_utils import create_extension_token
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -216,4 +217,50 @@ def logout(response: Response, current_user: User = Depends(get_current_user), d
     print(f"[Auth] Logout for user {current_user.id}, token_version incremented to {current_user.token_version}, cookie cleared")
     
     return {"ok": True, "message": "Logged out successfully"}
+
+
+# ============================================================
+# Extension Token Endpoint (Phase A: Token-Based Auth)
+# ============================================================
+
+class ExtensionTokenResponse(BaseModel):
+    """Extension token response."""
+    token: str
+    expires_in: int  # Seconds until expiration
+
+
+@router.post("/extension-token", response_model=ExtensionTokenResponse)
+def get_extension_token(current_user: User = Depends(get_current_user)):
+    """
+    Issue a short-lived JWT token for browser extension authentication.
+    
+    **Authentication Required**: Must be logged in via Web App (cookie session).
+    
+    This endpoint allows the Web App to obtain a token that can be sent to the
+    browser extension for API authentication. The extension will use this token
+    in Authorization: Bearer headers.
+    
+    **Token Properties**:
+    - Lifetime: 15 minutes
+    - Scope: 'extension' (validates this is an extension token)
+    - No version tracking (extensions don't need revocation support)
+    
+    **Flow**:
+    1. User logs into Web App (receives cookie session)
+    2. Web App calls this endpoint to get extension token
+    3. Web App broadcasts token to extension via window.postMessage
+    4. Extension stores token and uses it for API calls
+    
+    Returns:
+        ExtensionTokenResponse with token and expiration time in seconds
+    """
+    # Create extension token (15 minutes validity)
+    token = create_extension_token(current_user)
+    
+    print(f"[Auth] Extension token issued for user {current_user.id}")
+    
+    return ExtensionTokenResponse(
+        token=token,
+        expires_in=900  # 15 minutes = 900 seconds
+    )
 
