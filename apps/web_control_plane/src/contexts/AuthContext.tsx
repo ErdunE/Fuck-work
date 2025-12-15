@@ -58,22 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, '*')
   }
 
-  // Phase A: Notify extension background script of auth state changes
+  // Phase A: Notify extension via window.postMessage (content script will relay)
   const notifyExtensionAuthChanged = (isAuthenticated: boolean) => {
-    // Check if Chrome extension APIs are available
-    if (typeof window !== 'undefined' && window.chrome?.runtime?.sendMessage) {
-      console.log('[FW Web] Auth state changed →', isAuthenticated ? 'authenticated' : 'logged out')
-      
-      try {
-        window.chrome.runtime.sendMessage({
-          type: 'FW_AUTH_CHANGED',
-          isAuthenticated
-        })
-      } catch (err) {
-        // Extension might not be installed or listening - this is non-blocking
-        console.warn('[FW Web] Failed to notify extension:', err)
-      }
-    }
+    console.log('[FW Web] Auth state changed →', isAuthenticated ? 'authenticated' : 'logged out')
+    
+    // Broadcast to page - content script will relay to background
+    window.postMessage(
+      {
+        type: 'FW_AUTH_CHANGED',
+        isAuthenticated
+      },
+      '*'
+    )
   }
 
   const login = async (email: string, password: string) => {

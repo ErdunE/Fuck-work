@@ -145,6 +145,39 @@ let lastRecheckSignature = null;
 let fwOverlayInstance = null;
 let fwOverlayEnsureLoggedThisPage = false;
 
+// ============================================================
+// Phase A: Auth Change Message Relay (Web App → Background)
+// ============================================================
+
+/**
+ * Relay FW_AUTH_CHANGED messages from Web App to background script.
+ * Web App uses window.postMessage (no extension context).
+ * Content script bridges: window.postMessage → chrome.runtime.sendMessage
+ */
+window.addEventListener('message', (event) => {
+  // Only accept messages from same origin
+  if (event.source !== window) return;
+  
+  // Filter for FW_AUTH_CHANGED messages
+  if (!event.data || event.data.type !== 'FW_AUTH_CHANGED') return;
+  
+  console.log('[FW CS] Forwarding FW_AUTH_CHANGED to background', {
+    isAuthenticated: event.data.isAuthenticated
+  });
+  
+  // Forward to background script
+  chrome.runtime.sendMessage({
+    type: 'FW_AUTH_CHANGED',
+    isAuthenticated: event.data.isAuthenticated
+  }).catch(err => {
+    console.error('[FW CS] Failed to forward auth change:', err);
+  });
+});
+
+console.log('[FW CS] Auth change relay listener registered');
+
+// ============================================================
+
 /**
  * Safe URL parser (NEVER throws).
  * Handles: null, undefined, "", "www.example.com", "/path", and garbage strings.
