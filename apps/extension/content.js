@@ -747,13 +747,58 @@ function validateUrlMatch(currentUrl, sessionUrl) {
 }
 
 /**
+ * Phase 5.3.5: Check if current tab has an active session registered by background
+ * @returns {Promise<Object>} { has_session, run_id?, task_id?, job_url? }
+ */
+async function getTabSession() {
+  try {
+    const response = await chrome.runtime.sendMessage({ type: 'FW_GET_TAB_SESSION' });
+    return response || { has_session: false };
+  } catch (error) {
+    console.warn('[FW Session] Failed to query tab session:', error);
+    return { has_session: false };
+  }
+}
+
+/**
+ * Phase 5.3.5: Register current tab with background for session tracking
+ * @param {Object} sessionData - { run_id, task_id, job_url, user_id }
+ */
+async function registerCurrentTab(sessionData) {
+  try {
+    await chrome.runtime.sendMessage({
+      type: 'FW_REGISTER_TAB_SESSION',
+      run_id: sessionData.run_id,
+      task_id: sessionData.task_id,
+      job_url: sessionData.job_url,
+      user_id: sessionData.user_id
+    });
+    console.log('[FW Session] Tab registered with background', {
+      run_id: sessionData.run_id,
+      task_id: sessionData.task_id
+    });
+  } catch (error) {
+    console.warn('[FW Session] Failed to register tab:', error);
+  }
+}
+
+/**
  * Get active session from backend (Phase 5.3.1 - Session Bridge)
  * This overrides the function from apply_session.js to fetch from backend API.
  * @returns {Promise<Object>} Session object with { active, task_id, run_id, job_url, ats_type }
  */
 async function getActiveSession(authContext) {
   try {
-    // Phase 5.3.4: authContext passed from verifyAuthToken, no need to re-check auth
+    // Phase 5.3.5: Check if this tab has a registered session
+    const tabSession = await getTabSession();
+    
+    console.group('[FW Session][Tab Check]');
+    console.log('Tab has registered session:', tabSession.has_session);
+    if (tabSession.has_session) {
+      console.log('Tab-owned run_id:', tabSession.run_id);
+      console.log('Tab-owned task_id:', tabSession.task_id);
+    }
+    console.groupEnd();
     
     // Phase 5.3.4: Log token passing to API
     console.group('[FW Content][API Call Prep]');
@@ -777,34 +822,78 @@ async function getActiveSession(authContext) {
       return { active: false };
     }
     
-    // Validate URL match (loose matching)
+    // Phase 5.3.5: If tab has registered session matching backend session, proceed
+    if (tabSession.has_session && tabSession.run_id === sess.run_id) {
+      console.log('[FW Session] Proceeding due to tab-owned run (URL match not required)');
+      
+      // Store in chrome.storage.local for compatibility
+      await chrome.storage.local.set({
+        fw_active_session: {
+          ...sess,
+          detected_at: Date.now(),
+          tab_owned: true
+        }
+      });
+      
+      console.log('[FW Session] active_session_attached:', {
+        task_id: sess.task_id,
+        run_id: sess.run_id,
+        ats_type: sess.ats_type,
+        tab_owned: true
+      });
+      
+      return {
+        active: true,
+        task_id: sess.task_id,
+        run_id: sess.run_id,
+        job_id: sess.job_id || `run_${sess.run_id}`,
+        job_url: sess.job_url,
+        ats_type: sess.ats_type,
+        initial_url: sess.job_url,
+        current_url: window.location.href,
+        recheck_count: 0,
+        tab_owned: true
+      };
+    }
+    
+    // Phase 5.3.5: Fall back to URL matching (backward compatibility)
     const currentUrl = window.location.href;
     const sessionUrl = sess.job_url;
     const urlMatch = validateUrlMatch(currentUrl, sessionUrl);
     
     console.log('[FW Session] active_session_url_match:', urlMatch, {
       current: currentUrl,
-      expected: sessionUrl
+      expected: sessionUrl,
+      tab_owned: false
     });
     
     if (!urlMatch) {
-      console.warn('[FW Session] URL mismatch - session exists but not for this page');
-      console.warn('[FW Session] This may be the wrong tab. Not initializing.');
+      console.warn('[FW Session] URL mismatch and no tab ownership - not initializing');
       return { active: false };
     }
+    
+    // Phase 5.3.5: Register this tab since URL matched
+    await registerCurrentTab({
+      run_id: sess.run_id,
+      task_id: sess.task_id,
+      job_url: sess.job_url,
+      user_id: authContext.user_id
+    });
     
     // Store in chrome.storage.local for compatibility
     await chrome.storage.local.set({
       fw_active_session: {
         ...sess,
-        detected_at: Date.now()
+        detected_at: Date.now(),
+        tab_owned: false
       }
     });
     
     console.log('[FW Session] active_session_attached:', {
       task_id: sess.task_id,
       run_id: sess.run_id,
-      ats_type: sess.ats_type
+      ats_type: sess.ats_type,
+      tab_owned: false
     });
     
     // Return session in expected format
@@ -817,7 +906,8 @@ async function getActiveSession(authContext) {
       ats_type: sess.ats_type,
       initial_url: sess.job_url,
       current_url: currentUrl,
-      recheck_count: 0
+      recheck_count: 0,
+      tab_owned: false
     };
     
   } catch (error) {

@@ -16,9 +16,58 @@ let pollInterval = null;
 // Content script injection tracking
 let lastContentHello = null;
 
+// Phase 5.3.5: Tab-based session tracking
+// Maps tabId → { run_id, task_id, job_url, created_at, user_id }
+const activeTabSessions = new Map();
+
 // Configuration
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 const TASK_TIMEOUT_MS = 600000; // 10 minutes
+
+// ============================================================
+// Phase 5.3.5: Tab Session Management
+// ============================================================
+
+/**
+ * Register a tab as owning an active apply run
+ * @param {number} tabId - Chrome tab ID
+ * @param {Object} sessionData - { run_id, task_id, job_url, user_id }
+ */
+function registerTabSession(tabId, sessionData) {
+  activeTabSessions.set(tabId, {
+    run_id: sessionData.run_id,
+    task_id: sessionData.task_id,
+    job_url: sessionData.job_url,
+    user_id: sessionData.user_id || null,
+    created_at: Date.now()
+  });
+  console.log('[FW BG] Tab session registered', { 
+    tabId, 
+    run_id: sessionData.run_id, 
+    task_id: sessionData.task_id 
+  });
+}
+
+/**
+ * Check if a tab has an active session
+ * @param {number} tabId - Chrome tab ID
+ * @returns {Object|null} Session data or null
+ */
+function getTabSession(tabId) {
+  return activeTabSessions.get(tabId) || null;
+}
+
+/**
+ * Clear tab session when run completes
+ * @param {number} tabId - Chrome tab ID
+ */
+function clearTabSession(tabId) {
+  const session = activeTabSessions.get(tabId);
+  if (session) {
+    console.log('[FW BG] Tab session cleared', { tabId, run_id: session.run_id });
+    activeTabSessions.delete(tabId);
+  }
+}
 
 /**
  * Start polling for tasks
@@ -450,6 +499,56 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   
   // ============================================================
+  // Phase 5.3.5: Tab Session Query & Registration
+  // ============================================================
+  if (message.type === 'FW_GET_TAB_SESSION') {
+    const tabId = sender.tab?.id;
+    if (!tabId) {
+      sendResponse({ has_session: false });
+      return true;
+    }
+    
+    const tabSession = getTabSession(tabId);
+    if (tabSession) {
+      console.log('[FW BG] Tab session query', { 
+        tabId, 
+        has_session: true, 
+        run_id: tabSession.run_id,
+        task_id: tabSession.task_id
+      });
+      sendResponse({
+        has_session: true,
+        run_id: tabSession.run_id,
+        task_id: tabSession.task_id,
+        job_url: tabSession.job_url
+      });
+    } else {
+      console.log('[FW BG] Tab session query', { tabId, has_session: false });
+      sendResponse({ has_session: false });
+    }
+    return true;
+  }
+  
+  // Phase 5.3.5: Register tab session (called by content script)
+  if (message.type === 'FW_REGISTER_TAB_SESSION') {
+    const tabId = sender.tab?.id;
+    if (!tabId) {
+      sendResponse({ ok: false, error: 'No tab ID' });
+      return true;
+    }
+    
+    registerTabSession(tabId, {
+      run_id: message.run_id,
+      task_id: message.task_id,
+      job_url: message.job_url,
+      user_id: message.user_id
+    });
+    
+    sendResponse({ ok: true });
+    return true;
+  }
+  
+  // ============================================================
   // FW_CONTENT_HELLO: Content script injection confirmation
   // ============================================================
   if (message.type === 'FW_CONTENT_HELLO') {
@@ -474,6 +573,9 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     console.log('Job tab closed');
     // Don't auto-complete, user might have multiple tabs open
   }
+  
+  // Phase 5.3.5: Clear tab session on tab close
+  clearTabSession(tabId);
 });
 
 /**
