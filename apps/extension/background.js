@@ -20,6 +20,13 @@ let lastContentHello = null;
 // Maps tabId → { run_id, task_id, job_url, created_at, user_id }
 const activeTabSessions = new Map();
 
+// Phase 5.3.5: Background lifecycle logging (detect service worker restarts)
+console.log('[FW BG][LIFECYCLE] background started or restarted', {
+  ts: Date.now(),
+  activeTabSessions_size: activeTabSessions.size,
+  warning: activeTabSessions.size > 0 ? 'BUG: Map should be empty on fresh start' : 'OK: Map is empty as expected'
+});
+
 // Configuration
 const POLL_INTERVAL_MS = 15000; // 15 seconds
 const TASK_TIMEOUT_MS = 600000; // 10 minutes
@@ -34,6 +41,15 @@ const TASK_TIMEOUT_MS = 600000; // 10 minutes
  * @param {Object} sessionData - { run_id, task_id, job_url, user_id }
  */
 function registerTabSession(tabId, sessionData) {
+  // Phase 5.3.5: Debug - before Map.set
+  console.log('[FW BG][Register] BEFORE Map.set', {
+    tabId,
+    map_has_key_before: activeTabSessions.has(tabId),
+    existing_session: activeTabSessions.get(tabId),
+    new_run_id: sessionData.run_id,
+    new_task_id: sessionData.task_id
+  });
+  
   activeTabSessions.set(tabId, {
     run_id: sessionData.run_id,
     task_id: sessionData.task_id,
@@ -41,6 +57,16 @@ function registerTabSession(tabId, sessionData) {
     user_id: sessionData.user_id || null,
     created_at: Date.now()
   });
+  
+  // Phase 5.3.5: Debug - after Map.set
+  console.log('[FW BG][Register] AFTER Map.set', {
+    tabId,
+    map_has_key_after: activeTabSessions.has(tabId),
+    stored_session: activeTabSessions.get(tabId),
+    map_size: activeTabSessions.size,
+    all_keys: Array.from(activeTabSessions.keys())
+  });
+  
   console.log('[FW BG] Tab session registered', { 
     tabId, 
     run_id: sessionData.run_id, 
@@ -518,6 +544,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     
     const tabSession = getTabSession(tabId);
+    
+    // Phase 5.3.5: Debug - what content script will see
+    console.log('[FW BG][Tab Query] Returning to content script', {
+      tabId,
+      has_session: activeTabSessions.has(tabId),
+      session_exists: !!tabSession,
+      session_data: tabSession,
+      map_size: activeTabSessions.size
+    });
+    
     if (tabSession) {
       console.log('[FW BG] Tab session query', { 
         tabId, 

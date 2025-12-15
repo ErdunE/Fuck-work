@@ -780,11 +780,28 @@ async function registerCurrentTab(sessionData) {
       job_url: sessionData.job_url,
       user_id: sessionData.user_id
     });
+    
+    // Phase 5.3.5: Debug - registration success
+    console.log('[FW Session] Tab registration ACK received', {
+      run_id: sessionData.run_id,
+      task_id: sessionData.task_id,
+      note: 'Background should have stored this tab session'
+    });
+    
     console.log('[FW Session] Tab registered with background', {
       run_id: sessionData.run_id,
       task_id: sessionData.task_id
     });
   } catch (error) {
+    // Phase 5.3.5: Debug - registration failure
+    console.error('[FW Session] Tab registration FAILED', {
+      error_message: error.message,
+      error_name: error.name,
+      run_id: sessionData.run_id,
+      task_id: sessionData.task_id,
+      critical: true,
+      impact: 'Tab ownership NOT established in background'
+    });
     console.warn('[FW Session] Failed to register tab:', error);
   }
 }
@@ -825,6 +842,12 @@ async function getActiveSession(authContext) {
     });
     
     if (!sess.active) {
+      // Phase 5.3.5: Debug - decision path
+      console.log('[FW Session][Decision] return active=false', {
+        reason: 'backend_session_not_active',
+        sess_active: sess.active,
+        sess: sess
+      });
       console.log('[FW Session] No active apply session (backend)');
       return { active: false };
     }
@@ -887,6 +910,15 @@ async function getActiveSession(authContext) {
         tab_owned: true
       });
       
+      // Phase 5.3.5: Debug - decision path
+      console.log('[FW Session][Decision] return active=true (tab_owned)', {
+        reason: 'tab_owned_run_match',
+        tabSession_run_id: tabSession.run_id,
+        backend_run_id: sess.run_id,
+        url_check_skipped: true,
+        current_url: window.location.href
+      });
+      
       return {
         active: true,
         task_id: sess.task_id,
@@ -913,6 +945,14 @@ async function getActiveSession(authContext) {
     });
     
     if (!urlMatch) {
+      // Phase 5.3.5: Debug - decision path
+      console.log('[FW Session][Decision] return active=false', {
+        reason: 'url_mismatch_and_no_tab_ownership',
+        current_url: window.location.href,
+        expected_url: sess.job_url,
+        tabSession_has_session: tabSession.has_session,
+        tabSession_run_id: tabSession.run_id
+      });
       console.warn('[FW Session] URL mismatch and no tab ownership - not initializing');
       return { active: false };
     }
@@ -936,6 +976,14 @@ async function getActiveSession(authContext) {
       tab_owned: false
     });
     
+    // Phase 5.3.5: Debug - decision path
+    console.log('[FW Session][Decision] return active=true (url_match)', {
+      reason: 'url_match_success',
+      current_url: currentUrl,
+      matched_url: sess.job_url,
+      tab_owned: false
+    });
+    
     // Return session in expected format
     return {
       active: true,
@@ -951,6 +999,12 @@ async function getActiveSession(authContext) {
     };
     
   } catch (error) {
+    // Phase 5.3.5: Debug - decision path
+    console.log('[FW Session][Decision] return active=false', {
+      reason: 'exception_caught',
+      error_message: error.message,
+      error_stack: error.stack
+    });
     console.error('[FW Session] Failed to fetch active session:', error);
     return { active: false };
   }
@@ -1105,6 +1159,13 @@ function init() {
         activeSession = session;
 
         if (!activeSession || !activeSession.active) {
+          // Phase 5.3.5: Debug - init decision
+          console.log('[FW Init][Decision] Skipping init', {
+            reason: 'no_active_session',
+            activeSession_exists: !!activeSession,
+            activeSession_active: activeSession?.active,
+            will_not_show_overlay: true
+          });
           console.log('[FW Session] No active apply session on this page');
           console.log('[FW Init] No active session found, skipping initialization');
           return;
@@ -1116,6 +1177,17 @@ function init() {
           run_id: activeSession.run_id,  // Phase 5.3.1
           job_url: activeSession.job_url,
           ats_type: activeSession.ats_type  // Phase 5.3.1
+        });
+        
+        // Phase 5.3.5: Debug - init decision
+        console.log('[FW Init][Decision] Proceeding with init', {
+          reason: 'active_session_confirmed',
+          run_id: activeSession.run_id,
+          task_id: activeSession.task_id,
+          tab_owned: activeSession.tab_owned,
+          ats_type: activeSession.ats_type,
+          will_show_overlay: true,
+          will_run_detection: true
         });
         
         console.log('[FW Init] Proceeding with initialization');
