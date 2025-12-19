@@ -37,6 +37,10 @@ export default function Jobs() {
     try {
       // Combine filters with search
       const searchFilters = { ...filters }
+
+      console.log('🚀 loadJobs called')  
+      console.log('🚀 Current filters:', filters)  
+      console.log('🚀 Search filters:', searchFilters)  
       
       // If there's a search query, add it as keywords
       if (searchQuery.trim()) {
@@ -57,6 +61,8 @@ export default function Jobs() {
   }
 
   const handleFilterChange = (newFilters: JobFilters) => {
+    console.log('🔍 Filter changed:', newFilters)
+    console.log('🔍 Old filters:', filters)
     setFilters(newFilters)
     setCurrentPage(1) // Reset to first page when filters change
   }

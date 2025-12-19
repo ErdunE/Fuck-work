@@ -1,0 +1,5 @@
+  const handleFilterChange = (newFilters: JobFilters) => {
+    console.log('Filter changed:', newFilters)
+    setFilters(newFilters)
+    setCurrentPage(1)
+  }

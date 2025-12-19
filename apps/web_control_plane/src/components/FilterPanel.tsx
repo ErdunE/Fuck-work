@@ -175,7 +175,7 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
         </Disclosure>
         
         {/* Tier 1: Platform Features */}
-        <Disclosure>
+        <Disclosure defaultOpen>
           {({ open }) => (
             <>
               <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 hover:bg-slate-50 transition">
@@ -234,7 +234,7 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
         </Disclosure>
         
         {/* Tier 2: Experience */}
-        <Disclosure>
+        <Disclosure defaultOpen>
           {({ open }) => (
             <>
               <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 hover:bg-slate-50 transition">
@@ -286,7 +286,7 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
         </Disclosure>
         
         {/* Tier 3: Quality */}
-        <Disclosure>
+        <Disclosure defaultOpen>
           {({ open }) => (
             <>
               <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 hover:bg-slate-50 transition">
@@ -342,7 +342,7 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
         </Disclosure>
         
         {/* Tier 4: Advanced */}
-        <Disclosure>
+        <Disclosure defaultOpen>
           {({ open }) => (
             <>
               <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 hover:bg-slate-50 transition">
