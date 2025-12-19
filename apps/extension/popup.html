@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FuckWork Apply Worker</title>
+  <style>
+    body {
+      width: 350px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+    }
+    
+    h1 {
+      font-size: 18px;
+      margin: 0 0 16px 0;
+      color: #1a1a1a;
+    }
+    
+    .status {
+      padding: 8px 12px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    
+    .status.active {
+      background: #e3f2fd;
+      border-left: 3px solid #2196f3;
+    }
+    
+    .task-info {
+      margin-bottom: 16px;
+    }
+    
+    .task-info label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    
+    .task-info .value {
+      font-size: 14px;
+      color: #1a1a1a;
+      word-break: break-word;
+    }
+    
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    button:hover {
+      opacity: 0.9;
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-success {
+      background: #4caf50;
+      color: white;
+    }
+    
+    .btn-warning {
+      background: #ff9800;
+      color: white;
+    }
+    
+    .btn-danger {
+      background: #f44336;
+      color: white;
+    }
+    
+    .btn-secondary {
+      background: #e0e0e0;
+      color: #1a1a1a;
+    }
+    
+    .btn-primary {
+      background: #2196f3;
+      color: white;
+    }
+    
+    .detection-info {
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      border-left: 3px solid #ff9800;
+    }
+    
+    .detection-info label {
+      display: block;
+      font-size: 12px;
+      color: #666;
+      margin-bottom: 4px;
+    }
+    
+    .detection-info .value {
+      font-size: 13px;
+      color: #1a1a1a;
+      word-break: break-word;
+      margin-bottom: 8px;
+    }
+    
+    details summary {
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+      color: #666;
+      margin-top: 8px;
+    }
+    
+    pre {
+      background: #f5f5f5;
+      padding: 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      max-height: 150px;
+      overflow-y: auto;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+      margin: 8px 0 0 0;
+    }
+    
+    .message {
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    
+    .message.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .message.error {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .intent-info {
+      margin-bottom: 16px;
+      padding: 12px;
+      background: #fffbf0;
+      border-radius: 4px;
+      border-left: 3px solid #ffa726;
+    }
+    
+    .intent-info .title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #ff9800;
+      margin-bottom: 8px;
+    }
+    
+    .intent-info .action-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #1a1a1a;
+      margin-bottom: 8px;
+    }
+    
+    .intent-info .action-box {
+      font-size: 13px;
+      color: #333;
+      padding: 10px;
+      background: #fff3e0;
+      border-radius: 4px;
+      margin-bottom: 8px;
+    }
+    
+    .intent-info .next-step {
+      font-size: 12px;
+      color: #666;
+      font-style: italic;
+    }
+    
+    .automation-settings {
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 2px solid #e0e0e0;
+    }
+    
+    .automation-settings h3 {
+      font-size: 14px;
+      margin: 0 0 12px 0;
+      color: #1a1a1a;
+    }
+    
+    .setting-row {
+      margin-bottom: 16px;
+    }
+    
+    .setting-row label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      font-size: 13px;
+      color: #1a1a1a;
+      margin-bottom: 4px;
+    }
+    
+    .setting-row input[type="checkbox"] {
+      margin-right: 8px;
+      cursor: pointer;
+    }
+    
+    .setting-help {
+      font-size: 11px;
+      color: #666;
+      margin: 4px 0 0 24px;
+      line-height: 1.4;
+    }
+    
+    .setting-help.warning {
+      color: #ff9800;
+    }
+    
+    .setting-info {
+      font-size: 11px;
+      color: #666;
+      padding: 8px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      margin-top: 12px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎯 FuckWork Apply Worker</h1>
+  
+  <div id="status" class="status">
+    Loading...
+  </div>
+  
+  <div id="task-info" class="task-info" style="display: none;">
+    <label>Job ID:</label>
+    <div class="value" id="job-id"></div>
+    
+    <label style="margin-top: 8px;">Status:</label>
+    <div class="value" id="task-status"></div>
+    
+    <label style="margin-top: 8px;">Priority:</label>
+    <div class="value" id="task-priority"></div>
+  </div>
+  
+  <div id="detection-info" class="detection-info" style="display: none;">
+    <label>ATS Platform:</label>
+    <div class="value" id="ats-kind"></div>
+    
+    <label>Stage:</label>
+    <div class="value" id="apply-stage"></div>
+    
+    <label>Reason:</label>
+    <div class="value" id="stage-reason"></div>
+    
+    <details>
+      <summary>Evidence (click to expand)</summary>
+      <pre id="evidence-json"></pre>
+    </details>
+    
+    <button id="btn-copy-debug" class="btn-secondary" style="margin-top: 8px; width: 100%;">
+      📋 Copy Debug Report
+    </button>
+  </div>
+  
+  <div id="intent-info" class="intent-info" style="display: none;">
+    <div class="title">What You Need to Do:</div>
+    <div class="action-title" id="intent-title"></div>
+    <div class="action-box" id="intent-action"></div>
+    <div class="next-step" id="intent-next"></div>
+  </div>
+  
+  <div class="buttons">
+    <button id="btn-continue" class="btn-primary" disabled style="display: none;">
+      ▶ I Finished Login/Verification, Continue
+    </button>
+    <button id="btn-success" class="btn-success" disabled>
+      ✓ Mark Success
+    </button>
+    <button id="btn-needs-user" class="btn-warning" disabled>
+      ⚠ Needs Manual Help
+    </button>
+    <button id="btn-cancel" class="btn-danger" disabled>
+      ✕ Cancel Task
+    </button>
+    <button id="btn-refresh" class="btn-secondary">
+      ↻ Refresh
+    </button>
+  </div>
+  
+  <div id="message" class="message" style="display: none;"></div>
+  
+  <div class="automation-settings">
+    <h3>⚙️ Automation Settings</h3>
+    
+    <div class="setting-row">
+      <label>
+        <input type="checkbox" id="auto-fill-toggle" />
+        Auto-fill after login
+      </label>
+      <p class="setting-help">
+        Automatically fill application fields after you sign in.
+      </p>
+    </div>
+    
+    <div class="setting-row">
+      <label>
+        <input type="checkbox" id="auto-submit-toggle" />
+        Auto-submit when ready (requires review)
+      </label>
+      <p class="setting-help warning">
+        ⚠️ You will always review submissions before they are sent.
+      </p>
+    </div>
+    
+    <div class="setting-info">
+      These are global defaults. You can override them per-application in the overlay.
+    </div>
+    
+    <button id="save-automation-prefs" class="btn-primary" style="width: 100%; margin-top: 8px;">
+      Save Settings
+    </button>
+  </div>
+  
+  <script src="automation_preferences.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
+

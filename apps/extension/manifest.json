@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "FuckWork Apply Worker",
+  "version": "0.5.3",
+  "description": "Human-in-the-loop job application assistant",
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": [
+        "auth.js",
+        "api.js",
+        "observability.js",
+        "ats_types.js",
+        "ats_detector.js",
+        "apply_stage_detector.js",
+        "user_action_intent_detector.js",
+        "page_intent_classifier.js",
+        "automation_preferences.js",
+        "submit_readiness_detector.js",
+        "submit_review_modal.js",
+        "user_guidance.js",
+        "apply_state_machine.js",
+        "apply_session.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
+
