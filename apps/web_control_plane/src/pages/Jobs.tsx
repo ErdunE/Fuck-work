@@ -1,65 +1,93 @@
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import type { Job } from '../types'
+import FilterPanel, { type JobFilters } from '../components/FilterPanel'
+import SearchBar from '../components/SearchBar'
+import SortDropdown from '../components/SortDropdown'
+import JobCard from '../components/JobCard'
+import Pagination from '../components/Pagination'
 
 export default function Jobs() {
+  // State
   const [jobs, setJobs] = useState<Job[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   
-  // Manual add form state
-  const [showAddForm, setShowAddForm] = useState(false)
-  const [newJob, setNewJob] = useState({
-    url: '',
-    title: '',
-    company_name: '',
-    platform: ''
-  })
+  // Filter & Search
+  const [filters, setFilters] = useState<JobFilters>({})
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('newest')
   
-  // Task creation state
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
+  
+  // UI State
   const [creatingTask, setCreatingTask] = useState<string | null>(null)
 
+  // Load jobs whenever filters, search, sort, or page changes
   useEffect(() => {
     loadJobs()
-  }, [])
+  }, [filters, searchQuery, sortBy, currentPage])
 
   const loadJobs = async () => {
     setLoading(true)
+    setMessage('')
     try {
-      const response = await api.searchJobs({}, 50, 0)
+      // Combine filters with search
+      const searchFilters = { ...filters }
+      
+      // If there's a search query, add it as keywords
+      if (searchQuery.trim()) {
+        searchFilters.keywords_in_description = [searchQuery.trim()]
+      }
+      
+      const offset = (currentPage - 1) * itemsPerPage
+      const response = await api.searchJobs(searchFilters, itemsPerPage, offset, sortBy)
+      
       setJobs(response.jobs)
-    } catch (error) {
+      setTotal(response.total)
+    } catch (error: any) {
       console.error('Failed to load jobs:', error)
-      setMessage('Failed to load jobs')
+      setMessage(error.response?.data?.detail || 'Failed to load jobs')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleAddJob = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!newJob.url || !newJob.title || !newJob.company_name) {
-      setMessage('Please fill in all required fields')
-      return
-    }
+  const handleFilterChange = (newFilters: JobFilters) => {
+    setFilters(newFilters)
+    setCurrentPage(1) // Reset to first page when filters change
+  }
 
-    try {
-      await api.addJobManually(newJob)
-      setMessage('Job added successfully')
-      setShowAddForm(false)
-      setNewJob({ url: '', title: '', company_name: '', platform: '' })
-      await loadJobs()
-    } catch (error: any) {
-      setMessage(error.response?.data?.detail || 'Failed to add job')
-    }
+  const handleClearFilters = () => {
+    setFilters({})
+    setSearchQuery('')
+    setCurrentPage(1)
+  }
+
+  const handleSearch = () => {
+    setCurrentPage(1) // Reset to first page when searching
+    loadJobs()
+  }
+
+  const handleSortChange = (newSort: string) => {
+    setSortBy(newSort)
+    setCurrentPage(1) // Reset to first page when sorting changes
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleStartApply = async (job_id: string) => {
     setCreatingTask(job_id)
+    setMessage('')
     try {
       const result = await api.createApplyTask(job_id)
-      setMessage(result.message || 'Task created! Check Tasks page')
+      setMessage(result.message || 'Task created successfully')
       await loadJobs()
     } catch (error: any) {
       setMessage(error.response?.data?.detail || 'Failed to create task')
@@ -68,128 +96,101 @@ export default function Jobs() {
     }
   }
 
-  return (
-    <div>
-      <h1>Jobs</h1>
-      <p style={{ marginBottom: '20px' }}>Browse and manage job applications</p>
+  const totalPages = Math.ceil(total / itemsPerPage)
+  const hasActiveFilters = Object.keys(filters).length > 0 || searchQuery.trim() !== ''
 
+  return (
+    <div className="max-w-7xl mx-auto p-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900">Jobs</h1>
+        <p className="mt-1 text-sm text-slate-600">Discover verified opportunities</p>
+      </div>
+
+      {/* Message */}
       {message && (
-        <div style={{ padding: '10px', marginBottom: '15px', backgroundColor: message.includes('success') || message.includes('created') ? '#d4edda' : '#f8d7da', borderRadius: '4px' }}>
+        <div className={`mb-6 p-4 rounded-lg text-sm ${
+          message.toLowerCase().includes('success') || message.toLowerCase().includes('created')
+            ? 'bg-success-50 text-success-700 border border-success-200'
+            : 'bg-danger-50 text-danger-700 border border-danger-200'
+        }`}>
           {message}
         </div>
       )}
 
-      <div style={{ marginBottom: '20px' }}>
-        <button onClick={() => setShowAddForm(!showAddForm)} className="btn btn-primary">
-          {showAddForm ? 'Cancel' : '+ Add Job Manually'}
-        </button>
-      </div>
-
-      {showAddForm && (
-        <div className="card" style={{ marginBottom: '20px' }}>
-          <h3>Add Job Manually</h3>
-          <form onSubmit={handleAddJob}>
-            <div className="form-group">
-              <label>Job URL *</label>
-              <input
-                type="url"
-                value={newJob.url}
-                onChange={(e) => setNewJob({ ...newJob, url: e.target.value })}
-                placeholder="https://linkedin.com/jobs/view/123456"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Job Title *</label>
-              <input
-                type="text"
-                value={newJob.title}
-                onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
-                placeholder="Software Engineer"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Company Name *</label>
-              <input
-                type="text"
-                value={newJob.company_name}
-                onChange={(e) => setNewJob({ ...newJob, company_name: e.target.value })}
-                placeholder="TikTok"
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label>Platform (optional)</label>
-              <input
-                type="text"
-                value={newJob.platform}
-                onChange={(e) => setNewJob({ ...newJob, platform: e.target.value })}
-                placeholder="LinkedIn (auto-detected if empty)"
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-              <button type="submit" className="btn btn-primary">Add Job</button>
-              <button type="button" onClick={() => setShowAddForm(false)} className="btn btn-secondary">Cancel</button>
-            </div>
-          </form>
+      <div className="flex gap-6">
+        {/* FilterPanel: 280px */}
+        <div className="flex-shrink-0">
+          <FilterPanel
+            filters={filters}
+            onChange={handleFilterChange}
+            onClear={handleClearFilters}
+          />
         </div>
-      )}
+        
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          {/* Search + Sort Bar */}
+          <div className="flex gap-4 mb-6">
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onSearch={handleSearch}
+              placeholder="Search by keyword..."
+            />
+            <SortDropdown value={sortBy} onChange={handleSortChange} />
+          </div>
 
-      <div className="card">
-        <h3>Job List</h3>
-        {loading ? (
-          <div>Loading jobs...</div>
-        ) : jobs.length === 0 ? (
-          <div style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-            No jobs found. Add a job manually to get started.
+          {/* Results Summary */}
+          <div className="mb-4">
+            <p className="text-sm text-slate-600">
+              {loading ? 'Loading...' : `${total} jobs found`}
+            </p>
           </div>
-        ) : (
-          <div>
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                style={{
-                  borderBottom: '1px solid #eee',
-                  padding: '15px 0',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto',
-                  gap: '15px',
-                  alignItems: 'center'
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-                    {job.title}
-                  </div>
-                  <div style={{ color: '#666', marginBottom: '5px' }}>
-                    {job.company_name} • {job.platform}
-                  </div>
-                  {job.authenticity_score !== null && job.authenticity_score !== undefined && (
-                    <div style={{ fontSize: '14px', color: '#666' }}>
-                      Score: {job.authenticity_score.toFixed(1)}
-                    </div>
-                  )}
-                  <div style={{ fontSize: '13px', color: '#999', marginTop: '3px' }}>
-                    <a href={job.url} target="_blank" rel="noopener noreferrer" style={{ color: '#0056b3' }}>
-                      View Job →
-                    </a>
-                  </div>
-                </div>
-                <div>
-                  <button
-                    onClick={() => handleStartApply(job.job_id)}
-                    className="btn btn-primary"
-                    disabled={creatingTask === job.job_id}
-                    style={{ whiteSpace: 'nowrap' }}
-                  >
-                    {creatingTask === job.job_id ? 'Creating...' : 'Start Apply'}
-                  </button>
-                </div>
+
+          {/* Job List */}
+          {loading ? (
+            <div className="bg-white rounded-lg shadow-soft p-12 text-center border border-slate-200">
+              <div className="animate-pulse">
+                <div className="h-4 bg-slate-200 rounded w-1/4 mx-auto mb-4"></div>
+                <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto"></div>
               </div>
-            ))}
-          </div>
-        )}
+              <p className="mt-4 text-sm text-slate-500">Loading jobs...</p>
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-soft p-12 text-center border border-slate-200">
+              <p className="text-sm text-slate-600">
+                {hasActiveFilters
+                  ? 'No jobs found matching your filters. Try adjusting your criteria.'
+                  : 'No jobs available yet.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {jobs.map((job) => (
+                <JobCard
+                  key={job.id}
+                  job={job}
+                  onApply={handleStartApply}
+                  applying={creatingTask === job.job_id}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && totalPages > 1 && (
+            <div className="mt-6">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={handlePageChange}
+                totalItems={total}
+                itemsPerPage={itemsPerPage}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

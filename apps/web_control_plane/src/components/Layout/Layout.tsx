@@ -1,11 +1,22 @@
-import { Navigate, Outlet, Link } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import TopNavigation from '../TopNavigation'
 
 export default function Layout() {
-  const { user, loading, logout } = useAuth()
+  const { user, loading } = useAuth()
 
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-pulse">
+            <div className="h-4 bg-slate-200 rounded w-24 mx-auto mb-4"></div>
+            <div className="h-4 bg-slate-200 rounded w-32 mx-auto"></div>
+          </div>
+          <p className="mt-4 text-sm text-slate-500">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!user) {
@@ -13,25 +24,9 @@ export default function Layout() {
   }
 
   return (
-    <div>
-      <header style={{ background: '#333', color: 'white', padding: '15px 0' }}>
-        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ margin: 0 }}>FuckWork Control Plane</h2>
-          <nav style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-            <Link to="/" style={{ color: 'white', textDecoration: 'none' }}>Dashboard</Link>
-            <Link to="/jobs" style={{ color: 'white', textDecoration: 'none' }}>Jobs</Link>
-            <Link to="/profile" style={{ color: 'white', textDecoration: 'none' }}>Profile</Link>
-            <Link to="/automation" style={{ color: 'white', textDecoration: 'none' }}>Automation</Link>
-            <Link to="/tasks" style={{ color: 'white', textDecoration: 'none' }}>Tasks</Link>
-            <Link to="/audit" style={{ color: 'white', textDecoration: 'none' }}>Audit Log</Link>
-            <Link to="/observability" style={{ color: 'white', textDecoration: 'none' }}>Observability</Link>
-            <span style={{ borderLeft: '1px solid white', height: '20px' }}></span>
-            <span>{user.email}</span>
-            <button onClick={logout} className="btn btn-secondary" style={{ padding: '5px 15px' }}>Logout</button>
-          </nav>
-        </div>
-      </header>
-      <main className="container" style={{ marginTop: '20px' }}>
+    <div className="min-h-screen bg-slate-50">
+      <TopNavigation />
+      <main>
         <Outlet />
       </main>
     </div>

@@ -202,12 +202,17 @@ export interface Job {
   job_id: string
   title: string
   company_name: string
+  location?: string
   url: string
   platform: string
   authenticity_score?: number
   authenticity_level?: string
   posted_date?: string
   created_at: string
+  decision_summary?: {
+    decision: 'recommend' | 'caution' | 'avoid'
+    score: number
+  }
 }
 
 export interface JobSearchResponse {

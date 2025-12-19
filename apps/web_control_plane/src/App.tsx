@@ -3,14 +3,9 @@ import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout/Layout'
 import Login from './pages/Login'
 import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
+import Jobs from './pages/Jobs'
+import Applications from './pages/Applications'
 import Profile from './pages/Profile'
-import AutomationSettings from './pages/AutomationSettings'
-import Tasks from './pages/Tasks'
-import AuditLog from './pages/AuditLog'
-import Jobs from './pages/Jobs'  // Phase 5.2
-import ObservabilityRuns from './pages/observability/Runs'  // Phase 5.3.0
-import ObservabilityRunDetail from './pages/observability/RunDetail'  // Phase 5.3.0
 
 function App() {
   return (
@@ -19,17 +14,15 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="jobs" element={<Jobs />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="automation" element={<AutomationSettings />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="audit" element={<AuditLog />} />
-            <Route path="observability" element={<ObservabilityRuns />} />
-            <Route path="observability/runs/:runId" element={<ObservabilityRunDetail />} />
+          
+          <Route element={<Layout />}>
+            <Route path="/jobs" element={<Jobs />} />
+            <Route path="/applications" element={<Applications />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/" element={<Navigate to="/jobs" replace />} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          
+          <Route path="*" element={<Navigate to="/jobs" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

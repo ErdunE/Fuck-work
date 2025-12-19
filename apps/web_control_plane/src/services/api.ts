@@ -29,8 +29,7 @@ class APIService {
       baseURL: API_BASE_URL,
       headers: {
         'Content-Type': 'application/json'
-      },
-      withCredentials: true
+      }
     })
 
     // Add auth token to requests
@@ -217,10 +216,10 @@ class APIService {
   }
 
   // Phase 5.2: Jobs methods
-  async searchJobs(filters?: any, limit = 20, offset = 0): Promise<JobSearchResponse> {
+  async searchJobs(filters?: any, limit = 20, offset = 0, sortBy = 'newest'): Promise<JobSearchResponse> {
     const payload = {
       filters: filters || {},
-      sort_by: 'newest',
+      sort_by: sortBy,
       limit,
       offset
     }
