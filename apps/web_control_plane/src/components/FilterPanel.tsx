@@ -38,7 +38,6 @@ export interface JobFilters {
   salary_interval?: string[]
   
   // Tier 3: Computed
-  is_recent?: boolean
   competition_level?: string[]
   has_red_flags?: boolean
   max_red_flags?: number
@@ -297,16 +296,22 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
                 <ChevronDownIcon className={`w-4 h-4 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
               </Disclosure.Button>
               <Disclosure.Panel className="px-4 py-3 space-y-4">
-                {/* Is Recent */}
-                <label className="flex items-center text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={filters.is_recent || false}
-                    onChange={(e) => updateFilter('is_recent', e.target.checked ? true : undefined)}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 mr-2"
-                  />
-                  Posted in Last 3 Days
-                </label>
+                {/* Posted Within */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">Posted Within</label>
+                  <select
+                    value={filters.posted_days_ago ?? ''}
+                    onChange={(e) => updateFilter('posted_days_ago', e.target.value ? Number(e.target.value) : undefined)}
+                    className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
+                  >
+                    <option value="">Any time</option>
+                    <option value="1">Last 24 hours</option>
+                    <option value="3">Last 3 days</option>
+                    <option value="7">Last week</option>
+                    <option value="14">Last 2 weeks</option>
+                    <option value="30">Last month</option>
+                  </select>
+                </div>
                 
                 {/* Competition Level */}
                 <div>

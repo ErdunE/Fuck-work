@@ -31,15 +31,15 @@ export default function Jobs() {
     loadJobs()
   }, [filters, searchQuery, sortBy, currentPage])
 
-  const loadJobs = async () => {
+  const loadJobsWithFilters = async (currentFilters: JobFilters) => {
     setLoading(true)
     setMessage('')
     try {
       // Combine filters with search
-      const searchFilters = { ...filters }
+      const searchFilters = { ...currentFilters }
 
       console.log('🚀 loadJobs called')  
-      console.log('🚀 Current filters:', filters)  
+      console.log('🚀 Current filters:', currentFilters)  
       console.log('🚀 Search filters:', searchFilters)  
       
       // If there's a search query, add it as keywords
@@ -60,11 +60,16 @@ export default function Jobs() {
     }
   }
 
+  const loadJobs = () => loadJobsWithFilters(filters)
+
   const handleFilterChange = (newFilters: JobFilters) => {
     console.log('🔍 Filter changed:', newFilters)
     console.log('🔍 Old filters:', filters)
     setFilters(newFilters)
     setCurrentPage(1) // Reset to first page when filters change
+    
+    // Load jobs immediately with new filters, bypassing async state update
+    loadJobsWithFilters(newFilters)
   }
 
   const handleClearFilters = () => {

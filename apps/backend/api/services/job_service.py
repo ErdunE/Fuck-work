@@ -110,6 +110,155 @@ class JobService:
                 cutoff_date = datetime.now() - timedelta(days=filters.posted_days_ago)
                 conditions.append(Job.posted_date >= cutoff_date)
             
+            # Tier 1: Platform Features
+            if filters.easy_apply is not None:
+                conditions.append(
+                    text("(platform_metadata->>'easy_apply')::boolean = :easy_apply")
+                )
+                query = query.params(easy_apply=filters.easy_apply)
+            
+            if filters.actively_hiring is not None:
+                conditions.append(
+                    text("(platform_metadata->>'actively_hiring_tag')::boolean = :actively_hiring")
+                )
+                query = query.params(actively_hiring=filters.actively_hiring)
+            
+            if filters.max_applicants is not None:
+                conditions.append(
+                    text("(platform_metadata->>'applicants_count')::int <= :max_applicants")
+                )
+                query = query.params(max_applicants=filters.max_applicants)
+            
+            if filters.min_applicants is not None:
+                conditions.append(
+                    text("(platform_metadata->>'applicants_count')::int >= :min_applicants")
+                )
+                query = query.params(min_applicants=filters.min_applicants)
+            
+            if filters.has_views_data is not None:
+                if filters.has_views_data:
+                    conditions.append(
+                        text("platform_metadata->>'views_count' IS NOT NULL")
+                    )
+                else:
+                    conditions.append(
+                        text("platform_metadata->>'views_count' IS NULL")
+                    )
+            
+            # Tier 2: Experience Requirements
+            if filters.min_experience_years is not None:
+                conditions.append(
+                    text("(derived_signals->'experience_years'->>'min')::int >= :min_exp")
+                )
+                query = query.params(min_exp=filters.min_experience_years)
+            
+            if filters.max_experience_years is not None:
+                conditions.append(
+                    text("(derived_signals->'experience_years'->>'max')::int <= :max_exp")
+                )
+                query = query.params(max_exp=filters.max_experience_years)
+            
+            if filters.has_salary_info is not None:
+                if filters.has_salary_info:
+                    conditions.append(
+                        text("derived_signals->'salary'->>'min' IS NOT NULL")
+                    )
+                else:
+                    conditions.append(
+                        text("derived_signals->'salary'->>'min' IS NULL")
+                    )
+            
+            if filters.salary_interval:
+                conditions.append(
+                    text("derived_signals->'salary'->>'interval' = ANY(:salary_intervals)")
+                )
+                query = query.params(salary_intervals=filters.salary_interval)
+            
+            # Tier 3: Computed Filters
+            if filters.is_recent is not None:
+                if filters.is_recent:
+                    cutoff_date = datetime.now() - timedelta(days=3)
+                    conditions.append(Job.posted_date >= cutoff_date)
+            
+            if filters.competition_level:
+                # Map competition levels to applicants_count ranges
+                competition_conditions = []
+                for level in filters.competition_level:
+                    if level == "low":
+                        competition_conditions.append(
+                            text("(platform_metadata->>'applicants_count')::int < 50")
+                        )
+                    elif level == "medium":
+                        competition_conditions.append(
+                            and_(
+                                text("(platform_metadata->>'applicants_count')::int >= 50"),
+                                text("(platform_metadata->>'applicants_count')::int <= 200")
+                            )
+                        )
+                    elif level == "high":
+                        competition_conditions.append(
+                            text("(platform_metadata->>'applicants_count')::int > 200")
+                        )
+                if competition_conditions:
+                    conditions.append(or_(*competition_conditions))
+            
+            if filters.has_red_flags is not None:
+                if filters.has_red_flags == False:
+                    # No red flags
+                    conditions.append(
+                        or_(
+                            Job.red_flags == None,
+                            text("jsonb_array_length(red_flags) = 0")
+                        )
+                    )
+                else:
+                    # Has red flags
+                    conditions.append(
+                        text("jsonb_array_length(red_flags) > 0")
+                    )
+            
+            if filters.max_red_flags is not None:
+                conditions.append(
+                    or_(
+                        Job.red_flags == None,
+                        text("jsonb_array_length(red_flags) <= :max_red_flags")
+                    )
+                )
+                query = query.params(max_red_flags=filters.max_red_flags)
+            
+            if filters.min_positive_signals is not None:
+                conditions.append(
+                    text("jsonb_array_length(positive_signals) >= :min_positive")
+                )
+                query = query.params(min_positive=filters.min_positive_signals)
+            
+            # Tier 4: Advanced Filters
+            if filters.exclude_companies:
+                # Case-insensitive exclusion
+                conditions.append(
+                    ~func.lower(Job.company_name).in_([c.lower() for c in filters.exclude_companies])
+                )
+            
+            if filters.include_companies_only:
+                # Case-insensitive inclusion
+                conditions.append(
+                    func.lower(Job.company_name).in_([c.lower() for c in filters.include_companies_only])
+                )
+            
+            if filters.keywords_in_description:
+                # AND logic: all keywords must be present
+                for keyword in filters.keywords_in_description:
+                    conditions.append(
+                        Job.jd_text.ilike(f"%{keyword}%")
+                    )
+            
+            if filters.exclude_keywords:
+                # OR logic: exclude if any keyword is present
+                for keyword in filters.exclude_keywords:
+                    conditions.append(
+                        ~Job.jd_text.ilike(f"%{keyword}%")
+                    )
+            
             # Apply all conditions
             if conditions:
                 query = query.filter(and_(*conditions))

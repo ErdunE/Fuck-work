@@ -33,6 +33,32 @@ class JobSearchFilters(BaseModel):
     
     # Date range
     posted_days_ago: Optional[int] = Field(None, ge=0, le=365, description="Posted within last N days")
+    
+    # Tier 1: Platform Features (from platform_metadata JSONB)
+    easy_apply: Optional[bool] = Field(None, description="Easy Apply jobs only")
+    actively_hiring: Optional[bool] = Field(None, description="Actively hiring tag")
+    max_applicants: Optional[int] = Field(None, ge=0, description="Max applicants")
+    min_applicants: Optional[int] = Field(None, ge=0, description="Min applicants")
+    has_views_data: Optional[bool] = Field(None, description="Has view count data")
+    
+    # Tier 2: Experience (from derived_signals JSONB)
+    min_experience_years: Optional[int] = Field(None, ge=0, le=30)
+    max_experience_years: Optional[int] = Field(None, ge=0, le=30)
+    has_salary_info: Optional[bool] = Field(None, description="Salary disclosed")
+    salary_interval: Optional[List[str]] = Field(None, description="yearly/monthly/hourly")
+    
+    # Tier 3: Computed (calculated filters)
+    is_recent: Optional[bool] = Field(None, description="Posted last 3 days")
+    competition_level: Optional[List[str]] = Field(None, description="low/medium/high")
+    has_red_flags: Optional[bool] = Field(None, description="Has/no red flags")
+    max_red_flags: Optional[int] = Field(None, ge=0)
+    min_positive_signals: Optional[int] = Field(None, ge=0)
+    
+    # Tier 4: Advanced (text search & company filters)
+    exclude_companies: Optional[List[str]] = Field(None)
+    include_companies_only: Optional[List[str]] = Field(None)
+    keywords_in_description: Optional[List[str]] = Field(None)
+    exclude_keywords: Optional[List[str]] = Field(None)
 
 
 class JobSearchRequest(BaseModel):
