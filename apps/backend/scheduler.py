@@ -80,7 +80,7 @@ def scheduled_pipeline_run():
         traceback.print_exc()
 
 
-def start_scheduler(cron_hour: int = 8, cron_minute: int = 0):
+def start_scheduler(cron_hour: int = 0, cron_minute: int = 0):
     """
     Start the daily scheduler.
     
@@ -101,7 +101,7 @@ def start_scheduler(cron_hour: int = 8, cron_minute: int = 0):
     scheduler = BlockingScheduler()
     
     # Add daily job
-    trigger = CronTrigger(hour=cron_hour, minute=cron_minute)
+    trigger = CronTrigger(hour=cron_hour, minute=cron_minute, timezone="UTC")
     scheduler.add_job(
         scheduled_pipeline_run,
         trigger=trigger,

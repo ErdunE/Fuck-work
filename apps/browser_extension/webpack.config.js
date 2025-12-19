@@ -5,6 +5,7 @@ module.exports = {
   entry: {
     'background/service-worker': './src/background/service-worker.ts',
     'content/linkedin': './src/content/linkedin-entry.ts',
+    'content/webapp-relay': './src/content/webapp-relay.ts',
     'popup/popup': './src/popup/popup.ts',
   },
   

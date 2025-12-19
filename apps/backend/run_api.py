@@ -11,7 +11,7 @@ from api.app import app
 if __name__ == "__main__":
     uvicorn.run(
         "api.app:app",
-        host="127.0.0.1",
+        host="localhost",
         port=8000,
         reload=True,  # Auto-reload on code changes
         log_level="info"
