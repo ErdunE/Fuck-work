@@ -158,8 +158,8 @@ class JobSpyCollector:
             # Platform metadata (from JobSpy)
             'platform_metadata': self._extract_platform_metadata(row),
             
-            # Derived signals (empty for now, will be filled by rule engine)
-            'derived_signals': {},
+            # Derived signals (from JobSpy + will be enriched by rule engine)
+            'derived_signals': self._extract_derived_signals(row),
             
             # MINIMAL collection metadata (ONLY 4 fields)
             'collection_metadata': {
@@ -246,11 +246,17 @@ class JobSpyCollector:
     def _extract_company_info(self, row: pd.Series) -> Dict:
         """Extract company information"""
         return {
-            'website_domain': str(row.get('company_url')) if pd.notna(row.get('company_url')) else None,
-            'size_employees': None,  # Not provided by JobSpy
-            'glassdoor_rating': None,  # Not provided by JobSpy
-            'domain_matches_name': None,  # Will be computed by rule engine
-            'has_layoffs_recent': False,  # Not provided by JobSpy
+            'name': str(row.get('company')) if pd.notna(row.get('company')) else None,
+            'industry': str(row.get('company_industry')) if pd.notna(row.get('company_industry')) else None,
+            'url': str(row.get('company_url')) if pd.notna(row.get('company_url')) else None,
+            'url_direct': str(row.get('company_url_direct')) if pd.notna(row.get('company_url_direct')) else None,
+            'logo': str(row.get('company_logo')) if pd.notna(row.get('company_logo')) else None,
+            'num_employees': str(row.get('company_num_employees')) if pd.notna(row.get('company_num_employees')) else None,
+            'revenue': str(row.get('company_revenue')) if pd.notna(row.get('company_revenue')) else None,
+            'description': str(row.get('company_description')) if pd.notna(row.get('company_description')) else None,
+            'rating': float(row.get('company_rating')) if pd.notna(row.get('company_rating')) else None,
+            'reviews_count': int(row.get('company_reviews_count')) if pd.notna(row.get('company_reviews_count')) else None,
+            'addresses': str(row.get('company_addresses')) if pd.notna(row.get('company_addresses')) else None,
         }
     
     def _extract_platform_metadata(self, row: pd.Series) -> Dict:
@@ -268,6 +274,22 @@ class JobSpyCollector:
             metadata['salary_max'] = float(row.get('max_amount'))
         if pd.notna(row.get('interval')):
             metadata['salary_interval'] = str(row.get('interval'))
+        
+        # NEW: Additional JobSpy fields
+        if pd.notna(row.get('id')):
+            metadata['jobspy_id'] = str(row.get('id'))
+        if pd.notna(row.get('job_url_direct')):
+            metadata['job_url_direct'] = str(row.get('job_url_direct'))
+        if pd.notna(row.get('listing_type')):
+            metadata['listing_type'] = str(row.get('listing_type'))
+        if pd.notna(row.get('salary_source')):
+            metadata['salary_source'] = str(row.get('salary_source'))
+        if pd.notna(row.get('emails')):
+            metadata['emails'] = str(row.get('emails'))
+        if pd.notna(row.get('vacancy_count')):
+            metadata['vacancy_count'] = int(row.get('vacancy_count'))
+        if pd.notna(row.get('work_from_home_type')):
+            metadata['work_from_home_type'] = str(row.get('work_from_home_type'))
         
         # JobSpy metadata
         metadata['posted_days_ago'] = self._calculate_days_ago(row.get('date_posted'))
@@ -295,4 +317,38 @@ class JobSpyCollector:
         """Calculate when job should expire (default 30 days from posting)"""
         posted_date = self._parse_date(posted_date_val)
         return posted_date + timedelta(days=days_valid)
+    
+    def _extract_derived_signals(self, row: pd.Series) -> Dict:
+        """Extract derived signals from JobSpy"""
+        signals = {}
+        
+        # Direct fields from JobSpy
+        if pd.notna(row.get('job_level')):
+            signals['job_level'] = str(row.get('job_level'))
+        if pd.notna(row.get('job_function')):
+            signals['job_function'] = str(row.get('job_function'))
+        if pd.notna(row.get('is_remote')):
+            signals['is_remote'] = bool(row.get('is_remote'))
+        if pd.notna(row.get('skills')):
+            signals['skills'] = str(row.get('skills'))
+        if pd.notna(row.get('experience_range')):
+            signals['experience_range'] = str(row.get('experience_range'))
+        
+        # Salary info (move from platform_metadata to derived_signals)
+        salary = {}
+        if pd.notna(row.get('min_amount')):
+            salary['min'] = float(row.get('min_amount'))
+        if pd.notna(row.get('max_amount')):
+            salary['max'] = float(row.get('max_amount'))
+        if pd.notna(row.get('interval')):
+            salary['interval'] = str(row.get('interval'))
+        if pd.notna(row.get('currency')):
+            salary['currency'] = str(row.get('currency'))
+        else:
+            salary['currency'] = 'USD'  # Default
+        
+        if salary:
+            signals['salary'] = salary
+        
+        return signals
 

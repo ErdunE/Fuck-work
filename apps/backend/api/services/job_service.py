@@ -208,29 +208,27 @@ class JobService:
                     conditions.append(
                         or_(
                             Job.red_flags == None,
-                            text("jsonb_array_length(red_flags) = 0")
+                            func.jsonb_array_length(Job.red_flags) == 0
                         )
                     )
                 else:
                     # Has red flags
                     conditions.append(
-                        text("jsonb_array_length(red_flags) > 0")
+                        func.jsonb_array_length(Job.red_flags) > 0
                     )
             
             if filters.max_red_flags is not None:
                 conditions.append(
                     or_(
                         Job.red_flags == None,
-                        text("jsonb_array_length(red_flags) <= :max_red_flags")
+                        func.jsonb_array_length(Job.red_flags) <= filters.max_red_flags
                     )
                 )
-                query = query.params(max_red_flags=filters.max_red_flags)
             
             if filters.min_positive_signals is not None:
                 conditions.append(
-                    text("jsonb_array_length(positive_signals) >= :min_positive")
+                    func.jsonb_array_length(Job.positive_signals) >= filters.min_positive_signals
                 )
-                query = query.params(min_positive=filters.min_positive_signals)
             
             # Tier 4: Advanced Filters
             if filters.exclude_companies:

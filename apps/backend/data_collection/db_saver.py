@@ -2,6 +2,7 @@
 Save JobSpy results to database with URL deduplication.
 
 Provides simple, robust job persistence with automatic duplicate detection.
+FIXED: Individual commit per job to handle duplicates gracefully.
 """
 
 from typing import List, Dict
@@ -13,6 +14,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from database import SessionLocal
 from database.models import Job
+from sqlalchemy.exc import IntegrityError
 
 
 class JobSaver:
@@ -21,7 +23,7 @@ class JobSaver:
     
     Key Features:
     - URL-based deduplication (skip if URL already exists)
-    - Transaction safety (rollback on errors)
+    - Individual commit per job (handles duplicates gracefully)
     - Statistics tracking (saved/duplicates/errors)
     - Graceful error handling
     """
@@ -32,33 +34,19 @@ class JobSaver:
     
     def save_jobs(self, jobs: List[Dict]) -> Dict:
         """
-        Save jobs to database.
+        Save jobs to database with individual commits.
         
-        Deduplication strategy: Skip if URL already exists.
-        This is simple and effective for preventing duplicate job postings.
+        Deduplication strategy:
+        1. Check if URL already exists
+        2. If yes, skip (duplicate)
+        3. If no, try to save
+        4. If unique constraint violation, skip (duplicate by job_id)
         
         Args:
             jobs: List of job dicts from JobSpyCollector.convert_to_jobdata()
         
         Returns:
-            Stats dict with counts:
-            {
-                'saved': int,        # Number of new jobs saved
-                'duplicates': int,   # Number of duplicate URLs skipped
-                'errors': int        # Number of jobs that failed to save
-            }
-        
-        Example:
-            >>> from data_collection.jobspy_collector import JobSpyCollector
-            >>> from data_collection.db_saver import JobSaver
-            >>> 
-            >>> collector = JobSpyCollector()
-            >>> df = collector.collect(results_wanted=10)
-            >>> jobs = collector.convert_to_jobdata(df)
-            >>> 
-            >>> saver = JobSaver()
-            >>> stats = saver.save_jobs(jobs)
-            >>> print(f"Saved: {stats['saved']}, Duplicates: {stats['duplicates']}")
+            Stats dict with counts
         """
         session = SessionLocal()
         
@@ -71,7 +59,7 @@ class JobSaver:
         try:
             for job_data in jobs:
                 try:
-                    # Check if URL already exists (deduplication)
+                    # Check if URL already exists (primary deduplication)
                     existing = session.query(Job).filter(
                         Job.url == job_data['url']
                     ).first()
@@ -80,26 +68,24 @@ class JobSaver:
                         stats['duplicates'] += 1
                         continue
                     
-                    # Create new job
+                    # Create and save new job
                     job = Job(**job_data)
                     session.add(job)
+                    session.commit()  # ✅ Commit immediately
                     stats['saved'] += 1
                     
+                except IntegrityError as e:
+                    # Duplicate job_id (secondary deduplication)
+                    session.rollback()
+                    stats['duplicates'] += 1
+                    
                 except Exception as e:
+                    # Other errors
+                    session.rollback()
                     print(f"Error saving job {job_data.get('job_id', 'unknown')}: {e}")
                     stats['errors'] += 1
-                    # Continue processing other jobs
-            
-            # Commit all jobs at once (more efficient)
-            session.commit()
             
             print(f"✓ Save complete: {stats['saved']} new, {stats['duplicates']} duplicates, {stats['errors']} errors")
-            
-        except Exception as e:
-            # Rollback on transaction error
-            session.rollback()
-            print(f"✗ Transaction failed, rolling back: {e}")
-            raise
             
         finally:
             session.close()
@@ -107,26 +93,7 @@ class JobSaver:
         return stats
     
     def save_single_job(self, job_data: Dict) -> bool:
-        """
-        Save a single job to database.
-        
-        Args:
-            job_data: Single job dict from JobSpyCollector
-        
-        Returns:
-            bool: True if saved, False if duplicate or error
-        
-        Example:
-            >>> saver = JobSaver()
-            >>> job = {
-            ...     'job_id': 'linkedin_123456',
-            ...     'title': 'Software Engineer',
-            ...     'company_name': 'Google',
-            ...     'url': 'https://linkedin.com/jobs/123456',
-            ...     # ... other fields
-            ... }
-            >>> success = saver.save_single_job(job)
-        """
+        """Save a single job to database."""
         session = SessionLocal()
         
         try:
@@ -136,16 +103,17 @@ class JobSaver:
             ).first()
             
             if existing:
-                print(f"Duplicate URL: {job_data['url']}")
                 return False
             
             # Save job
             job = Job(**job_data)
             session.add(job)
             session.commit()
-            
-            print(f"✓ Saved job: {job_data.get('job_id')}")
             return True
+            
+        except IntegrityError:
+            session.rollback()
+            return False
             
         except Exception as e:
             session.rollback()
@@ -156,25 +124,12 @@ class JobSaver:
             session.close()
     
     def get_stats(self) -> Dict:
-        """
-        Get database statistics.
-        
-        Returns:
-            Dict with job counts by platform and overall stats
-        
-        Example:
-            >>> saver = JobSaver()
-            >>> stats = saver.get_stats()
-            >>> print(f"Total jobs: {stats['total']}")
-            >>> print(f"By platform: {stats['by_platform']}")
-        """
+        """Get database statistics."""
         session = SessionLocal()
         
         try:
-            # Total jobs
             total = session.query(Job).count()
             
-            # Jobs by platform
             from sqlalchemy import func
             by_platform = dict(
                 session.query(
@@ -183,7 +138,6 @@ class JobSaver:
                 ).group_by(Job.platform).all()
             )
             
-            # Jobs scored vs unscored
             scored = session.query(Job).filter(
                 Job.authenticity_score.isnot(None)
             ).count()
@@ -200,23 +154,10 @@ class JobSaver:
             session.close()
     
     def deduplicate_existing(self) -> Dict:
-        """
-        Remove duplicate jobs from database (by URL).
-        
-        Keeps the most recent entry for each URL.
-        
-        Returns:
-            Dict with number of duplicates removed
-        
-        Example:
-            >>> saver = JobSaver()
-            >>> result = saver.deduplicate_existing()
-            >>> print(f"Removed {result['removed']} duplicates")
-        """
+        """Remove duplicate jobs from database (by URL)."""
         session = SessionLocal()
         
         try:
-            # Find duplicate URLs
             from sqlalchemy import func
             duplicates = session.query(
                 Job.url,
@@ -228,18 +169,15 @@ class JobSaver:
             removed = 0
             
             for url, count in duplicates:
-                # Get all jobs with this URL, ordered by created_at
                 jobs = session.query(Job).filter(
                     Job.url == url
                 ).order_by(Job.created_at.desc()).all()
                 
-                # Keep the most recent, delete the rest
                 for job in jobs[1:]:
                     session.delete(job)
                     removed += 1
             
             session.commit()
-            
             print(f"✓ Removed {removed} duplicate jobs")
             
             return {
@@ -254,4 +192,3 @@ class JobSaver:
             
         finally:
             session.close()
-

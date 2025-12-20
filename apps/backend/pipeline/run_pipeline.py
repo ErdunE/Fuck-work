@@ -11,6 +11,7 @@ from data_collection.db_saver import JobSaver
 from authenticity_scoring.scorer import AuthenticityScorer
 from database import SessionLocal
 from database.models import Job
+from data_enrichment.run_enrichment import run_job_enrichment
 
 # Configure logging
 logging.basicConfig(
@@ -135,6 +136,11 @@ def run_full_pipeline(
         finally:
             session.close()
         
+        # Step 5: Enrich all jobs with derived signals
+        logger.info("Step 5: Enriching jobs with derived signals...")
+        enrichment_stats = run_job_enrichment()
+        logger.info(f"✓ Enriched {enrichment_stats['enriched']} jobs")
+
         # Success
         logger.info("=" * 60)
         logger.info("Pipeline Complete")

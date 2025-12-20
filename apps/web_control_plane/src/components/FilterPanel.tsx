@@ -2,7 +2,6 @@ import { Disclosure } from '@headlessui/react'
 import { 
   ChevronDownIcon, 
   FunnelIcon, 
-  BoltIcon, 
   BriefcaseIcon, 
   ChartBarIcon,
   AdjustmentsHorizontalIcon,
@@ -24,13 +23,6 @@ export interface JobFilters {
   platforms?: string[]
   posted_days_ago?: number
   
-  // Tier 1: Platform Features
-  easy_apply?: boolean
-  actively_hiring?: boolean
-  max_applicants?: number
-  min_applicants?: number
-  has_views_data?: boolean
-  
   // Tier 2: Experience
   min_experience_years?: number
   max_experience_years?: number
@@ -38,7 +30,6 @@ export interface JobFilters {
   salary_interval?: string[]
   
   // Tier 3: Computed
-  competition_level?: string[]
   has_red_flags?: boolean
   max_red_flags?: number
   min_positive_signals?: number
@@ -173,102 +164,18 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
           )}
         </Disclosure>
         
-        {/* Tier 1: Platform Features */}
-        <Disclosure defaultOpen>
-          {({ open }) => (
-            <>
-              <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 hover:bg-slate-50 transition">
-                <div className="flex items-center gap-2">
-                  <BoltIcon className="w-4 h-4 text-slate-500" />
-                  <span className="text-sm font-medium text-slate-900">Platform</span>
-                </div>
-                <ChevronDownIcon className={`w-4 h-4 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
-              </Disclosure.Button>
-              <Disclosure.Panel className="px-4 py-3 space-y-4">
-                {/* Easy Apply */}
-                <label className="flex items-center text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={filters.easy_apply || false}
-                    onChange={(e) => updateFilter('easy_apply', e.target.checked ? true : undefined)}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 mr-2"
-                  />
-                  Easy Apply Only
-                </label>
-                
-                {/* Actively Hiring */}
-                <label className="flex items-center text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={filters.actively_hiring || false}
-                    onChange={(e) => updateFilter('actively_hiring', e.target.checked ? true : undefined)}
-                    className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 mr-2"
-                  />
-                  Actively Hiring
-                </label>
-                
-                {/* Applicants Range */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">Applicants</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      value={filters.min_applicants || ''}
-                      onChange={(e) => updateFilter('min_applicants', e.target.value ? Number(e.target.value) : undefined)}
-                      className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      value={filters.max_applicants || ''}
-                      onChange={(e) => updateFilter('max_applicants', e.target.value ? Number(e.target.value) : undefined)}
-                      className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
-                    />
-                  </div>
-                </div>
-              </Disclosure.Panel>
-            </>
-          )}
-        </Disclosure>
-        
-        {/* Tier 2: Experience */}
+        {/* Tier 2: Salary & Compensation */}
         <Disclosure defaultOpen>
           {({ open }) => (
             <>
               <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 hover:bg-slate-50 transition">
                 <div className="flex items-center gap-2">
                   <BriefcaseIcon className="w-4 h-4 text-slate-500" />
-                  <span className="text-sm font-medium text-slate-900">Experience</span>
+                  <span className="text-sm font-medium text-slate-900">Salary & Compensation</span>
                 </div>
                 <ChevronDownIcon className={`w-4 h-4 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
               </Disclosure.Button>
               <Disclosure.Panel className="px-4 py-3 space-y-4">
-                {/* Experience Years */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">Years</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      placeholder="Min"
-                      value={filters.min_experience_years || ''}
-                      onChange={(e) => updateFilter('min_experience_years', e.target.value ? Number(e.target.value) : undefined)}
-                      className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
-                      min="0"
-                      max="30"
-                    />
-                    <input
-                      type="number"
-                      placeholder="Max"
-                      value={filters.max_experience_years || ''}
-                      onChange={(e) => updateFilter('max_experience_years', e.target.value ? Number(e.target.value) : undefined)}
-                      className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
-                      min="0"
-                      max="30"
-                    />
-                  </div>
-                </div>
-                
                 {/* Has Salary Info */}
                 <label className="flex items-center text-sm text-slate-700">
                   <input
@@ -279,19 +186,55 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
                   />
                   Salary Disclosed
                 </label>
+                
+                {/* Salary Range */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">Salary Range</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      placeholder="Min"
+                      value={filters.min_salary || ''}
+                      onChange={(e) => updateFilter('min_salary', e.target.value ? Number(e.target.value) : undefined)}
+                      className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                    <input
+                      type="number"
+                      placeholder="Max"
+                      value={filters.max_salary || ''}
+                      onChange={(e) => updateFilter('max_salary', e.target.value ? Number(e.target.value) : undefined)}
+                      className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
+                    />
+                  </div>
+                </div>
+                
+                {/* Salary Interval */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">Salary Interval</label>
+                  <select
+                    value={(filters.salary_interval || [])[0] || ''}
+                    onChange={(e) => updateFilter('salary_interval', e.target.value ? [e.target.value] : undefined)}
+                    className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
+                  >
+                    <option value="">Any</option>
+                    <option value="yearly">Yearly</option>
+                    <option value="monthly">Monthly</option>
+                    <option value="hourly">Hourly</option>
+                  </select>
+                </div>
               </Disclosure.Panel>
             </>
           )}
         </Disclosure>
         
-        {/* Tier 3: Quality */}
+        {/* Tier 3: Quality & Timing */}
         <Disclosure defaultOpen>
           {({ open }) => (
             <>
               <Disclosure.Button className="flex w-full justify-between items-center px-4 py-3 hover:bg-slate-50 transition">
                 <div className="flex items-center gap-2">
                   <ChartBarIcon className="w-4 h-4 text-slate-500" />
-                  <span className="text-sm font-medium text-slate-900">Quality</span>
+                  <span className="text-sm font-medium text-slate-900">Quality & Timing</span>
                 </div>
                 <ChevronDownIcon className={`w-4 h-4 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
               </Disclosure.Button>
@@ -313,24 +256,6 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
                   </select>
                 </div>
                 
-                {/* Competition Level */}
-                <div>
-                  <label className="block text-xs font-medium text-slate-700 mb-2">Competition</label>
-                  <div className="space-y-2">
-                    {['low', 'medium', 'high'].map((level) => (
-                      <label key={level} className="flex items-center text-sm text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={(filters.competition_level || []).includes(level)}
-                          onChange={() => toggleArrayValue('competition_level', level)}
-                          className="rounded border-slate-300 text-primary-600 focus:ring-primary-500 mr-2"
-                        />
-                        <span className="capitalize">{level}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                
                 {/* Has Red Flags */}
                 <label className="flex items-center text-sm text-slate-700">
                   <input
@@ -341,6 +266,19 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
                   />
                   No Red Flags
                 </label>
+                
+                {/* Max Red Flags */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">Max Red Flags</label>
+                  <input
+                    type="number"
+                    placeholder="e.g., 2"
+                    value={filters.max_red_flags || ''}
+                    onChange={(e) => updateFilter('max_red_flags', e.target.value ? Number(e.target.value) : undefined)}
+                    className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
+                    min="0"
+                  />
+                </div>
               </Disclosure.Panel>
             </>
           )}
@@ -358,7 +296,31 @@ export default function FilterPanel({ filters, onChange, onClear }: Props) {
                 <ChevronDownIcon className={`w-4 h-4 text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
               </Disclosure.Button>
               <Disclosure.Panel className="px-4 py-3 space-y-4">
-                {/* Keywords */}
+                {/* Include Companies Only */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">Include Companies Only</label>
+                  <input
+                    type="text"
+                    placeholder="Stripe, OpenAI, Anthropic"
+                    value={(filters.include_companies_only || []).join(', ')}
+                    onChange={(e) => updateFilter('include_companies_only', e.target.value ? e.target.value.split(',').map(k => k.trim()).filter(k => k) : undefined)}
+                    className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
+                  />
+                </div>
+                
+                {/* Exclude Companies */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-700 mb-2">Exclude Companies</label>
+                  <input
+                    type="text"
+                    placeholder="Google, Meta, Amazon"
+                    value={(filters.exclude_companies || []).join(', ')}
+                    onChange={(e) => updateFilter('exclude_companies', e.target.value ? e.target.value.split(',').map(k => k.trim()).filter(k => k) : undefined)}
+                    className="block w-full rounded-md border-slate-300 text-sm focus:border-primary-500 focus:ring-primary-500"
+                  />
+                </div>
+                
+                {/* Required Keywords */}
                 <div>
                   <label className="block text-xs font-medium text-slate-700 mb-2">Required Keywords</label>
                   <input
