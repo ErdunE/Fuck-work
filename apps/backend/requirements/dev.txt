@@ -1,0 +1,14 @@
+-r base.txt
+
+# Testing
+pytest==9.0.2
+pytest-asyncio
+
+# Code Quality
+black
+flake8
+pylint
+isort
+
+# Database Migrations
+alembic==1.17.2
