@@ -1,0 +1,24 @@
+# Core Framework
+fastapi==0.124.4
+uvicorn[standard]==0.38.0
+pydantic==2.5.0
+
+# Database
+sqlalchemy==2.0.45
+psycopg2-binary==2.9.11
+
+# Job Scraping
+python-jobspy==1.1.82
+pandas==2.2.3
+numpy==1.26.3
+
+# Scheduling
+APScheduler==3.11.1
+
+# Authentication
+python-jose[cryptography]==3.5.0
+bcrypt==5.0.0
+
+# Utilities
+python-dotenv==1.2.1
+requests==2.32.5
