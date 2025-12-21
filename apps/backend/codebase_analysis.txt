@@ -1,0 +1,267 @@
+正在分析代码库...
+生成时间: Sat Dec 20 22:58:32 EST 2025
+
+========================================
+1. 目录结构（2层深度）
+========================================
+.
+├── ai_answer
+│   ├── __init__.py
+│   ├── answer_engine.py
+│   ├── ollama_client.py
+│   ├── prompt_templates.py
+│   └── schemas.py
+├── analysis
+│   ├── __init__.py
+│   └── dataset_stats.py
+├── api
+│   ├── auth
+│   ├── routers
+│   ├── services
+│   ├── __init__.py
+│   ├── app.py
+│   ├── models_apply.py
+│   ├── models_user.py
+│   ├── models.py
+│   └── observability_logger.py
+├── apply_engine
+│   ├── __init__.py
+│   └── apply_service.py
+├── authenticity_scoring
+│   ├── data
+│   ├── tests
+│   ├── __init__.py
+│   ├── explanation_engine.py
+│   ├── manual_validation.py
+│   ├── rule_engine.py
+│   ├── score_fusion.py
+│   ├── scorer.py
+│   └── TUNING_NOTES.md
+├── data_collection
+│   ├── __init__.py
+│   ├── batch_collector.py
+│   ├── db_saver.py
+│   ├── jobspy_collector.py
+│   └── search_config.py
+├── data_enrichment
+│   ├── __init__.py
+│   ├── job_enricher.py
+│   └── run_enrichment.py
+├── database
+│   ├── __init__.py
+│   ├── models.py
+│   └── schema.sql
+├── decision_engine
+│   ├── __init__.py
+│   └── explain_job.py
+├── job_classification
+│   ├── __init__.py
+│   ├── classification_prompt.py
+│   ├── classification_rules.py
+│   └── job_classifier.py
+├── pipeline
+│   ├── __init__.py
+│   ├── __main__.py
+│   └── run_pipeline.py
+├── add_query_indexes.py
+├── analyze_codebase.sh
+├── APPLY_PIPELINE.md
+├── APPLY_WORKER_PROTOCOL.md
+├── codebase_analysis.txt
+├── dataset_stats.json
+├── docker-compose.yml
+├── init_database.py
+├── migrate_apply_schema.py
+├── migrate_phase5_2.py
+├── migrate_phase5_3_1.py
+├── migrate_phase5_3_2.py
+├── migrate_phase5_3.py
+├── migrate_phase5_schema.py
+├── migrate_user_schema.py
+├── PHASE2A_REPORT.md
+├── platform_utils.py
+├── requirements.txt
+├── run_api.py
+├── run_classification.py
+├── run_massive_collection.py
+├── scheduler.py
+├── setup_ollama.sh
+├── test_ai_answer.py
+├── test_all_filters.py
+├── test_api.py
+├── test_apply_api.py
+├── test_apply_session_flow.md
+├── test_auth_endpoints.py
+├── test_bcrypt_auth.py
+├── test_decision_engine.py
+├── test_extension_protocol.py
+├── test_integration.py
+├── test_jobs.csv
+├── test_jobspy.py
+├── test_jwt_sub_fix.py
+├── test_page_transition.py
+├── test_phase5_integration.md
+├── test_user_api.py
+├── test_user_guidance.py
+├── verify_decisions.py
+└── verify_enrichment.py
+
+17 directories, 84 files
+
+========================================
+2. 文件类型统计
+========================================
+Python 文件:       97
+Markdown 文档:        6
+JSON 文件:        3
+YAML 文件:        1
+Shell 脚本:        2
+
+========================================
+3. 各目录代码量
+========================================
+./ai_answer:      419 行代码,        5 个文件
+./analysis:      172 行代码,        2 个文件
+./api:     4814 行代码,       28 个文件
+./apply_engine:      317 行代码,        2 个文件
+./authenticity_scoring:     2853 行代码,       11 个文件
+./data_collection:     1385 行代码,        5 个文件
+./data_enrichment:      453 行代码,        3 个文件
+./database:      661 行代码,        2 个文件
+./decision_engine:      161 行代码,        2 个文件
+./job_classification:     1883 行代码,        4 个文件
+./pipeline:      197 行代码,        3 个文件
+
+========================================
+4. 根目录所有文件
+========================================
+add_query_indexes.py (1.5K)
+analyze_codebase.sh (7.0K)
+APPLY_PIPELINE.md (4.8K)
+APPLY_WORKER_PROTOCOL.md (3.0K)
+codebase_analysis.txt (4.2K)
+dataset_stats.json (1.3K)
+docker-compose.yml (455B)
+init_database.py (2.4K)
+migrate_apply_schema.py (897B)
+migrate_phase5_2.py (2.7K)
+migrate_phase5_3_1.py (3.2K)
+migrate_phase5_3_2.py (2.2K)
+migrate_phase5_3.py (7.4K)
+migrate_phase5_schema.py (14K)
+migrate_user_schema.py (778B)
+PHASE2A_REPORT.md (9.5K)
+platform_utils.py (5.6K)
+requirements.txt (344B)
+run_api.py (300B)
+run_classification.py (2.8K)
+run_massive_collection.py (8.2K)
+scheduler.py (5.3K)
+setup_ollama.sh (1.7K)
+test_ai_answer.py (4.3K)
+test_all_filters.py (4.5K)
+test_api.py (3.7K)
+test_apply_api.py (5.7K)
+test_apply_session_flow.md (5.5K)
+test_auth_endpoints.py (4.6K)
+test_bcrypt_auth.py (2.4K)
+test_decision_engine.py (2.4K)
+test_extension_protocol.py (8.3K)
+test_integration.py (1.5K)
+test_jobspy.py (1.6K)
+test_jwt_sub_fix.py (5.7K)
+test_page_transition.py (6.2K)
+test_phase5_integration.md (8.0K)
+test_user_api.py (6.5K)
+test_user_guidance.py (6.1K)
+verify_decisions.py (3.1K)
+verify_enrichment.py (2.2K)
+
+========================================
+5. 关键文件检查
+========================================
+✅ requirements.txt
+✅ docker-compose.yml
+❌ .env (缺失)
+❌ .env.example (缺失)
+❌ README.md (缺失)
+
+========================================
+6. 主要模块目录
+========================================
+✅ api/ (      28 个Python文件)
+✅ database/ (       2 个Python文件)
+✅ data_collection/ (       5 个Python文件)
+✅ authenticity_scoring/ (      11 个Python文件)
+✅ data_enrichment/ (       3 个Python文件)
+✅ job_classification/ (       4 个Python文件)
+✅ pipeline/ (       3 个Python文件)
+✅ decision_engine/ (       2 个Python文件)
+✅ apply_engine/ (       2 个Python文件)
+✅ analysis/ (       2 个Python文件)
+✅ ai_answer/ (       5 个Python文件)
+
+========================================
+7. Git 仓库状态
+========================================
+❌ 没有 Git 仓库
+
+========================================
+8. 最常用的 Import（Top 20）
+========================================
+  43 typing
+  36 database
+  33 database.models
+  23 sqlalchemy.orm
+  21 datetime
+  18 sys
+  18 pydantic
+  18 logging
+  18 fastapi
+  14 sqlalchemy
+  14 json
+  13 api.auth
+   9 time
+   9 requests
+   6 os
+   5 pathlib
+   5 __future__
+   4 pytest
+   3 math
+   3 decision_engine
+
+========================================
+9. 最近修改的 Python 文件（Top 15）
+========================================
+-rw-------@ 1 erdune  staff  38806 Dec 20 21:58 ./job_classification/classification_rules.py
+-rw-------@ 1 erdune  staff  16960 Dec 20 21:37 ./job_classification/job_classifier.py
+-rw-------@ 1 erdune  staff   8881 Dec 20 21:35 ./job_classification/classification_prompt.py
+-rwxr-xr-x  1 erdune  staff   8386 Dec 20 00:02 ./run_massive_collection.py
+-rw-r--r--@ 1 erdune  staff   5824 Dec 19 23:52 ./data_collection/db_saver.py
+-rw-r--r--@ 1 erdune  staff  18377 Dec 19 23:42 ./data_collection/search_config.py
+-rw-r--r--@ 1 erdune  staff     91 Dec 19 22:15 ./job_classification/__init__.py
+-rw-------@ 1 erdune  staff   2882 Dec 19 22:14 ./run_classification.py
+-rw-r--r--@ 1 erdune  staff  14439 Dec 19 21:59 ./data_collection/jobspy_collector.py
+-rw-r--r--@ 1 erdune  staff  11454 Dec 19 21:41 ./api/services/job_service.py
+-rw-r--r--@ 1 erdune  staff   5759 Dec 19 21:31 ./pipeline/run_pipeline.py
+-rw-r--r--@ 1 erdune  staff   5528 Dec 19 16:29 ./api/models.py
+-rw-r--r--@ 1 erdune  staff   2259 Dec 19 12:42 ./verify_enrichment.py
+-rw-r--r--@ 1 erdune  staff   3133 Dec 19 12:42 ./verify_decisions.py
+-rwxr-xr-x@ 1 erdune  staff   6223 Dec 19 12:42 ./test_user_guidance.py
+
+========================================
+10. 配置和数据文件
+========================================
+JSON 配置:
+./dataset_stats.json
+./authenticity_scoring/tests/data/authenticity_sample_dataset.json
+./authenticity_scoring/data/authenticity_rule_table.json
+
+YAML 配置:
+./docker-compose.yml
+
+环境文件:
+
+========================================
+分析完成
+========================================
