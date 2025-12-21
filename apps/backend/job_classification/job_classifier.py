@@ -92,7 +92,7 @@ class JobClassifier:
         logger.debug(f"Classifying job: {title[:50]}...")
         
         category = find_category_by_keywords(title, description, job_function)
-        industry = find_industry_by_keywords(company_industry, company_name)
+        industry = find_industry_by_keywords(company_industry, company_name, category)
         specialties = find_specialties_by_keywords(title, description, skills)
         
         # Assess rule confidence
@@ -156,6 +156,9 @@ class JobClassifier:
         Returns:
             'high', 'medium', or 'low'
         """
+        # Low: Generic category - trigger LLM fallback (MUST BE FIRST!)
+        if category == "software_general":
+            return "low"
         # High confidence indicators
         high_confidence_keywords = [
             'backend', 'frontend', 'data scientist', 'ml engineer',

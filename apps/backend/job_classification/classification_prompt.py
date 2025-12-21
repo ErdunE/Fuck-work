@@ -50,7 +50,17 @@ OUTPUT REQUIREMENTS:
 Return ONLY a JSON object with these exact keys (no markdown, no explanation):
 
 {{
-  "category": "one of: software_backend, software_frontend, software_fullstack, software_mobile, data_science, data_engineering, ml_engineer, ai_research, devops, sre, cloud, product_management, product_design, cybersecurity, or other",
+  "category": "one of: 
+    TECH: software_backend, software_frontend, software_fullstack, software_mobile, data_science, data_engineering, ml_engineer, ai_research, devops, sre, cloud, product_management, product_design, cybersecurity,
+    HEALTHCARE: healthcare_nursing, healthcare_physician, healthcare_allied, healthcare_admin, healthcare_clinical,
+    FINANCE: finance_analyst, finance_accounting, finance_investment, finance_risk, finance_compliance,
+    OPERATIONS: operations_manager, operations_supply_chain, operations_warehouse, operations_procurement, operations_quality,
+    SALES/MARKETING: sales_account_exec, sales_business_dev, marketing_digital, marketing_content, marketing_brand,
+    HR: hr_recruiter, hr_generalist, hr_compensation,
+    EDUCATION: education_teacher, education_trainer, education_admin,
+    LEGAL: legal_attorney, legal_paralegal, legal_compliance,
+    CUSTOMER_SERVICE: customer_service_rep, customer_service_manager, customer_support_tech,
+    or other",
   "industry": "one of: technology, finance, fintech, healthcare, biotech, ecommerce, edtech, media, gaming, automotive, aerospace, energy, consulting, government, or other",
   "specialties": ["list of 1-3 specific technologies/domains, e.g., react, python, aws, kubernetes"],
   "confidence": "high/medium/low"
@@ -73,6 +83,22 @@ CATEGORY (Choose ONE most specific):
 - product_management: Product strategy, roadmaps, user research
 - product_design: UX/UI, design systems, prototyping
 - cybersecurity: Security engineering, pentesting, compliance
+- healthcare_nursing: RN, nurse practitioner, patient care, clinical nursing
+- healthcare_physician: MD, physician, doctor, surgeon, specialist
+- healthcare_allied: physical therapist, medical assistant, lab tech, pharmacy tech
+- healthcare_admin: hospital administrator, clinical coordinator, medical office manager
+- finance_analyst: financial analysis, investment analysis, FP&A
+- finance_accounting: accountant, CPA, bookkeeping, tax
+- operations_manager: operations management, plant manager, facility manager
+- operations_warehouse: warehouse management, logistics, shipping, inventory
+- sales_account_exec: account executive, sales rep, B2B sales
+- marketing_digital: SEO, SEM, social media, digital campaigns
+- hr_recruiter: recruiting, talent acquisition, hiring
+- education_teacher: teaching, instruction, professor
+- legal_attorney: lawyer, attorney, legal counsel
+- customer_service_rep: customer support, call center, help desk
+- customer_service_manager: customer service manager, customer experience manager, customer success manager
+- customer_support_tech: customer support technician, customer support specialist, customer support analyst
 
 INDUSTRY (Choose ONE):
 - Use company_industry field as primary signal
