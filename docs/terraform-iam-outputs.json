@@ -1,0 +1,47 @@
+{
+  "ec2_backend_instance_profile_name": {
+    "sensitive": false,
+    "type": "string",
+    "value": "fuckwork-dev-ec2-backend-profile"
+  },
+  "github_actions_deploy_role_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:iam::302222527269:role/fuckwork-dev-github-actions-deploy-role"
+  },
+  "github_actions_terraform_role_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:iam::302222527269:role/fuckwork-github-actions-terraform-role"
+  },
+  "iam_groups": {
+    "sensitive": false,
+    "type": [
+      "object",
+      {
+        "administrators": "string",
+        "backend_developers": "string",
+        "devops": "string",
+        "frontend_developers": "string",
+        "readonly": "string"
+      }
+    ],
+    "value": {
+      "administrators": "fuckwork-administrators",
+      "backend_developers": "fuckwork-backend-developers",
+      "devops": "fuckwork-devops",
+      "frontend_developers": "fuckwork-frontend-developers",
+      "readonly": "fuckwork-readonly"
+    }
+  },
+  "rds_monitoring_role_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:iam::302222527269:role/fuckwork-dev-rds-monitoring-role"
+  },
+  "terraform_execution_role_arn": {
+    "sensitive": false,
+    "type": "string",
+    "value": "arn:aws:iam::302222527269:role/fuckwork-dev-terraform-execution-role"
+  }
+}
