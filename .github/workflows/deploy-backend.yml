@@ -1,0 +1,64 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main, dev]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/deploy-backend.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::302222527269:role/fuckwork-dev-github-actions-deploy-role
+          aws-region: us-east-1
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      
+      - name: Build and push Docker image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: fuckwork-backend
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          cd apps/backend
+          docker build --platform linux/amd64 -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -f Dockerfile .
+          docker tag $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+      
+      - name: Deploy to EC2
+        env:
+          EC2_HOST: 44.214.95.175
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > /tmp/ssh_key
+          chmod 600 /tmp/ssh_key
+          
+          ssh -o StrictHostKeyChecking=no -i /tmp/ssh_key ec2-user@$EC2_HOST << 'ENDSSH'
+            cd /home/ec2-user/fuckwork
+            docker-compose pull backend
+            docker-compose up -d backend scorer
+            docker-compose ps
+          ENDSSH
+          
+          rm /tmp/ssh_key
+      
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -f http://44.214.95.175/health || exit 1
