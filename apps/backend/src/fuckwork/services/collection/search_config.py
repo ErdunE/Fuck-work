@@ -467,6 +467,7 @@ LOCATIONS = {
 # Time windows for job freshness
 TIME_WINDOWS = {
     "today": 24,        # Last 24 hours
+    "hourly": 1,        # Last 1 hour
     "recent": 72,       # Last 3 days
     "week": 168,        # Last 7 days
     "month": 720,       # Last 30 days
@@ -630,3 +631,11 @@ def get_search_stats(preset_name: str = None):
             'Transportation & Logistics',
         ]
     }
+# NEW: Hourly collection preset (all industries, past 1 hour)
+PRESET_HOURLY = {
+    "categories": list(SEARCH_QUERIES.keys()),  # All 22 industries
+    "platforms": PRIMARY_PLATFORMS,
+    "location": "us_national",
+    "time_window": "hourly",  # Past 1 hour
+    "results_wanted": "standard",  # 50 per query
+}

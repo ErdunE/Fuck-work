@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from datetime import datetime
 from .jobspy_collector import JobSpyCollector
 from .db_saver import JobSaver
-from .search_config import generate_search_matrix, PRESET_DAILY
+from .search_config import generate_search_matrix, PRESET_DAILY, PRESET_HOURLY, PRESET_MASSIVE
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -159,12 +159,14 @@ def run_preset_batch(preset_name: str = "daily"):
     Args:
         preset_name: 'quick', 'daily', or 'thorough'
     """
-    from .search_config import PRESET_QUICK, PRESET_DAILY, PRESET_THOROUGH
+    from .search_config import PRESET_QUICK, PRESET_DAILY, PRESET_THOROUGH, PRESET_MASSIVE, PRESET_HOURLY
     
     presets = {
         'quick': PRESET_QUICK,
         'daily': PRESET_DAILY,
         'thorough': PRESET_THOROUGH,
+        'massive': PRESET_MASSIVE,
+        'hourly': PRESET_HOURLY,
     }
     
     if preset_name not in presets:
