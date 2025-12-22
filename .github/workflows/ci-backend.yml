@@ -10,6 +10,7 @@ on:
     branches: [main, dev]
     paths:
       - 'apps/backend/**'
+      - '.github/workflows/ci-backend.yml'
 
 jobs:
   test:
