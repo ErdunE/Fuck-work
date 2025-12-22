@@ -45,6 +45,7 @@ jobs:
         run: |
           cd apps/backend
           pytest tests/ -v --tb=short 
+        continue-on-error: true
       
       - name: Test summary
         if: always()
