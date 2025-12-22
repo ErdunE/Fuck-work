@@ -1,10 +1,12 @@
 name: Deploy Backend
 
 on:
-  workflow_run:
-    workflows: ["CI Backend"]
-    types: [completed]
+  push:
     branches: [main, dev]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -13,7 +15,6 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
       - name: Checkout code
