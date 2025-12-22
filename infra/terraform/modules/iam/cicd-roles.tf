@@ -125,6 +125,21 @@ resource "aws_iam_policy" "github_actions_deploy" {
           "ssm:GetParametersByPath"
         ]
         Resource = "arn:aws:ssm:*:${var.aws_account_id}:parameter/${var.project_name}/${var.environment}/*"
+      },
+      {
+        Sid    = "ECRPushPull"
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage",
+          "ecr:PutImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload"
+        ]
+        Resource = "*"
       }
     ]
   })
