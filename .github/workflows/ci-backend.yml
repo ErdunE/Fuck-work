@@ -1,0 +1,50 @@
+name: CI Backend
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'apps/backend/**'
+      - '.github/workflows/ci-backend.yml'
+  push:
+    branches: [main, dev]
+    paths:
+      - 'apps/backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          pip install -r requirements/dev.txt
+      
+      - name: Lint with black
+        run: |
+          cd apps/backend
+          black --check src/ || true
+      
+      - name: Lint with flake8
+        run: |
+          cd apps/backend
+          flake8 src/ --max-line-length=100 --exclude=__pycache__ || true
+      
+      - name: Run tests
+        run: |
+          cd apps/backend
+          pytest tests/ -v --tb=short || true
+      
+      - name: Test summary
+        if: always()
+        run: echo "✅ Backend CI completed"

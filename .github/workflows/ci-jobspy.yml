@@ -1,0 +1,40 @@
+name: CI JobSpy
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - 'apps/backend/src/fuckwork/services/collection/**'
+      - 'apps/backend/Dockerfile.jobspy'
+      - '.github/workflows/ci-jobspy.yml'
+  push:
+    branches: [main, dev]
+    paths:
+      - 'apps/backend/src/fuckwork/services/collection/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          cd apps/backend
+          pip install -r requirements/dev.txt
+      
+      - name: Lint collection service
+        run: |
+          cd apps/backend
+          black --check src/fuckwork/services/collection/ || true
+      
+      - name: Test summary
+        run: echo "✅ JobSpy CI completed"

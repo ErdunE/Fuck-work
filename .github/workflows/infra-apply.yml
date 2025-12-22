@@ -1,0 +1,46 @@
+name: Terraform Apply
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'infra/terraform/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::302222527269:role/fuckwork-github-actions-terraform-role
+          aws-region: us-east-1
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.0
+      
+      - name: Terraform Init
+        run: |
+          cd infra/terraform/environments/dev
+          terraform init
+      
+      - name: Terraform Apply
+        run: |
+          cd infra/terraform/environments/dev
+          terraform apply -auto-approve
+      
+      - name: Output Results
+        run: |
+          cd infra/terraform/environments/dev
+          terraform output
