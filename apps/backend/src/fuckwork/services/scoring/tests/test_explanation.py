@@ -1,6 +1,6 @@
 """Tests for ExplanationEngine (spec section 5)."""
 
-from typing import Dict, List
+from typing import Dict
 
 import pytest
 

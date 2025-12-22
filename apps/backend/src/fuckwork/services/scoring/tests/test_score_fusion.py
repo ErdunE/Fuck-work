@@ -1,7 +1,3 @@
-import math
-from pathlib import Path
-from typing import Dict, List
-
 import pytest
 
 from apps.backend.authenticity_scoring.score_fusion import ScoreFusion

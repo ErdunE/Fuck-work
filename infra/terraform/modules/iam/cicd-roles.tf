@@ -1,4 +1,10 @@
 # ============================================================================
+# Data Sources
+# ============================================================================
+
+data "aws_caller_identity" "current" {}
+
+# ============================================================================
 # CI/CD ROLES - GitHub Actions OIDC
 # ============================================================================
 
@@ -140,6 +146,18 @@ resource "aws_iam_policy" "github_actions_deploy" {
           "ecr:CompleteLayerUpload"
         ]
         Resource = "*"
+      },
+      {
+        Sid    = "SSMSendCommand"
+        Effect = "Allow"
+        Action = [
+          "ssm:SendCommand",
+          "ssm:GetCommandInvocation"
+        ]
+        Resource = [
+          "arn:aws:ec2:*:${data.aws_caller_identity.current.account_id}:instance/*",
+          "arn:aws:ssm:*::document/AWS-RunShellScript"
+        ]
       }
     ]
   })

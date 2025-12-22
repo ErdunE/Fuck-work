@@ -1,11 +1,10 @@
 name: Deploy Backend
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI Backend"]
+    types: [completed]
     branches: [main, dev]
-    paths:
-      - 'apps/backend/**'
-      - '.github/workflows/deploy-backend.yml'
 
 permissions:
   id-token: write
@@ -14,6 +13,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
       - name: Checkout code
@@ -41,24 +41,32 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
       
-      - name: Deploy to EC2
-        env:
-          EC2_HOST: 44.214.95.175
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Deploy to EC2 via SSM
         run: |
-          echo "$SSH_PRIVATE_KEY" > /tmp/ssh_key
-          chmod 600 /tmp/ssh_key
-          
-          ssh -o StrictHostKeyChecking=no -i /tmp/ssh_key ec2-user@$EC2_HOST << 'ENDSSH'
-            cd /home/ec2-user/fuckwork
-            docker-compose pull backend
-            docker-compose up -d backend scorer
-            docker-compose ps
-          ENDSSH
-          
-          rm /tmp/ssh_key
-      
+          COMMAND_ID=$(aws ssm send-command \
+            --instance-ids i-00ca943cdd5515272 \
+            --document-name "AWS-RunShellScript" \
+            --parameters 'commands=[
+              "cd /home/ec2-user/fuckwork",
+              "docker-compose pull backend",
+              "docker-compose up -d backend scorer",
+              "docker-compose ps"
+            ]' \
+            --output text \
+            --query 'Command.CommandId')
+            
+          echo "Command ID: $COMMAND_ID"
+            
+          # Wait for command to complete
+          sleep 10
+            
+          # Get command status
+          aws ssm get-command-invocation \
+            --command-id "$COMMAND_ID" \
+            --instance-id i-00ca943cdd5515272
+        
       - name: Verify deployment
         run: |
           sleep 10
           curl -f http://44.214.95.175/health || exit 1
+          echo "✅ Deployment successful!"
