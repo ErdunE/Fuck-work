@@ -238,6 +238,16 @@ resource "aws_iam_policy" "github_actions_terraform" {
           "dynamodb:DeleteItem"
         ]
         Resource = "arn:aws:dynamodb:*:${data.aws_caller_identity.current.account_id}:table/fuckwork-terraform-locks"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:Decrypt",
+          "kms:Encrypt",
+          "kms:DescribeKey",
+          "kms:GenerateDataKey"
+        ]
+        Resource = "*"
       }
     ]
   })
