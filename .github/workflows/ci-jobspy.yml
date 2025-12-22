@@ -7,11 +7,6 @@ on:
       - 'apps/backend/src/fuckwork/services/collection/**'
       - 'apps/backend/Dockerfile.jobspy'
       - '.github/workflows/ci-jobspy.yml'
-  push:
-    branches: [main, dev]
-    paths:
-      - 'apps/backend/src/fuckwork/services/collection/**'
-      - '.github/workflows/ci-jobspy.yml'
 
 jobs:
   test:
