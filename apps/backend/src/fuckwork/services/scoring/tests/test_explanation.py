@@ -194,4 +194,3 @@ def test_missing_description_fallback(engine: ExplanationEngine) -> None:
     # Should use fallback text
     assert len(result["red_flags"]) == 1
     assert "Unknown signal" in result["red_flags"][0] or len(result["red_flags"][0]) > 0
-

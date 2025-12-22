@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO)
 if __name__ == "__main__":
     try:
         stats = run_full_pipeline()
-        print(f"\n✓ Pipeline completed successfully")
+        print("\n✓ Pipeline completed successfully")
         print(f"  - Jobs collected: {stats['collected']}")
         print(f"  - Jobs saved: {stats['saved']}")
         print(f"  - Jobs scored: {stats['scored']}")
@@ -19,4 +19,3 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"\n✗ Pipeline failed: {e}")
         sys.exit(1)
-

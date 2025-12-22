@@ -13,7 +13,9 @@ def fusion() -> ScoreFusion:
 
 
 def test_exponential_formula(fusion: ScoreFusion) -> None:
-    activated = [{"id": "A1", "weight": 0.25, "signal": "negative", "confidence": "high"}]
+    activated = [
+        {"id": "A1", "weight": 0.25, "signal": "negative", "confidence": "high"}
+    ]
     result = fusion.calculate(activated)
     assert 60 <= result["authenticity_score"] <= 68
     assert result["level"] == "uncertain"
@@ -21,28 +23,41 @@ def test_exponential_formula(fusion: ScoreFusion) -> None:
 
 def test_level_thresholds(fusion: ScoreFusion) -> None:
     # likely real
-    activated = [{"id": "neg", "weight": 0.05, "signal": "negative", "confidence": "high"}]
+    activated = [
+        {"id": "neg", "weight": 0.05, "signal": "negative", "confidence": "high"}
+    ]
     result = fusion.calculate(activated)
     assert result["level"] == "likely real"
 
     # uncertain
-    activated = [{"id": "neg", "weight": 0.3, "signal": "negative", "confidence": "high"}]
+    activated = [
+        {"id": "neg", "weight": 0.3, "signal": "negative", "confidence": "high"}
+    ]
     result = fusion.calculate(activated)
     assert result["level"] == "uncertain"
 
     # likely fake
-    activated = [{"id": "neg", "weight": 0.6, "signal": "negative", "confidence": "high"}]
+    activated = [
+        {"id": "neg", "weight": 0.6, "signal": "negative", "confidence": "high"}
+    ]
     result = fusion.calculate(activated)
     assert result["level"] == "likely fake"
 
 
 def test_positive_signal_boost(fusion: ScoreFusion) -> None:
-    negatives = [{"id": "N1", "weight": 0.4, "signal": "negative", "confidence": "high"}]
-    positives = [{"id": "P1", "weight": 0.4, "signal": "positive", "confidence": "high"}]
+    negatives = [
+        {"id": "N1", "weight": 0.4, "signal": "negative", "confidence": "high"}
+    ]
+    positives = [
+        {"id": "P1", "weight": 0.4, "signal": "positive", "confidence": "high"}
+    ]
     base_result = fusion.calculate(negatives)
     boosted_result = fusion.calculate(negatives + positives)
     assert boosted_result["authenticity_score"] > base_result["authenticity_score"]
-    assert boosted_result["authenticity_score"] <= base_result["authenticity_score"] * fusion.MAX_GAIN
+    assert (
+        boosted_result["authenticity_score"]
+        <= base_result["authenticity_score"] * fusion.MAX_GAIN
+    )
 
 
 def test_confidence_levels(fusion: ScoreFusion) -> None:
@@ -54,22 +69,30 @@ def test_confidence_levels(fusion: ScoreFusion) -> None:
     }
 
     # High: one strong rule plus full coverage
-    activated = [{"id": "S1", "weight": 0.2, "signal": "negative", "confidence": "high"}]
+    activated = [
+        {"id": "S1", "weight": 0.2, "signal": "negative", "confidence": "high"}
+    ]
     assert fusion.calculate(activated, job_full)["confidence"] == "High"
 
     # Medium: one strong rule, partial coverage (2/4)
     job_partial = {"jd_text": "text", "company_name": "ACME"}
-    activated = [{"id": "S1", "weight": 0.18, "signal": "negative", "confidence": "high"}]
+    activated = [
+        {"id": "S1", "weight": 0.18, "signal": "negative", "confidence": "high"}
+    ]
     assert fusion.calculate(activated, job_partial)["confidence"] == "Medium"
 
     # Low: no data and no strong rules
-    activated = [{"id": "S1", "weight": 0.05, "signal": "negative", "confidence": "high"}]
+    activated = [
+        {"id": "S1", "weight": 0.05, "signal": "negative", "confidence": "high"}
+    ]
     assert fusion.calculate(activated)["confidence"] == "Low"
 
 
 def test_clamping(fusion: ScoreFusion) -> None:
     # Extreme negative sum drives towards 0
-    activated = [{"id": "N1", "weight": 5.0, "signal": "negative", "confidence": "high"}]
+    activated = [
+        {"id": "N1", "weight": 5.0, "signal": "negative", "confidence": "high"}
+    ]
     result = fusion.calculate(activated)
     assert 0 <= result["authenticity_score"] <= 1
 
@@ -130,4 +153,3 @@ def test_sample_dataset_scores_within_tolerance(fusion: ScoreFusion) -> None:
     result = fusion.calculate(activated)
     assert 7 <= result["authenticity_score"] <= 17
     assert result["level"] == "likely fake"
-

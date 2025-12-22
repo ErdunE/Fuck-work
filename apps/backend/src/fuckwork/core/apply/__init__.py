@@ -8,14 +8,13 @@ from .apply_service import (
     list_tasks,
     get_task,
     transition_task,
-    PriorityStrategy
+    PriorityStrategy,
 )
 
 __all__ = [
-    'create_tasks_from_job_ids',
-    'list_tasks',
-    'get_task',
-    'transition_task',
-    'PriorityStrategy'
+    "create_tasks_from_job_ids",
+    "list_tasks",
+    "get_task",
+    "transition_task",
+    "PriorityStrategy",
 ]
-

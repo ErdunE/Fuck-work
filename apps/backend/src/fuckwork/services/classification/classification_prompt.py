@@ -15,13 +15,13 @@ def build_classification_prompt(
     company_industry: str = "",
     job_function: str = "",
     description_snippet: str = "",
-    skills: list = None
+    skills: list = None,
 ) -> str:
     """
     Build prompt for LLM job classification.
-    
+
     Requests JSON output with category, industry, and specialties.
-    
+
     Args:
         title: Job title
         company_name: Company name
@@ -29,13 +29,13 @@ def build_classification_prompt(
         job_function: JobSpy's job_function field
         description_snippet: First 500 chars of description (for context)
         skills: List of skills from JobSpy
-        
+
     Returns:
         Complete prompt for LLM
     """
-    
+
     skills_str = ", ".join(skills) if skills else "Not specified"
-    
+
     prompt = f"""You are a job classification expert. Classify the following job posting into precise categories.
 
 JOB INFORMATION:
@@ -50,7 +50,7 @@ OUTPUT REQUIREMENTS:
 Return ONLY a JSON object with these exact keys (no markdown, no explanation):
 
 {{
-  "category": "one of: 
+  "category": "one of:
     TECH: software_backend, software_frontend, software_fullstack, software_mobile, data_science, data_engineering, ml_engineer, ai_research, devops, sre, cloud, product_management, product_design, cybersecurity,
     HEALTHCARE: healthcare_nursing, healthcare_physician, healthcare_allied, healthcare_admin, healthcare_clinical,
     FINANCE: finance_analyst, finance_accounting, finance_investment, finance_risk, finance_compliance,
@@ -117,20 +117,20 @@ CONFIDENCE:
 - low: Ambiguous, best guess
 
 RESPOND WITH ONLY THE JSON OBJECT:"""
-    
+
     return prompt
 
 
 def parse_llm_classification(response: str) -> Dict[str, Any]:
     """
     Parse LLM response into classification dict.
-    
+
     Args:
         response: LLM response (should be JSON)
-        
+
     Returns:
         Dict with category, industry, specialties, confidence
-        
+
     Raises:
         ValueError: If response is not valid JSON or missing required keys
     """
@@ -141,31 +141,31 @@ def parse_llm_classification(response: str) -> Dict[str, Any]:
             response = response.split("```json")[1].split("```")[0].strip()
         elif response.startswith("```"):
             response = response.split("```")[1].split("```")[0].strip()
-        
+
         # Parse JSON
         result = json.loads(response)
-        
+
         # Validate required keys
         required_keys = ["category", "industry", "specialties", "confidence"]
         for key in required_keys:
             if key not in result:
                 raise ValueError(f"Missing required key: {key}")
-        
+
         # Validate types
         if not isinstance(result["category"], str):
             raise ValueError("category must be string")
-        
+
         if not isinstance(result["industry"], str):
             raise ValueError("industry must be string")
-        
+
         if not isinstance(result["specialties"], list):
             raise ValueError("specialties must be list")
-        
+
         if result["confidence"] not in ["high", "medium", "low"]:
             result["confidence"] = "medium"  # Default if invalid
-        
+
         return result
-        
+
     except json.JSONDecodeError as e:
         raise ValueError(f"LLM response is not valid JSON: {e}")
     except Exception as e:
@@ -178,55 +178,53 @@ EXAMPLE_RESPONSES = {
         "input": {
             "title": "Senior Backend Engineer",
             "company_industry": "Software Development",
-            "description": "Build scalable REST APIs using Python and PostgreSQL..."
+            "description": "Build scalable REST APIs using Python and PostgreSQL...",
         },
         "expected_output": {
             "category": "software_backend",
             "industry": "technology",
             "specialties": ["python", "sql", "api_design"],
-            "confidence": "high"
-        }
+            "confidence": "high",
+        },
     },
-    
     "ml_engineer": {
         "input": {
             "title": "Machine Learning Engineer",
             "company_industry": "Financial Services",
-            "description": "Deploy ML models for fraud detection using TensorFlow..."
+            "description": "Deploy ML models for fraud detection using TensorFlow...",
         },
         "expected_output": {
             "category": "ml_engineer",
             "industry": "finance",
             "specialties": ["tensorflow", "deep_learning", "mlops"],
-            "confidence": "high"
-        }
+            "confidence": "high",
+        },
     },
-    
     "ambiguous": {
         "input": {
             "title": "Software Engineer",
             "company_industry": "Technology",
-            "description": "Join our team..."
+            "description": "Join our team...",
         },
         "expected_output": {
             "category": "software_fullstack",
             "industry": "technology",
             "specialties": ["general"],
-            "confidence": "low"
-        }
-    }
+            "confidence": "low",
+        },
+    },
 }
 
 
 def validate_llm_response_format(response_text: str) -> bool:
     """
     Quick check if LLM response looks like valid JSON.
-    
+
     Returns:
         True if response appears valid
     """
     try:
         parse_llm_classification(response_text)
         return True
-    except:
+    except (json.JSONDecodeError, ValueError):
         return False

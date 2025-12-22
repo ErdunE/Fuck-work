@@ -31,10 +31,15 @@ jobs:
           cd apps/backend
           pip install -r requirements/dev.txt
       
-      - name: Lint collection service
+      - name: Lint with black
         run: |
           cd apps/backend
-          black --check src/fuckwork/services/collection/ || true
+          black --check src/fuckwork/services/collection/
+
+      - name: Lint with flake8
+        run: |
+          cd apps/backend
+          flake8 src/fuckwork/services/collection/
       
       - name: Test summary
         run: echo "✅ JobSpy CI completed"

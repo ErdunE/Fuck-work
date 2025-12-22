@@ -10,7 +10,7 @@ EXPANDED: Now covers 22 industries with 200+ search terms.
 # All supported platforms (from JobSpy)
 ALL_PLATFORMS = [
     "linkedin",
-    "indeed", 
+    "indeed",
     "zip_recruiter",
     "glassdoor",
     "google",
@@ -22,7 +22,6 @@ PRIMARY_PLATFORMS = ["linkedin", "indeed", "zip_recruiter", "glassdoor"]
 # Search query matrix - EXPANDED VERSION
 SEARCH_QUERIES = {
     # ==================== TECHNOLOGY & SOFTWARE ====================
-    
     # Software Engineering (all levels)
     "software_engineer": {
         "base_term": "Software Engineer",
@@ -36,7 +35,6 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior ", "Staff ", "Principal "],
     },
-    
     # New Grad specific
     "new_grad": {
         "base_term": "New Grad Software Engineer",
@@ -49,7 +47,6 @@ SEARCH_QUERIES = {
         ],
         "levels": None,  # Already level-specific
     },
-    
     # Internships
     "internships": {
         "base_term": "Software Engineering Intern",
@@ -62,7 +59,6 @@ SEARCH_QUERIES = {
         ],
         "levels": None,
     },
-    
     # Data Science / ML / AI
     "data_science": {
         "base_term": "Data Scientist",
@@ -76,7 +72,6 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior ", "Staff "],
     },
-    
     # Specialized tech roles
     "specialized": {
         "base_term": "Software Engineer",
@@ -92,9 +87,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior "],
     },
-    
     # ==================== FINANCE & BANKING ====================
-    
     "finance": {
         "base_term": "Financial Analyst",
         "variants": [
@@ -109,9 +102,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== HEALTHCARE & MEDICAL ====================
-    
     "healthcare": {
         "base_term": "Registered Nurse",
         "variants": [
@@ -126,9 +117,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Lead "],
     },
-    
     # ==================== EDUCATION ====================
-    
     "education": {
         "base_term": "Teacher",
         "variants": [
@@ -143,9 +132,7 @@ SEARCH_QUERIES = {
         ],
         "levels": None,  # Education uses different hierarchy
     },
-    
     # ==================== MARKETING & ADVERTISING ====================
-    
     "marketing": {
         "base_term": "Marketing Manager",
         "variants": [
@@ -160,9 +147,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== SALES & BUSINESS DEVELOPMENT ====================
-    
     "sales": {
         "base_term": "Sales Representative",
         "variants": [
@@ -177,9 +162,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== OPERATIONS & SUPPLY CHAIN ====================
-    
     "operations": {
         "base_term": "Operations Manager",
         "variants": [
@@ -194,9 +177,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== HUMAN RESOURCES ====================
-    
     "hr": {
         "base_term": "HR Manager",
         "variants": [
@@ -211,9 +192,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== LEGAL ====================
-    
     "legal": {
         "base_term": "Lawyer",
         "variants": [
@@ -228,9 +207,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Associate "],
     },
-    
     # ==================== DESIGN & CREATIVE ====================
-    
     "design": {
         "base_term": "Graphic Designer",
         "variants": [
@@ -245,9 +222,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== PRODUCT MANAGEMENT ====================
-    
     "product": {
         "base_term": "Product Manager",
         "variants": [
@@ -262,9 +237,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== MANUFACTURING & ENGINEERING ====================
-    
     "manufacturing": {
         "base_term": "Manufacturing Engineer",
         "variants": [
@@ -279,9 +252,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== RETAIL & E-COMMERCE ====================
-    
     "retail": {
         "base_term": "Store Manager",
         "variants": [
@@ -296,9 +267,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Assistant "],
     },
-    
     # ==================== CUSTOMER SERVICE & SUPPORT ====================
-    
     "customer_service": {
         "base_term": "Customer Service Representative",
         "variants": [
@@ -313,9 +282,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Lead "],
     },
-    
     # ==================== RESEARCH & SCIENCE ====================
-    
     "research": {
         "base_term": "Research Scientist",
         "variants": [
@@ -330,9 +297,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Principal "],
     },
-    
     # ==================== CONSULTING ====================
-    
     "consulting": {
         "base_term": "Management Consultant",
         "variants": [
@@ -347,9 +312,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Associate "],
     },
-    
     # ==================== CONSTRUCTION & REAL ESTATE ====================
-    
     "construction": {
         "base_term": "Project Manager",
         "variants": [
@@ -364,9 +327,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== HOSPITALITY & TRAVEL ====================
-    
     "hospitality": {
         "base_term": "Hotel Manager",
         "variants": [
@@ -381,9 +342,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Assistant "],
     },
-    
     # ==================== MEDIA & ENTERTAINMENT ====================
-    
     "media": {
         "base_term": "Content Producer",
         "variants": [
@@ -398,9 +357,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Junior "],
     },
-    
     # ==================== GOVERNMENT & PUBLIC SECTOR ====================
-    
     "government": {
         "base_term": "Program Manager",
         "variants": [
@@ -415,9 +372,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Associate "],
     },
-    
     # ==================== NON-PROFIT ====================
-    
     "nonprofit": {
         "base_term": "Program Director",
         "variants": [
@@ -432,9 +387,7 @@ SEARCH_QUERIES = {
         ],
         "levels": ["", "Senior ", "Associate "],
     },
-    
     # ==================== TRANSPORTATION & LOGISTICS ====================
-    
     "transportation": {
         "base_term": "Logistics Manager",
         "variants": [
@@ -466,11 +419,11 @@ LOCATIONS = {
 
 # Time windows for job freshness
 TIME_WINDOWS = {
-    "today": 24,        # Last 24 hours
-    "hourly": 1,        # Last 1 hour
-    "recent": 72,       # Last 3 days
-    "week": 168,        # Last 7 days
-    "month": 720,       # Last 30 days
+    "today": 24,  # Last 24 hours
+    "hourly": 1,  # Last 1 hour
+    "recent": 72,  # Last 3 days
+    "week": 168,  # Last 7 days
+    "month": 720,  # Last 30 days
 }
 
 # Results per query
@@ -487,38 +440,38 @@ def generate_search_matrix(
     platforms=None,
     location="us_national",
     time_window="recent",
-    results_wanted="standard"
+    results_wanted="standard",
 ):
     """
     Generate search matrix for batch collection.
-    
+
     Args:
         categories: List of categories to include (default: all)
         platforms: List of platforms (default: PRIMARY_PLATFORMS)
         location: Location key from LOCATIONS
         time_window: Time window key from TIME_WINDOWS
         results_wanted: Results level from RESULTS_PER_QUERY
-    
+
     Returns:
         List of search job configs
     """
     if categories is None:
         categories = list(SEARCH_QUERIES.keys())
-    
+
     if platforms is None:
         platforms = PRIMARY_PLATFORMS
-    
+
     location_str = LOCATIONS.get(location, LOCATIONS["us_national"])
     hours = TIME_WINDOWS.get(time_window, TIME_WINDOWS["recent"])
     results = RESULTS_PER_QUERY.get(results_wanted, RESULTS_PER_QUERY["standard"])
-    
+
     search_jobs = []
-    
+
     for category in categories:
         query_config = SEARCH_QUERIES[category]
         variants = query_config["variants"]
         levels = query_config.get("levels")
-        
+
         # Generate search terms
         search_terms = []
         if levels:
@@ -527,18 +480,20 @@ def generate_search_matrix(
                     search_terms.append(f"{level}{variant}".strip())
         else:
             search_terms = variants
-        
+
         # Create job configs
         for term in search_terms:
-            search_jobs.append({
-                "search_term": term,
-                "location": location_str,
-                "sites": platforms,
-                "hours_old": hours,
-                "results_wanted": results,
-                "category": category,
-            })
-    
+            search_jobs.append(
+                {
+                    "search_term": term,
+                    "location": location_str,
+                    "sites": platforms,
+                    "hours_old": hours,
+                    "results_wanted": results,
+                    "category": category,
+                }
+            )
+
     return search_jobs
 
 
@@ -576,61 +531,65 @@ PRESET_MASSIVE = {
     "results_wanted": "thorough",  # 100 per query
 }
 
+
 # Quick stats
 def get_search_stats(preset_name: str = None):
     """Get statistics about search configurations"""
     if preset_name:
-        from . import batch_collector
+
         presets = {
-            'quick': PRESET_QUICK,
-            'daily': PRESET_DAILY,
-            'thorough': PRESET_THOROUGH,
-            'massive': PRESET_MASSIVE,
+            "quick": PRESET_QUICK,
+            "daily": PRESET_DAILY,
+            "thorough": PRESET_THOROUGH,
+            "massive": PRESET_MASSIVE,
         }
         preset = presets.get(preset_name)
         if preset:
             configs = generate_search_matrix(**preset)
             return {
-                'preset': preset_name,
-                'total_queries': len(configs),
-                'categories': len(preset['categories']),
-                'platforms': len(preset['platforms']),
-                'expected_jobs_per_query': RESULTS_PER_QUERY[preset['results_wanted']],
-                'max_total_jobs': len(configs) * RESULTS_PER_QUERY[preset['results_wanted']],
+                "preset": preset_name,
+                "total_queries": len(configs),
+                "categories": len(preset["categories"]),
+                "platforms": len(preset["platforms"]),
+                "expected_jobs_per_query": RESULTS_PER_QUERY[preset["results_wanted"]],
+                "max_total_jobs": len(configs)
+                * RESULTS_PER_QUERY[preset["results_wanted"]],
             }
-    
+
     # Overall stats
     total_categories = len(SEARCH_QUERIES)
-    total_variants = sum(len(q['variants']) for q in SEARCH_QUERIES.values())
-    
+    total_variants = sum(len(q["variants"]) for q in SEARCH_QUERIES.values())
+
     return {
-        'total_categories': total_categories,
-        'total_variants': total_variants,
-        'industries_covered': [
-            'Technology & Software',
-            'Finance & Banking',
-            'Healthcare & Medical',
-            'Education',
-            'Marketing & Advertising',
-            'Sales & Business Development',
-            'Operations & Supply Chain',
-            'Human Resources',
-            'Legal',
-            'Design & Creative',
-            'Product Management',
-            'Manufacturing & Engineering',
-            'Retail & E-commerce',
-            'Customer Service',
-            'Research & Science',
-            'Consulting',
-            'Construction & Real Estate',
-            'Hospitality & Travel',
-            'Media & Entertainment',
-            'Government & Public Sector',
-            'Non-Profit',
-            'Transportation & Logistics',
-        ]
+        "total_categories": total_categories,
+        "total_variants": total_variants,
+        "industries_covered": [
+            "Technology & Software",
+            "Finance & Banking",
+            "Healthcare & Medical",
+            "Education",
+            "Marketing & Advertising",
+            "Sales & Business Development",
+            "Operations & Supply Chain",
+            "Human Resources",
+            "Legal",
+            "Design & Creative",
+            "Product Management",
+            "Manufacturing & Engineering",
+            "Retail & E-commerce",
+            "Customer Service",
+            "Research & Science",
+            "Consulting",
+            "Construction & Real Estate",
+            "Hospitality & Travel",
+            "Media & Entertainment",
+            "Government & Public Sector",
+            "Non-Profit",
+            "Transportation & Logistics",
+        ],
     }
+
+
 # NEW: Hourly collection preset (all industries, past 1 hour)
 PRESET_HOURLY = {
     "categories": list(SEARCH_QUERIES.keys()),  # All 22 industries

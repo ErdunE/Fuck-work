@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from .explanation_engine import ExplanationEngine
 from .rule_engine import RuleEngine
@@ -32,7 +32,9 @@ class AuthenticityScorer:
         self.score_fusion = ScoreFusion()
         self.explanation_engine = ExplanationEngine()
 
-        logger.info("AuthenticityScorer initialized with rules from %s", rule_table_path)
+        logger.info(
+            "AuthenticityScorer initialized with rules from %s", rule_table_path
+        )
 
     def score_job(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
         """

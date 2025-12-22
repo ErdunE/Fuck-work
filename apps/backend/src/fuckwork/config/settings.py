@@ -1,6 +1,7 @@
 """
 Centralized configuration management.
 """
+
 import os
 from pathlib import Path
 
@@ -11,8 +12,7 @@ LOGS_DIR = BASE_DIR / "logs"
 
 # Database
 DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://fuckwork:fuckwork_dev@localhost:5432/fuckwork"
+    "DATABASE_URL", "postgresql://fuckwork:fuckwork_dev@localhost:5432/fuckwork"
 )
 
 # Environment

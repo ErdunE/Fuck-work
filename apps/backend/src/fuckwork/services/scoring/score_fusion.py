@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
 
 class ScoreFusion:
@@ -16,7 +16,9 @@ class ScoreFusion:
     LEVEL_UNCERTAIN: float = 55.0
 
     def calculate(
-        self, activated_rules: List[Dict[str, Any]], job_data: Optional[Dict[str, Any]] = None
+        self,
+        activated_rules: List[Dict[str, Any]],
+        job_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Calculate authenticity score from activated rules.
@@ -31,16 +33,20 @@ class ScoreFusion:
         # Extract collection metadata for platform-aware weight adjustment (Phase 2A)
         collection_meta = {}
         if job_data is not None:
-            collection_meta = job_data.get('collection_metadata', {})
-        
+            collection_meta = job_data.get("collection_metadata", {})
+
         negative_rules = [r for r in activated_rules if r.get("signal") == "negative"]
         positive_rules = [r for r in activated_rules if r.get("signal") == "positive"]
 
         # Apply platform-aware weight adjustment (Phase 2A Stage 7)
-        negative_sum = sum(self._adjust_weight_for_platform(r, collection_meta) for r in negative_rules)
+        negative_sum = sum(
+            self._adjust_weight_for_platform(r, collection_meta) for r in negative_rules
+        )
         base_score = 100 * math.exp(-negative_sum * self.PENALTY_FACTOR)
 
-        positive_sum = sum(self._adjust_weight_for_platform(r, collection_meta) for r in positive_rules)
+        positive_sum = sum(
+            self._adjust_weight_for_platform(r, collection_meta) for r in positive_rules
+        )
         gain = min(self.MAX_GAIN, (1 + positive_sum) ** 0.25)
 
         final_score = base_score * gain
@@ -66,14 +72,20 @@ class ScoreFusion:
         return "likely fake"
 
     def _calculate_confidence(
-        self, activated_rules: List[Dict[str, Any]], job_data: Optional[Dict[str, Any]] = None
+        self,
+        activated_rules: List[Dict[str, Any]],
+        job_data: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         Confidence is based on:
         1. Count of strong rules (weight >= STRONG_RULE_THRESHOLD)
         2. Data coverage of required fields (if job_data provided)
         """
-        strong_count = sum(1 for r in activated_rules if self._safe_weight(r) >= self.STRONG_RULE_THRESHOLD)
+        strong_count = sum(
+            1
+            for r in activated_rules
+            if self._safe_weight(r) >= self.STRONG_RULE_THRESHOLD
+        )
 
         coverage = 0.0
         if job_data is not None:
@@ -83,13 +95,19 @@ class ScoreFusion:
                 "platform_metadata.posted_days_ago",
                 "company_name",
             ]
-            present = sum(1 for field in required_fields if self._get_nested_value(job_data, field) is not None)
+            present = sum(
+                1
+                for field in required_fields
+                if self._get_nested_value(job_data, field) is not None
+            )
             coverage = present / len(required_fields)
 
         confidence_score = (0.5 * min(1.0, strong_count / 3.0)) + (0.5 * coverage)
 
         if strong_count == 0 and coverage >= 0.75:
-            max_weight = max((self._safe_weight(r) for r in activated_rules), default=0.0)
+            max_weight = max(
+                (self._safe_weight(r) for r in activated_rules), default=0.0
+            )
             if not activated_rules or max_weight < 0.05:
                 return "High"
             if len(activated_rules) >= 5 and max_weight < 0.2:
@@ -100,37 +118,39 @@ class ScoreFusion:
             return "Medium"
         return "Low"
 
-    def _adjust_weight_for_platform(self, rule: Dict[str, Any], collection_meta: Dict[str, Any]) -> float:
+    def _adjust_weight_for_platform(
+        self, rule: Dict[str, Any], collection_meta: Dict[str, Any]
+    ) -> float:
         """
         Adjust rule weight based on platform capabilities.
-        
+
         KEY LOGIC (Phase 2A Stage 7):
         - A-series (Recruiter) rules: Only apply if poster expected AND present
         - Other rules: Keep original weight
-        
+
         Args:
             rule: Rule dict with rule_id and weight
             collection_meta: Platform metadata with poster_expected/present
-        
+
         Returns:
             Adjusted weight (0.0 if should skip rule)
         """
-        rule_id = rule.get('rule_id', '')
+        rule_id = rule.get("rule_id", "")
         base_weight = self._safe_weight(rule)
-        
+
         # A-series rules (Recruiter signals)
-        if rule_id.startswith('A'):
-            poster_expected = collection_meta.get('poster_expected', False)
-            poster_present = collection_meta.get('poster_present', False)
-            
+        if rule_id.startswith("A"):
+            poster_expected = collection_meta.get("poster_expected", False)
+            poster_present = collection_meta.get("poster_present", False)
+
             # If poster not expected (e.g., Indeed), skip rule entirely
             if not poster_expected:
                 return 0.0
-            
+
             # If poster expected but not present (extraction failure), reduce weight
             if not poster_present:
                 return base_weight * 0.5
-        
+
         # All other rules: keep original weight
         return base_weight
 

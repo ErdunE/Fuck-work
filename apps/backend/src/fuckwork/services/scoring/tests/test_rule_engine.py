@@ -8,7 +8,9 @@ from apps.backend.authenticity_scoring.rule_engine import RuleEngine
 
 @pytest.fixture(scope="module")
 def rule_engine() -> RuleEngine:
-    rule_path = Path(__file__).resolve().parent.parent / "data" / "authenticity_rule_table.json"
+    rule_path = (
+        Path(__file__).resolve().parent.parent / "data" / "authenticity_rule_table.json"
+    )
     return RuleEngine(str(rule_path))
 
 
@@ -139,7 +141,9 @@ def test_no_activation_when_missing_data(rule_engine: RuleEngine) -> None:
 
 def test_multiple_rules_trigger(rule_engine: RuleEngine) -> None:
     job = base_job()
-    job["jd_text"] = "Our client offers contract work; apply ASAP and email hiring2025@gmail.com"
+    job["jd_text"] = (
+        "Our client offers contract work; apply ASAP and email hiring2025@gmail.com"
+    )
     job["platform_metadata"]["repost_count"] = 4
     job["poster_info"]["recent_job_count_7d"] = 12
     ids = _activated_ids(rule_engine, job)
@@ -161,7 +165,9 @@ def test_case_insensitive_matching(rule_engine: RuleEngine) -> None:
 
 def test_B18_not_trigger_on_faang(rule_engine: RuleEngine) -> None:
     job = base_job()
-    job["jd_text"] = """
+    job[
+        "jd_text"
+    ] = """
     Google is hiring a Software Engineer.
     You'll work on building distributed systems.
     """
@@ -171,7 +177,9 @@ def test_B18_not_trigger_on_faang(rule_engine: RuleEngine) -> None:
 
 def test_B18_not_trigger_on_you_will(rule_engine: RuleEngine) -> None:
     job = base_job()
-    job["jd_text"] = """
+    job[
+        "jd_text"
+    ] = """
     In this role, you will design and develop features.
     """
     ids = _activated_ids(rule_engine, job)
@@ -180,7 +188,9 @@ def test_B18_not_trigger_on_you_will(rule_engine: RuleEngine) -> None:
 
 def test_B18_trigger_on_generic_jd(rule_engine: RuleEngine) -> None:
     job = base_job()
-    job["jd_text"] = """
+    job[
+        "jd_text"
+    ] = """
     Software Engineer position.
     Competitive salary.
     """
@@ -190,7 +200,9 @@ def test_B18_trigger_on_generic_jd(rule_engine: RuleEngine) -> None:
 
 def test_B18_not_trigger_with_responsibilities(rule_engine: RuleEngine) -> None:
     job = base_job()
-    job["jd_text"] = """
+    job[
+        "jd_text"
+    ] = """
     Responsibilities:
     - Write code
     - Fix bugs
@@ -206,7 +218,9 @@ def test_B18_not_trigger_with_responsibilities(rule_engine: RuleEngine) -> None:
 
 def test_B20_normal_formatting(rule_engine: RuleEngine) -> None:
     job = base_job()
-    job["jd_text"] = """
+    job[
+        "jd_text"
+    ] = """
     Software Engineer
     - Python
     - Cloud

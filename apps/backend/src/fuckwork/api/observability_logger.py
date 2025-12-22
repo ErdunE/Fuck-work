@@ -19,11 +19,11 @@ def log_event(
     severity: str = "info",
     payload: Dict[str, Any] = None,
     request_id: Optional[str] = None,
-    url: Optional[str] = None
+    url: Optional[str] = None,
 ) -> None:
     """
     Log an observability event from backend.
-    
+
     Args:
         db: Database session
         user_id: User ID for the event
@@ -34,10 +34,10 @@ def log_event(
         payload: Structured event payload (JSON-serializable dict)
         request_id: HTTP request ID for correlation
         url: URL context for the event
-    
+
     Returns:
         None (events are inserted async, failures are logged but don't raise)
-    
+
     Example:
         log_event(
             db=db,
@@ -50,11 +50,11 @@ def log_event(
     # Can't log without run context
     if run_id is None:
         return
-    
+
     # Default to empty dict if no payload
     if payload is None:
         payload = {}
-    
+
     try:
         event = ObservabilityEvent(
             run_id=run_id,
@@ -64,7 +64,7 @@ def log_event(
             event_name=event_name,
             payload=payload,
             request_id=request_id,
-            url=url
+            url=url,
         )
         db.add(event)
         db.commit()
@@ -72,4 +72,3 @@ def log_event(
         # Log failure but don't break request flow
         print(f"[Observability Logger] Failed to log event {event_name}: {e}")
         db.rollback()
-

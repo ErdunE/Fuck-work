@@ -6,7 +6,7 @@ Developer-grade debugging to replace browser console.
 
 from datetime import datetime
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from pydantic import BaseModel
@@ -19,8 +19,10 @@ router = APIRouter(prefix="/api/users/me", tags=["automation-events"])
 
 # Request/Response Models
 
+
 class AutomationEventCreateRequest(BaseModel):
     """Request to create automation event (from extension)."""
+
     task_id: Optional[int] = None
     session_id: Optional[str] = None
     event_type: str  # 'autofill_triggered', 'submit_approved', 'detection_result'
@@ -38,6 +40,7 @@ class AutomationEventCreateRequest(BaseModel):
 
 class AutomationEventResponse(BaseModel):
     """Automation event response."""
+
     id: int
     user_id: Optional[int] = None
     task_id: Optional[int] = None
@@ -54,13 +57,14 @@ class AutomationEventResponse(BaseModel):
     preferences_snapshot: Optional[dict] = None
     event_payload: Optional[dict] = None
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 class AutomationEventCreateResponse(BaseModel):
     """Response after creating event."""
+
     event_id: int
     created_at: datetime
     message: str
@@ -68,6 +72,7 @@ class AutomationEventCreateResponse(BaseModel):
 
 class AutomationEventsListResponse(BaseModel):
     """Paginated list of automation events."""
+
     events: List[AutomationEventResponse]
     total: int
     limit: int
@@ -76,15 +81,20 @@ class AutomationEventsListResponse(BaseModel):
 
 # Endpoints
 
-@router.post("/automation-events", response_model=AutomationEventCreateResponse, status_code=status.HTTP_201_CREATED)
+
+@router.post(
+    "/automation-events",
+    response_model=AutomationEventCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_automation_event(
     request: AutomationEventCreateRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Create automation event (called by extension).
-    
+
     Immutable audit log - INSERT only, no UPDATE/DELETE.
     Extension logs all automation decisions here for debugging.
     """
@@ -102,17 +112,17 @@ def create_automation_event(
         automation_decision=request.automation_decision,
         decision_reason=request.decision_reason,
         preferences_snapshot=request.preferences_snapshot,
-        event_payload=request.event_payload
+        event_payload=request.event_payload,
     )
-    
+
     db.add(event)
     db.commit()
     db.refresh(event)
-    
+
     return AutomationEventCreateResponse(
         event_id=event.id,
         created_at=event.created_at,
-        message="Event logged successfully"
+        message="Event logged successfully",
     )
 
 
@@ -125,19 +135,17 @@ def get_automation_events(
     limit: int = Query(100, ge=1, le=500, description="Maximum events to return"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """
     Get automation events for current user.
-    
+
     Developer-grade debugging view to replace browser console.
     Supports filtering by task, session, event type.
     """
     # Base query
-    query = db.query(AutomationEvent).filter(
-        AutomationEvent.user_id == current_user.id
-    )
-    
+    query = db.query(AutomationEvent).filter(AutomationEvent.user_id == current_user.id)
+
     # Apply filters
     if task_id:
         query = query.filter(AutomationEvent.task_id == task_id)
@@ -147,17 +155,21 @@ def get_automation_events(
         query = query.filter(AutomationEvent.event_type == event_type)
     if event_category:
         query = query.filter(AutomationEvent.event_category == event_category)
-    
+
     # Get total count
     total = query.count()
-    
+
     # Get paginated results (most recent first)
-    events = query.order_by(desc(AutomationEvent.created_at)).offset(offset).limit(limit).all()
-    
+    events = (
+        query.order_by(desc(AutomationEvent.created_at))
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
     return AutomationEventsListResponse(
         events=[AutomationEventResponse.from_orm(e) for e in events],
         total=total,
         limit=limit,
-        offset=offset
+        offset=offset,
     )
-

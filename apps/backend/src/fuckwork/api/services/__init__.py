@@ -4,5 +4,4 @@ Business logic services.
 
 from .job_service import JobService
 
-__all__ = ['JobService']
-
+__all__ = ["JobService"]

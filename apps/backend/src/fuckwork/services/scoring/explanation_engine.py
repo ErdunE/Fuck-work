@@ -63,14 +63,10 @@ class ExplanationEngine:
 
         Uses templates from spec section 5.3.
         """
-        template = self.SUMMARY_TEMPLATES.get(
-            level, "Authenticity score: {score:.0f}"
-        )
+        template = self.SUMMARY_TEMPLATES.get(level, "Authenticity score: {score:.0f}")
         return template.format(score=score)
 
-    def _extract_red_flags(
-        self, activated_rules: List[Dict[str, Any]]
-    ) -> List[str]:
+    def _extract_red_flags(self, activated_rules: List[Dict[str, Any]]) -> List[str]:
         """
         Extract top red flags from activated negative rules.
 
@@ -79,9 +75,7 @@ class ExplanationEngine:
         - Returns top MAX_RED_FLAGS descriptions
         - No rule IDs in output
         """
-        negative_rules = [
-            r for r in activated_rules if r.get("signal") == "negative"
-        ]
+        negative_rules = [r for r in activated_rules if r.get("signal") == "negative"]
 
         # Sort by weight descending
         negative_rules.sort(key=lambda r: r.get("weight", 0), reverse=True)
@@ -102,9 +96,7 @@ class ExplanationEngine:
 
         Returns list of human-readable descriptions.
         """
-        positive_rules = [
-            r for r in activated_rules if r.get("signal") == "positive"
-        ]
+        positive_rules = [r for r in activated_rules if r.get("signal") == "positive"]
 
         return [self._rule_to_readable(r) for r in positive_rules]
 
@@ -121,4 +113,3 @@ class ExplanationEngine:
             return description
         # Fallback if description missing (should not happen with valid rules)
         return "Unknown signal detected"
-

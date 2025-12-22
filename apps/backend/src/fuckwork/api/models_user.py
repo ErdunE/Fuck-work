@@ -10,26 +10,31 @@ from datetime import datetime, date
 
 # User Account
 
+
 class UserCreate(BaseModel):
     """Create new user"""
+
     email: EmailStr
 
 
 class UserResponse(BaseModel):
     """User account response"""
+
     id: int
     email: str
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 # Core Profile
 
+
 class UserProfileUpdate(BaseModel):
     """Update user core profile"""
+
     first_name: Optional[str] = None
     last_name: Optional[str] = None
     phone: Optional[str] = None
@@ -42,6 +47,7 @@ class UserProfileUpdate(BaseModel):
 
 class UserProfileResponse(BaseModel):
     """User profile response"""
+
     id: int
     user_id: int
     first_name: Optional[str]
@@ -54,15 +60,17 @@ class UserProfileResponse(BaseModel):
     visa_status: Optional[str]
     created_at: datetime
     updated_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 # Education
 
+
 class EducationCreate(BaseModel):
     """Add education entry"""
+
     school_name: str
     degree: Optional[str] = None
     major: Optional[str] = None
@@ -73,6 +81,7 @@ class EducationCreate(BaseModel):
 
 class EducationResponse(BaseModel):
     """Education entry response"""
+
     id: int
     user_id: int
     school_name: str
@@ -82,15 +91,17 @@ class EducationResponse(BaseModel):
     end_date: Optional[date]
     gpa: Optional[float]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 # Experience
 
+
 class ExperienceCreate(BaseModel):
     """Add work experience entry"""
+
     company_name: str
     job_title: str
     start_date: Optional[date] = None
@@ -101,6 +112,7 @@ class ExperienceCreate(BaseModel):
 
 class ExperienceResponse(BaseModel):
     """Work experience response"""
+
     id: int
     user_id: int
     company_name: str
@@ -110,15 +122,17 @@ class ExperienceResponse(BaseModel):
     is_current: bool
     responsibilities: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 # Projects
 
+
 class ProjectCreate(BaseModel):
     """Add project entry"""
+
     project_name: str
     role: Optional[str] = None
     description: Optional[str] = None
@@ -127,6 +141,7 @@ class ProjectCreate(BaseModel):
 
 class ProjectResponse(BaseModel):
     """Project response"""
+
     id: int
     user_id: int
     project_name: str
@@ -134,62 +149,70 @@ class ProjectResponse(BaseModel):
     description: Optional[str]
     tech_stack: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 # Skills
 
+
 class SkillCreate(BaseModel):
     """Add skill entry"""
+
     skill_name: str
     skill_category: Optional[str] = None
 
 
 class SkillResponse(BaseModel):
     """Skill response"""
+
     id: int
     user_id: int
     skill_name: str
     skill_category: Optional[str]
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 # Knowledge Base
 
+
 class KnowledgeEntryCreate(BaseModel):
     """Add knowledge entry"""
+
     entry_type: Literal[
         "self_introduction",
         "project_deep_dive",
         "leadership_story",
         "failure_story",
         "technical_explanation",
-        "custom_note"
+        "custom_note",
     ]
     content: str
 
 
 class KnowledgeEntryResponse(BaseModel):
     """Knowledge entry response"""
+
     id: int
     user_id: int
     entry_type: str
     content: str
     created_at: datetime
-    
+
     class Config:
         from_attributes = True
 
 
 # Full User Profile
 
+
 class FullUserProfileResponse(BaseModel):
     """Complete user profile with all data"""
+
     user: UserResponse
     profile: Optional[UserProfileResponse]
     education: List[EducationResponse]
@@ -197,4 +220,3 @@ class FullUserProfileResponse(BaseModel):
     projects: List[ProjectResponse]
     skills: List[SkillResponse]
     knowledge_entries: List[KnowledgeEntryResponse]
-

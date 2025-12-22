@@ -17,8 +17,10 @@ router = APIRouter(prefix="/api/users/me/education", tags=["profile", "education
 
 # Request/Response Models
 
+
 class EducationRequest(BaseModel):
     """Education entry request."""
+
     school_name: str
     degree: Optional[str] = None
     major: Optional[str] = None
@@ -29,6 +31,7 @@ class EducationRequest(BaseModel):
 
 class EducationResponse(BaseModel):
     """Education entry response."""
+
     id: int
     school_name: str
     degree: Optional[str]
@@ -36,29 +39,32 @@ class EducationResponse(BaseModel):
     start_date: Optional[date]
     end_date: Optional[date]
     gpa: Optional[float]
-    
+
     class Config:
         from_attributes = True
 
 
 class EducationListResponse(BaseModel):
     """Education list response."""
+
     education: List[EducationResponse]
     total: int
 
 
 # Endpoints
 
+
 @router.get("", response_model=EducationListResponse)
 def list_education(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Get all education entries for current user."""
-    education = db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
+    education = (
+        db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
+    )
     return EducationListResponse(
         education=[EducationResponse.from_orm(e) for e in education],
-        total=len(education)
+        total=len(education),
     )
 
 
@@ -66,7 +72,7 @@ def list_education(
 def create_education(
     request: EducationRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Add new education entry."""
     education = UserEducation(
@@ -76,12 +82,12 @@ def create_education(
         major=request.major,
         start_date=request.start_date,
         end_date=request.end_date,
-        gpa=request.gpa
+        gpa=request.gpa,
     )
     db.add(education)
     db.commit()
     db.refresh(education)
-    
+
     return EducationResponse.from_orm(education)
 
 
@@ -90,28 +96,30 @@ def update_education(
     education_id: int,
     request: EducationRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update education entry."""
-    education = db.query(UserEducation).filter(
-        UserEducation.id == education_id,
-        UserEducation.user_id == current_user.id
-    ).first()
-    
+    education = (
+        db.query(UserEducation)
+        .filter(
+            UserEducation.id == education_id, UserEducation.user_id == current_user.id
+        )
+        .first()
+    )
+
     if not education:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Education entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Education entry not found"
         )
-    
+
     # Update fields
     update_data = request.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(education, field, value)
-    
+
     db.commit()
     db.refresh(education)
-    
+
     return EducationResponse.from_orm(education)
 
 
@@ -119,22 +127,23 @@ def update_education(
 def delete_education(
     education_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete education entry."""
-    education = db.query(UserEducation).filter(
-        UserEducation.id == education_id,
-        UserEducation.user_id == current_user.id
-    ).first()
-    
+    education = (
+        db.query(UserEducation)
+        .filter(
+            UserEducation.id == education_id, UserEducation.user_id == current_user.id
+        )
+        .first()
+    )
+
     if not education:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Education entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Education entry not found"
         )
-    
+
     db.delete(education)
     db.commit()
-    
-    return None
 
+    return None

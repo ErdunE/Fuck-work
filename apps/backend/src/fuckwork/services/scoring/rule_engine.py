@@ -87,7 +87,9 @@ class RuleEngine:
         if pattern_type == "string_contains":
             return self._string_contains(value, pattern_value)
         if pattern_type == "string_contains_any":
-            return self._string_contains_any(value, self._ensure_iterable(pattern_value))
+            return self._string_contains_any(
+                value, self._ensure_iterable(pattern_value)
+            )
         if pattern_type == "string_equals_any":
             return self._string_equals_any(value, self._ensure_iterable(pattern_value))
         if pattern_type == "numeric_threshold":
@@ -156,7 +158,9 @@ class RuleEngine:
         except (TypeError, ValueError):
             return False
 
-    def _boolean_match(self, value: Any, expected: Any, job_data: Dict[str, Any]) -> bool:
+    def _boolean_match(
+        self, value: Any, expected: Any, job_data: Dict[str, Any]
+    ) -> bool:
         # Only evaluate boolean types by default to avoid misfiring on dict/int.
         if isinstance(value, bool):
             try:
@@ -199,7 +203,9 @@ class RuleEngine:
         values = list(company_info.values())
         return any(v not in (None, "", [], {}) for v in values)
 
-    def _check_body_shop_pattern(self, company_name: Any, job_data: Dict[str, Any]) -> bool:
+    def _check_body_shop_pattern(
+        self, company_name: Any, job_data: Dict[str, Any]
+    ) -> bool:
         """
         Detect generic body-shop company name patterns.
 
@@ -232,7 +238,9 @@ class RuleEngine:
         if not has_generic_keyword:
             return False
 
-        domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+        domain_matches = self._get_nested_value(
+            job_data, "company_info.domain_matches_name"
+        )
         company_size = self._get_nested_value(job_data, "company_info.size_employees")
         glassdoor = self._get_nested_value(job_data, "company_info.glassdoor_rating")
 
@@ -241,11 +249,19 @@ class RuleEngine:
 
         # If no legal suffix and only one generic keyword, allow trigger only when small and domain mismatch.
         if not has_legal_suffix and generic_count < 2:
-            if domain_matches is False and isinstance(company_size, (int, float)) and company_size < 100:
+            if (
+                domain_matches is False
+                and isinstance(company_size, (int, float))
+                and company_size < 100
+            ):
                 return True
             return False
 
-        if domain_matches is True and isinstance(company_size, (int, float)) and company_size >= 500:
+        if (
+            domain_matches is True
+            and isinstance(company_size, (int, float))
+            and company_size >= 500
+        ):
             return False
 
         if (
@@ -367,7 +383,9 @@ class RuleEngine:
             suspect += 1
         return suspect >= 1
 
-    def _effective_weight(self, rule: Dict[str, Any], job_data: Dict[str, Any]) -> float:
+    def _effective_weight(
+        self, rule: Dict[str, Any], job_data: Dict[str, Any]
+    ) -> float:
         """Compute context-aware weight (e.g., soften Easy Apply when info is complete)."""
         try:
             weight = float(rule.get("weight", 0.0))
@@ -379,29 +397,48 @@ class RuleEngine:
         if rule_id == "C10":
             # If company info is complete, reduce penalty impact.
             if self._is_company_info_complete(job_data):
-                posted_days = self._get_nested_value(job_data, "platform_metadata.posted_days_ago")
+                posted_days = self._get_nested_value(
+                    job_data, "platform_metadata.posted_days_ago"
+                )
                 if posted_days is not None and posted_days > 60:
                     return 0.0
                 return weight * 0.5
         if rule_id == "C5":
-            applicants = self._get_nested_value(job_data, "platform_metadata.applicants_count")
+            applicants = self._get_nested_value(
+                job_data, "platform_metadata.applicants_count"
+            )
             if isinstance(applicants, (int, float)) and applicants > 0:
                 return weight * 0.4
         if rule_id == "C1":
             # Staleness penalty softened slightly to avoid over-penalization.
-            posted_days = self._get_nested_value(job_data, "platform_metadata.posted_days_ago")
+            posted_days = self._get_nested_value(
+                job_data, "platform_metadata.posted_days_ago"
+            )
             if posted_days is not None:
                 return weight * 0.5
         if rule_id == "B9":
             # Salary transparency applies strongest in certain locations.
-            domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+            domain_matches = self._get_nested_value(
+                job_data, "company_info.domain_matches_name"
+            )
             size_emp = self._get_nested_value(job_data, "company_info.size_employees")
-            if domain_matches is True and isinstance(size_emp, (int, float)) and size_emp >= 10000:
+            if (
+                domain_matches is True
+                and isinstance(size_emp, (int, float))
+                and size_emp >= 10000
+            ):
                 return weight * 0.5
             location = str(self._get_nested_value(job_data, "location") or "").lower()
-            if any(key in location for key in ["ca", "california", "ny", "new york", "wa", "washington"]):
+            if any(
+                key in location
+                for key in ["ca", "california", "ny", "new york", "wa", "washington"]
+            ):
                 return weight
-            if domain_matches is True and isinstance(size_emp, (int, float)) and size_emp >= 1000:
+            if (
+                domain_matches is True
+                and isinstance(size_emp, (int, float))
+                and size_emp >= 1000
+            ):
                 return weight * 0.33
             if domain_matches is True:
                 return weight * 0.55
@@ -410,7 +447,9 @@ class RuleEngine:
             return weight * 0.33
         if rule_id == "A11":
             # If high posting frequency already captured by A3, reduce double penalty.
-            recent_jobs = self._get_nested_value(job_data, "poster_info.recent_job_count_7d")
+            recent_jobs = self._get_nested_value(
+                job_data, "poster_info.recent_job_count_7d"
+            )
             if isinstance(recent_jobs, (int, float)) and recent_jobs >= 8:
                 return weight * 0.5
         if rule_id == "C7":
@@ -429,8 +468,12 @@ class RuleEngine:
         self, activated_rules: List[Dict[str, Any]], job_data: Dict[str, Any]
     ) -> List[Dict[str, Any]]:
         """Soften stacked recruiter/body-shop signals when company domain matches (less suspicious)."""
-        recruiter_rules = [r for r in activated_rules if str(r.get("id", "")).startswith("A")]
-        domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
+        recruiter_rules = [
+            r for r in activated_rules if str(r.get("id", "")).startswith("A")
+        ]
+        domain_matches = self._get_nested_value(
+            job_data, "company_info.domain_matches_name"
+        )
         if domain_matches is True and len(recruiter_rules) >= 5:
             for r in recruiter_rules:
                 try:

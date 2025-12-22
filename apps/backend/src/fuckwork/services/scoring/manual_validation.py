@@ -16,7 +16,6 @@ from __future__ import annotations
 import math
 import sys
 import time
-from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Tuple
 
@@ -27,6 +26,7 @@ from apps.backend.authenticity_scoring import AuthenticityScorer
 # ---------------------------------------------------------------------------
 # Pretty printing helpers
 # ---------------------------------------------------------------------------
+
 
 class Colors:
     RESET = "\033[0m"
@@ -173,6 +173,7 @@ def run_test(test: TestCase) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 # Level 1: High-level scenario tests
 # ---------------------------------------------------------------------------
+
 
 @register_test("Scenario: FAANG-style high quality job", "SCENARIO")
 def test_faang_job() -> Tuple[bool, str]:
@@ -521,6 +522,7 @@ def test_long_jd() -> Tuple[bool, str]:
     msg = f"Elapsed={elapsed:.2f}s, score={result['authenticity_score']}"
     return passed, msg
 
+
 @register_test("Scenario: Legitimate small established company", "SCENARIO")
 def test_small_legit_company() -> Tuple[bool, str]:
     """50-200 employee company, established, good rating, should score well."""
@@ -528,38 +530,42 @@ def test_small_legit_company() -> Tuple[bool, str]:
     job = base_job()
     job["job_id"] = "small_legit"
     job["company_name"] = "DevShop Inc"  # Real company, not body shop
-    job["jd_text"] = """
+    job[
+        "jd_text"
+    ] = """
     DevShop is hiring a Backend Engineer to join our payments team.
-    
+
     You'll work on:
     - Building REST APIs in Python
     - Database optimization
     - Collaborating with product team
-    
+
     Requirements:
     - 2+ years Python experience
     - SQL proficiency
     - API design experience
-    
+
     We're a 50-person company building fintech tools for SMBs.
     Salary: $120k-$150k + equity.
     """
     job["company_info"]["size_employees"] = 50
     job["company_info"]["glassdoor_rating"] = 4.1
     job["company_info"]["domain_matches_name"] = True
-    
+
     result = scorer.score_job(job)
     score = result["authenticity_score"]
     level = result["level"]
-    
+
     # Should score well despite small size
     passed = score >= 70 and level in ("likely real", "uncertain")
     msg = f"Score={score}, level={level}, red_flags={result['red_flags']}"
     return passed, msg
 
+
 # ---------------------------------------------------------------------------
 # Level 2: Per-rule activation samples (subset, focus on key rules)
 # ---------------------------------------------------------------------------
+
 
 def _rule_activation_job() -> Dict[str, Any]:
     """Start from base job, but neutralize most triggers."""
@@ -590,7 +596,9 @@ def _rule_activation_job() -> Dict[str, Any]:
     return job
 
 
-def _rule_test(rule_id: str, modify: Callable[[Dict[str, Any]], None]) -> Tuple[bool, str]:
+def _rule_test(
+    rule_id: str, modify: Callable[[Dict[str, Any]], None]
+) -> Tuple[bool, str]:
     scorer = get_scorer()
     job = _rule_activation_job()
     modify(job)
@@ -603,13 +611,17 @@ def _rule_test(rule_id: str, modify: Callable[[Dict[str, Any]], None]) -> Tuple[
 
 @register_test("Rule A1 activation (external recruiter phrasing)", "RULE")
 def test_rule_A1() -> Tuple[bool, str]:
-    return _rule_test("A1", lambda job: job.update({"jd_text": "Our client is looking for engineers."}))
+    return _rule_test(
+        "A1",
+        lambda job: job.update({"jd_text": "Our client is looking for engineers."}),
+    )
 
 
 @register_test("Rule A2 activation (known staffing firm)", "RULE")
 def test_rule_A2() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["poster_info"]["company"] = "Infosys"
+
     return _rule_test("A2", modify)
 
 
@@ -617,6 +629,7 @@ def test_rule_A2() -> Tuple[bool, str]:
 def test_rule_A3() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["poster_info"]["recent_job_count_7d"] = 12
+
     return _rule_test("A3", modify)
 
 
@@ -624,6 +637,7 @@ def test_rule_A3() -> Tuple[bool, str]:
 def test_rule_A4() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["derived_signals"]["poster_no_company"] = True
+
     return _rule_test("A4", modify)
 
 
@@ -631,6 +645,7 @@ def test_rule_A4() -> Tuple[bool, str]:
 def test_rule_A5() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["poster_info"]["title"] = "Technical Recruiter"
+
     return _rule_test("A5", modify)
 
 
@@ -638,6 +653,7 @@ def test_rule_A5() -> Tuple[bool, str]:
 def test_rule_A6() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["derived_signals"]["company_poster_mismatch"] = True
+
     return _rule_test("A6", modify)
 
 
@@ -647,6 +663,7 @@ def test_rule_A7() -> Tuple[bool, str]:
         job["company_name"] = "ABC Solutions LLC"
         job["company_info"]["domain_matches_name"] = False
         job["company_info"]["size_employees"] = 30
+
     return _rule_test("A7", modify)
 
 
@@ -669,6 +686,7 @@ def test_rule_A7_not_legit() -> Tuple[bool, str]:
 def test_rule_A8() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["derived_signals"]["no_poster_identity"] = True
+
     return _rule_test("A8", modify)
 
 
@@ -676,6 +694,7 @@ def test_rule_A8() -> Tuple[bool, str]:
 def test_rule_A9() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["poster_info"]["account_age_months"] = 3
+
     return _rule_test("A9", modify)
 
 
@@ -683,6 +702,7 @@ def test_rule_A9() -> Tuple[bool, str]:
 def test_rule_A10() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["derived_signals"]["poster_job_location_mismatch"] = True
+
     return _rule_test("A10", modify)
 
 
@@ -690,6 +710,7 @@ def test_rule_A10() -> Tuple[bool, str]:
 def test_rule_A11() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["poster_info"]["recent_job_count_7d"] = 10
+
     return _rule_test("A11", modify)
 
 
@@ -697,6 +718,7 @@ def test_rule_A11() -> Tuple[bool, str]:
 def test_rule_A12() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["company_name"] = "Confidential"
+
     return _rule_test("A12", modify)
 
 
@@ -704,6 +726,7 @@ def test_rule_A12() -> Tuple[bool, str]:
 def test_rule_A13() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["derived_signals"]["company_domain_mismatch"] = True
+
     return _rule_test("A13", modify)
 
 
@@ -711,32 +734,45 @@ def test_rule_A13() -> Tuple[bool, str]:
 def test_rule_A14() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["jd_text"] = "Send your resume to hiringteam2025@gmail.com"
+
     return _rule_test("A14", modify)
+
 
 @register_test("Rule B1 activation (junior role with senior experience)", "RULE")
 def test_rule_B1() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
-        job["jd_text"] = "Junior Software Engineer position. Must have 5+ years of experience."
+        job["jd_text"] = (
+            "Junior Software Engineer position. Must have 5+ years of experience."
+        )
+
     return _rule_test("B1", modify)
 
 
 @register_test("Rule B2 activation (unrealistic skill stack)", "RULE")
 def test_rule_B2() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
-        job["jd_text"] = "Must know: Python, Java, JavaScript, C++, Rust, Go, Ruby, PHP, Scala, Kotlin, Swift, and more."
+        job["jd_text"] = (
+            "Must know: Python, Java, JavaScript, C++, Rust, Go, Ruby, PHP, Scala, Kotlin, Swift, and more."
+        )
+
     return _rule_test("B2", modify)
 
 
 @register_test("Rule B3 activation (boilerplate template)", "RULE")
 def test_rule_B3() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
-        job["jd_text"] = "Responsibilities include designing, developing, testing, and contributing to all phases of the development lifecycle."
+        job["jd_text"] = (
+            "Responsibilities include designing, developing, testing, and contributing to all phases of the development lifecycle."
+        )
+
     return _rule_test("B3", modify)
+
 
 @register_test("Rule B4 activation (no tech stack mentioned)", "RULE")
 def test_rule_B4() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["jd_text"] = "Looking for a developer to build software solutions."
+
     return _rule_test("B4", modify)
 
 
@@ -744,6 +780,7 @@ def test_rule_B4() -> Tuple[bool, str]:
 def test_rule_B6() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["jd_text"] = "We will sponsor H1B visas for qualified candidates."
+
     return _rule_test("B6", modify)
 
 
@@ -751,6 +788,7 @@ def test_rule_B6() -> Tuple[bool, str]:
 def test_rule_B7() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["jd_text"] = "Looking for a ROCKSTAR developer."
+
     return _rule_test("B7", modify)
 
 
@@ -776,6 +814,7 @@ def test_rule_B7() -> Tuple[bool, str]:
 def test_rule_B10() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["jd_text"] = "We need you to start immediately, this is urgent!"
+
     return _rule_test("B10", modify)
 
 
@@ -783,6 +822,7 @@ def test_rule_B10() -> Tuple[bool, str]:
 def test_rule_B12() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["jd_text"] = "This is a contract role for our client."
+
     return _rule_test("B12", modify)
 
 
@@ -790,6 +830,7 @@ def test_rule_B12() -> Tuple[bool, str]:
 def test_rule_B13() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["title"] = "Software Consultant"
+
     return _rule_test("B13", modify)
 
 
@@ -798,7 +839,9 @@ def test_rule_B14() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["jd_text"] = "Responsibilities include designing software."
         # no words like team/product/project/platform/service
+
     return _rule_test("B14", modify)
+
 
 # B15 test removed: Rule no longer activates in this scenario due to context-aware tuning
 # @register_test("Rule B15 activation (contradicting requirements)", "RULE")
@@ -807,14 +850,18 @@ def test_rule_B14() -> Tuple[bool, str]:
 #         job["jd_text"] = "Entry level position. Must have 3 years React experience and 1 year total experience."
 #     return _rule_test("B15", modify)
 
+
 @register_test("Rule B18 activation (no action verbs / responsibilities)", "RULE")
 def test_rule_B18() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
-        job["jd_text"] = """
+        job[
+            "jd_text"
+        ] = """
         Software Engineer position available.
         Good communication required.
         Competitive salary.
         """
+
     return _rule_test("B18", modify)
 
 
@@ -830,6 +877,7 @@ def test_rule_B18() -> Tuple[bool, str]:
 def test_rule_B20() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["jd_text"] = "Software          Engineer\t\t\t\t\tPosition"
+
     return _rule_test("B20", modify)
 
 
@@ -837,6 +885,7 @@ def test_rule_B20() -> Tuple[bool, str]:
 def test_rule_C1() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["platform_metadata"]["posted_days_ago"] = 40
+
     return _rule_test("C1", modify)
 
 
@@ -844,6 +893,7 @@ def test_rule_C1() -> Tuple[bool, str]:
 def test_rule_C2() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["platform_metadata"]["repost_count"] = 4
+
     return _rule_test("C2", modify)
 
 
@@ -859,6 +909,7 @@ def test_rule_C2() -> Tuple[bool, str]:
 def test_rule_C5() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["platform_metadata"]["actively_hiring_tag"] = False
+
     return _rule_test("C5", modify)
 
 
@@ -866,6 +917,7 @@ def test_rule_C5() -> Tuple[bool, str]:
 def test_rule_C7() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["location"] = "United States (Remote)"
+
     return _rule_test("C7", modify)
 
 
@@ -875,6 +927,7 @@ def test_rule_C10() -> Tuple[bool, str]:
         job["platform_metadata"]["easy_apply"] = True
         # wipe company_info to simulate minimal info
         job["company_info"] = {}
+
     return _rule_test("C10", modify)
 
 
@@ -882,6 +935,7 @@ def test_rule_C10() -> Tuple[bool, str]:
 def test_rule_D1() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["company_info"]["has_layoffs_recent"] = True
+
     return _rule_test("D1", modify)
 
 
@@ -897,6 +951,7 @@ def test_rule_D1() -> Tuple[bool, str]:
 def test_rule_D3() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
         job["company_info"]["glassdoor_rating"] = 2.7
+
     return _rule_test("D3", modify)
 
 
@@ -911,6 +966,7 @@ def test_rule_D3() -> Tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # Level 3: Interaction / combination tests
 # ---------------------------------------------------------------------------
+
 
 @register_test("Interaction: Recruiter cluster weight de-duplication", "INTERACTION")
 def test_recruiter_cluster_dedup() -> Tuple[bool, str]:
@@ -927,7 +983,9 @@ def test_recruiter_cluster_dedup() -> Tuple[bool, str]:
     job["company_info"]["domain_matches_name"] = True
     job["company_info"]["size_employees"] = 20000
 
-    job["jd_text"] = "Our client is looking for engineers. Email us at hiring2025@gmail.com."
+    job["jd_text"] = (
+        "Our client is looking for engineers. Email us at hiring2025@gmail.com."
+    )
     job["poster_info"]["title"] = "Senior Technical Recruiter"
     job["poster_info"]["company"] = "Apex Systems"
     job["poster_info"]["recent_job_count_7d"] = 15
@@ -946,12 +1004,16 @@ def test_recruiter_cluster_dedup() -> Tuple[bool, str]:
     return passed, msg
 
 
-@register_test("Interaction: Clean job with many weak flags keeps High confidence", "INTERACTION")
+@register_test(
+    "Interaction: Clean job with many weak flags keeps High confidence", "INTERACTION"
+)
 def test_many_weak_flags_high_confidence() -> Tuple[bool, str]:
     scorer = get_scorer()
     job = base_job()
     job["job_id"] = "many_weak_flags"
-    job["jd_text"] = """
+    job[
+        "jd_text"
+    ] = """
     We are a leading technology company looking for a developer.
     Responsibilities include designing, developing, testing, and maintaining software.
     """
@@ -996,7 +1058,9 @@ def test_contract_but_clean() -> Tuple[bool, str]:
     scorer = get_scorer()
     job = base_job()
     job["job_id"] = "contract_clean"
-    job["jd_text"] = """
+    job[
+        "jd_text"
+    ] = """
     We are hiring a contract backend engineer (6 months) to work on our payments API.
     You will design and implement scalable services.
     """
@@ -1013,6 +1077,7 @@ def test_contract_but_clean() -> Tuple[bool, str]:
 # ---------------------------------------------------------------------------
 # Test runner
 # ---------------------------------------------------------------------------
+
 
 def main() -> None:
     print(hr("="))
@@ -1061,10 +1126,7 @@ def main() -> None:
         passed = sum(1 for r in results if r["passed"])
         failed = total - passed
         color = Colors.GREEN if failed == 0 else Colors.RED
-        print(
-            f"{label:<12} "
-            f"{Colors.wrap(f'{passed}/{total} passed', color)}"
-        )
+        print(f"{label:<12} " f"{Colors.wrap(f'{passed}/{total} passed', color)}")
 
     summarize(scenario_results, "Scenarios")
     summarize(rule_results, "Rules")
@@ -1074,18 +1136,18 @@ def main() -> None:
     total = len(all_results)
     passed_total = sum(1 for r in all_results if r["passed"])
     failed_total = total - passed_total
-    
+
     print(hr("-"))
-    
+
     # ADD PERFORMANCE SECTION HERE (BEFORE exit decision)
     print()
     print(hr("-"))
     print(Colors.wrap("PERFORMANCE", Colors.BOLD))
     print(hr("-"))
 
-    total_time = sum(r['elapsed'] for r in all_results)
+    total_time = sum(r["elapsed"] for r in all_results)
     avg_time = total_time / len(all_results) if all_results else 0
-    max_test = max(all_results, key=lambda r: r['elapsed']) if all_results else None
+    max_test = max(all_results, key=lambda r: r["elapsed"]) if all_results else None
 
     print(f"Total execution time: {total_time:.2f}s")
     print(f"Average per test: {avg_time:.3f}s")
@@ -1093,15 +1155,27 @@ def main() -> None:
         print(f"Slowest test: {max_test['name']} ({max_test['elapsed']:.3f}s)")
     print()
     print(hr("-"))
-    
+
     # NOW do the final status and exit
     if failed_total == 0:
-        print(Colors.wrap(f"OVERALL: {passed_total}/{total} tests passed ✓", Colors.GREEN))
-        print(Colors.wrap("PHASE 1 STATUS: Production-ready (from manual suite)", Colors.GREEN))
+        print(
+            Colors.wrap(f"OVERALL: {passed_total}/{total} tests passed ✓", Colors.GREEN)
+        )
+        print(
+            Colors.wrap(
+                "PHASE 1 STATUS: Production-ready (from manual suite)", Colors.GREEN
+            )
+        )
         exit_code = 0
     else:
-        print(Colors.wrap(f"OVERALL: {passed_total}/{total} tests passed ✗", Colors.RED))
-        print(Colors.wrap("PHASE 1 STATUS: Needs review (check failed tests above)", Colors.RED))
+        print(
+            Colors.wrap(f"OVERALL: {passed_total}/{total} tests passed ✗", Colors.RED)
+        )
+        print(
+            Colors.wrap(
+                "PHASE 1 STATUS: Needs review (check failed tests above)", Colors.RED
+            )
+        )
         exit_code = 1
 
     print(hr("="))

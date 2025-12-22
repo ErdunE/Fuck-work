@@ -16,8 +16,10 @@ router = APIRouter(prefix="/api/users/me/projects", tags=["profile", "projects"]
 
 # Request/Response Models
 
+
 class ProjectRequest(BaseModel):
     """Project entry request."""
+
     project_name: str
     role: Optional[str] = None
     description: Optional[str] = None
@@ -26,34 +28,37 @@ class ProjectRequest(BaseModel):
 
 class ProjectResponse(BaseModel):
     """Project entry response."""
+
     id: int
     project_name: str
     role: Optional[str]
     description: Optional[str]
     tech_stack: Optional[str]
-    
+
     class Config:
         from_attributes = True
 
 
 class ProjectListResponse(BaseModel):
     """Project list response."""
+
     projects: List[ProjectResponse]
     total: int
 
 
 # Endpoints
 
+
 @router.get("", response_model=ProjectListResponse)
 def list_projects(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Get all project entries for current user."""
-    projects = db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
+    projects = (
+        db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
+    )
     return ProjectListResponse(
-        projects=[ProjectResponse.from_orm(p) for p in projects],
-        total=len(projects)
+        projects=[ProjectResponse.from_orm(p) for p in projects], total=len(projects)
     )
 
 
@@ -61,7 +66,7 @@ def list_projects(
 def create_project(
     request: ProjectRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Add new project entry."""
     project = UserProject(
@@ -69,12 +74,12 @@ def create_project(
         project_name=request.project_name,
         role=request.role,
         description=request.description,
-        tech_stack=request.tech_stack
+        tech_stack=request.tech_stack,
     )
     db.add(project)
     db.commit()
     db.refresh(project)
-    
+
     return ProjectResponse.from_orm(project)
 
 
@@ -83,28 +88,28 @@ def update_project(
     project_id: int,
     request: ProjectRequest,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Update project entry."""
-    project = db.query(UserProject).filter(
-        UserProject.id == project_id,
-        UserProject.user_id == current_user.id
-    ).first()
-    
+    project = (
+        db.query(UserProject)
+        .filter(UserProject.id == project_id, UserProject.user_id == current_user.id)
+        .first()
+    )
+
     if not project:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project entry not found"
         )
-    
+
     # Update fields
     update_data = request.dict(exclude_unset=True)
     for field, value in update_data.items():
         setattr(project, field, value)
-    
+
     db.commit()
     db.refresh(project)
-    
+
     return ProjectResponse.from_orm(project)
 
 
@@ -112,22 +117,21 @@ def update_project(
 def delete_project(
     project_id: int,
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     """Delete project entry."""
-    project = db.query(UserProject).filter(
-        UserProject.id == project_id,
-        UserProject.user_id == current_user.id
-    ).first()
-    
+    project = (
+        db.query(UserProject)
+        .filter(UserProject.id == project_id, UserProject.user_id == current_user.id)
+        .first()
+    )
+
     if not project:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project entry not found"
         )
-    
+
     db.delete(project)
     db.commit()
-    
-    return None
 
+    return None

@@ -21,11 +21,11 @@ Your goal is to help the user present themselves accurately without fabricating 
 def build_application_prompt(question: str, user_context: str) -> str:
     """
     Build prompt for job application question.
-    
+
     Args:
         question: The application question to answer
         user_context: User's compiled knowledge and profile data
-        
+
     Returns:
         Complete prompt with system instruction and context
     """
@@ -38,7 +38,7 @@ APPLICATION QUESTION:
 {question}
 
 ANSWER (based ONLY on the context above):"""
-    
+
     return prompt
 
 
@@ -58,7 +58,7 @@ RECRUITER QUESTION:
 {question}
 
 RESPONSE (based ONLY on the context above):"""
-    
+
     return prompt
 
 
@@ -75,6 +75,5 @@ QUESTION:
 {question}
 
 ANSWER (based ONLY on the context above):"""
-    
-    return prompt
 
+    return prompt
