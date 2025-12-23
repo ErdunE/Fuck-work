@@ -16,19 +16,16 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "aws_account_id" {
-  description = "AWS Account ID"
-  type        = string
-}
-
 variable "github_org" {
   description = "GitHub organization"
   type        = string
+  default     = "ErdunE"
 }
 
 variable "github_repo" {
   description = "GitHub repository"
   type        = string
+  default     = "Fuck-work"
 }
 
 variable "deploy_branches" {
