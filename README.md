@@ -56,6 +56,3 @@ See `apps/extension/INSTALL_GUIDE.md`
 PostgreSQL with 16 tables and 63,592+ jobs
 
 ## 📝 License
-
-Proprietary
-# Trigger after unlock - Mon Dec 22 22:06:19 EST 2025
