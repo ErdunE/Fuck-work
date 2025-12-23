@@ -14,6 +14,12 @@ echo "Updating system packages..."
 dnf update -y
 
 # Install Docker
+
+# Install cronie for cron jobs
+echo "Installing cronie..."
+dnf install -y cronie
+systemctl start crond
+systemctl enable crond
 echo "Installing Docker..."
 dnf install -y docker
 systemctl start docker
