@@ -29,7 +29,7 @@ usermod -aG docker ec2-user
 # Install Docker Compose
 echo "Installing Docker Compose..."
 DOCKER_COMPOSE_VERSION="2.24.0"
-curl -L "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+curl -L "https://github.com/docker/compose/releases/download/v$${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
 # Install AWS CLI v2
@@ -112,23 +112,23 @@ cat > /home/ec2-user/backup-postgres.sh << 'BACKUPEOF'
 set -e
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="fuckwork_backup_${TIMESTAMP}.sql.gz"
+BACKUP_FILE="fuckwork_backup_$${TIMESTAMP}.sql.gz"
 BACKUP_DIR="/home/ec2-user/fuckwork/backups"
 S3_BUCKET="${s3_backups_bucket}"
 
-mkdir -p ${BACKUP_DIR}
+mkdir -p $${BACKUP_DIR}
 
 echo "Creating database backup..."
-docker exec fuckwork_postgres pg_dump -U fuckwork fuckwork | gzip > ${BACKUP_DIR}/${BACKUP_FILE}
+docker exec fuckwork_postgres pg_dump -U fuckwork fuckwork | gzip > $${BACKUP_DIR}/$${BACKUP_FILE}
 
 echo "Uploading to S3..."
-aws s3 cp ${BACKUP_DIR}/${BACKUP_FILE} s3://${S3_BUCKET}/postgres/
+aws s3 cp $${BACKUP_DIR}/$${BACKUP_FILE} s3://${S3_BUCKET}/postgres/
 
 echo "Cleaning up old local backups..."
-cd ${BACKUP_DIR}
+cd $${BACKUP_DIR}
 ls -t fuckwork_backup_*.sql.gz | tail -n +8 | xargs -r rm --
 
-echo "Backup completed: ${BACKUP_FILE}"
+echo "Backup completed: $${BACKUP_FILE}"
 BACKUPEOF
 
 chmod +x /home/ec2-user/backup-postgres.sh
