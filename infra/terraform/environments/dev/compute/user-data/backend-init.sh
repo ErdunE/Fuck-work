@@ -2,7 +2,7 @@
 set -e
 
 # ============================================================================
-# FuckWork Backend EC2 Initialization Script
+# FuckWork Backend EC2 Initialization Script (RDS Version)
 # ============================================================================
 
 echo "=========================================="
@@ -39,21 +39,20 @@ unzip awscliv2.zip
 ./aws/install
 rm -rf aws awscliv2.zip
 
+# Install PostgreSQL client (for database initialization)
+echo "Installing PostgreSQL client..."
+dnf install -y postgresql15
+
 # Create application directory
 echo "Creating application directory..."
 mkdir -p /home/ec2-user/fuckwork
 cd /home/ec2-user/fuckwork
 
-# Create environment file
+# Create environment file (using RDS)
 echo "Creating environment file..."
 cat > .env << 'ENVEOF'
-# Database Configuration
-POSTGRES_USER=fuckwork
-POSTGRES_PASSWORD=${postgres_password}
-POSTGRES_DB=fuckwork
-
-# Application Configuration
-DATABASE_URL=postgresql://fuckwork:${postgres_password}@postgres:5432/fuckwork
+# Database Configuration (RDS)
+DATABASE_URL=postgresql://fuckwork:${postgres_password}@${rds_endpoint}/fuckwork
 ENVIRONMENT=dev
 
 # AWS Configuration
@@ -61,37 +60,15 @@ AWS_REGION=${region}
 S3_BACKUPS_BUCKET=${s3_backups_bucket}
 ENVEOF
 
-# Create docker-compose.yml
+# Create docker-compose.yml (NO PostgreSQL - using RDS)
 echo "Creating docker-compose.yml..."
 cat > docker-compose.yml << 'COMPOSEEOF'
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:16
-    container_name: fuckwork_postgres
-    environment:
-      POSTGRES_USER: $${POSTGRES_USER}
-      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD}
-      POSTGRES_DB: $${POSTGRES_DB}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backups:/backups
-    ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
   backend:
     image: ${ecr_backend_url}:latest
     container_name: fuckwork_backend
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
       DATABASE_URL: $${DATABASE_URL}
       ENVIRONMENT: $${ENVIRONMENT}
@@ -100,58 +77,65 @@ services:
     ports:
       - "80:8000"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-volumes:
-  postgres_data:
+  scorer:
+    image: ${ecr_backend_url}:latest
+    container_name: fuckwork_scorer
+    environment:
+      DATABASE_URL: $${DATABASE_URL}
+      ENVIRONMENT: $${ENVIRONMENT}
+    command: python -m scripts.automation.run_scoring
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
 COMPOSEEOF
 
-# Create backup script
-echo "Creating backup script..."
-cat > /home/ec2-user/backup-postgres.sh << 'BACKUPEOF'
+# Create database initialization script
+echo "Creating database init script..."
+cat > /home/ec2-user/init-database.sh << 'INITDBEOF'
 #!/bin/bash
 set -e
 
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="fuckwork_backup_$${TIMESTAMP}.sql.gz"
-BACKUP_DIR="/home/ec2-user/fuckwork/backups"
-S3_BUCKET="${s3_backups_bucket}"
+echo "Initializing database on RDS..."
 
-mkdir -p $${BACKUP_DIR}
+# Wait for RDS to be ready
+echo "Waiting for RDS to be ready..."
+for i in {1..30}; do
+  if PGPASSWORD="${postgres_password}" psql -h ${rds_hostname} -U fuckwork -d fuckwork -c "SELECT 1" > /dev/null 2>&1; then
+    echo "RDS is ready!"
+    break
+  fi
+  echo "Waiting for RDS... ($i/30)"
+  sleep 10
+done
 
-echo "Creating database backup..."
-docker exec fuckwork_postgres pg_dump -U fuckwork fuckwork | gzip > $${BACKUP_DIR}/$${BACKUP_FILE}
+# Run database initialization via Docker
+cd /home/ec2-user/fuckwork
+source .env
+docker run --rm \
+  -e DATABASE_URL="$${DATABASE_URL}" \
+  ${ecr_backend_url}:latest \
+  python -m scripts.deployment.init_database
 
-echo "Uploading to S3..."
-aws s3 cp $${BACKUP_DIR}/$${BACKUP_FILE} s3://$${S3_BUCKET}/postgres/
+echo "Database initialization complete!"
+INITDBEOF
 
-echo "Cleaning up old local backups..."
-cd $${BACKUP_DIR}
-ls -t fuckwork_backup_*.sql.gz | tail -n +8 | xargs -r rm --
-
-echo "Backup completed: $${BACKUP_FILE}"
-BACKUPEOF
-
-chmod +x /home/ec2-user/backup-postgres.sh
-
-# Setup daily backups via /etc/cron.d/
-echo "Setting up daily backups..."
-cat > /etc/cron.d/fuckwork-postgres-backup << 'CRONEOF'
-# PostgreSQL daily backup (runs at 2 AM)
-0 2 * * * ec2-user /home/ec2-user/backup-postgres.sh >> /var/log/postgres-backup.log 2>&1
-CRONEOF
-chmod 644 /etc/cron.d/fuckwork-postgres-backup
+chmod +x /home/ec2-user/init-database.sh
 
 # Login to ECR
 echo "Logging into ECR..."
 aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${ecr_backend_url}
 
-# Note: Backend image needs to be pushed to ECR first
-echo "NOTE: Backend Docker image not pulled yet."
-echo "Please push your image to ECR first:"
-echo "  ${ecr_backend_url}:latest"
-
 # Set ownership
 chown -R ec2-user:ec2-user /home/ec2-user/fuckwork
+chown ec2-user:ec2-user /home/ec2-user/init-database.sh
 
 # Create systemd service for auto-start
 cat > /etc/systemd/system/fuckwork.service << 'SERVICEEOF'
@@ -180,35 +164,19 @@ systemctl enable fuckwork.service
 # ============================================================================
 echo "Setting up Docker auto-cleanup cron job..."
 
-# Create cleanup script
 cat > /usr/local/bin/docker-cleanup.sh << 'CLEANUP'
 #!/bin/bash
-# Docker cleanup script - runs daily at 3 AM
-
 echo "[$(date)] Starting Docker cleanup..."
-
-# Remove stopped containers (older than 24 hours)
 docker container prune -f --filter "until=24h"
-
-# Remove dangling images (untagged)
 docker image prune -f
-
-# Remove unused images (keep last 2 versions)
 docker images --format "{{.Repository}}:{{.Tag}}" | grep "fuckwork" | tail -n +3 | xargs -r docker rmi 2>/dev/null || true
-
-# Remove unused networks
 docker network prune -f
-
-# Show remaining usage
-echo "[$(date)] Cleanup complete. Current usage:"
 docker system df
-
 echo "[$(date)] Docker cleanup finished"
 CLEANUP
 
 chmod +x /usr/local/bin/docker-cleanup.sh
 
-# Setup Docker cleanup cron via /etc/cron.d/
 cat > /etc/cron.d/fuckwork-docker-cleanup << 'CRONEOF'
 # Docker cleanup daily at 3 AM
 0 3 * * * root /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1
@@ -221,8 +189,14 @@ echo "=========================================="
 echo "Backend initialization completed!"
 echo "=========================================="
 echo ""
+echo "Services configured:"
+echo "  - Backend API (port 80)"
+echo "  - Scorer (every 5 minutes)"
+echo ""
+echo "Database: RDS PostgreSQL"
+echo "  Endpoint: ${rds_endpoint}"
+echo ""
 echo "Next steps:"
-echo "1. Push backend Docker image to: ${ecr_backend_url}"
-echo "2. SSH into instance: ssh -i ~/.ssh/fuckwork-dev ec2-user@<PUBLIC_IP>"
-echo "3. Start services: cd /home/ec2-user/fuckwork && docker-compose up -d"
+echo "1. Run database init: /home/ec2-user/init-database.sh"
+echo "2. Start services: cd /home/ec2-user/fuckwork && docker-compose up -d"
 echo ""

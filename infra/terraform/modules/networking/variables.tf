@@ -41,3 +41,25 @@ variable "common_tags" {
   type        = map(string)
   default     = {}
 }
+
+# ============================================================================
+# Private Subnet Variables (for RDS)
+# ============================================================================
+
+variable "private_subnet_cidr_a" {
+  description = "CIDR block for private subnet A"
+  type        = string
+  default     = "10.0.10.0/24"
+}
+
+variable "private_subnet_cidr_b" {
+  description = "CIDR block for private subnet B"
+  type        = string
+  default     = "10.0.11.0/24"
+}
+
+variable "availability_zone_b" {
+  description = "Second availability zone for RDS Multi-AZ subnet requirement"
+  type        = string
+  default     = "us-east-1b"
+}

@@ -103,3 +103,35 @@ variable "common_tags" {
     Owner       = "ErdunE"
   }
 }
+
+# ============================================================================
+# RDS Configuration
+# ============================================================================
+
+variable "rds_instance_class" {
+  description = "RDS instance class"
+  type        = string
+  default     = "db.t3.micro" # ~$15/month
+}
+
+variable "rds_allocated_storage" {
+  description = "RDS allocated storage in GB"
+  type        = number
+  default     = 20
+}
+
+variable "rds_backup_retention_period" {
+  description = "RDS backup retention period in days"
+  type        = number
+  default     = 7
+}
+
+# ============================================================================
+# Monitoring Configuration
+# ============================================================================
+
+variable "alert_email" {
+  description = "Email address for alerts"
+  type        = string
+  default     = "erdundevelop@gmail.com"
+}

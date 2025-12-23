@@ -98,3 +98,28 @@ output "tableplus_connection_instructions" {
   
   EOT
 }
+
+# ============================================================================
+# RDS Outputs
+# ============================================================================
+
+output "rds_endpoint" {
+  description = "RDS PostgreSQL endpoint"
+  value       = aws_db_instance.postgres.endpoint
+}
+
+output "rds_hostname" {
+  description = "RDS PostgreSQL hostname (without port)"
+  value       = aws_db_instance.postgres.address
+}
+
+output "rds_port" {
+  description = "RDS PostgreSQL port"
+  value       = aws_db_instance.postgres.port
+}
+
+output "rds_database_url" {
+  description = "Full DATABASE_URL for applications"
+  value       = "postgresql://fuckwork:${var.postgres_password}@${aws_db_instance.postgres.endpoint}/fuckwork"
+  sensitive   = true
+}

@@ -57,3 +57,27 @@ output "availability_zone" {
   description = "Availability zone used"
   value       = var.availability_zone
 }
+
+# ============================================================================
+# RDS Outputs
+# ============================================================================
+
+output "private_subnet_a_id" {
+  description = "ID of private subnet A"
+  value       = aws_subnet.private_a.id
+}
+
+output "private_subnet_b_id" {
+  description = "ID of private subnet B"
+  value       = aws_subnet.private_b.id
+}
+
+output "db_subnet_group_name" {
+  description = "Name of the DB subnet group"
+  value       = aws_db_subnet_group.main.name
+}
+
+output "rds_security_group_id" {
+  description = "ID of the RDS security group"
+  value       = aws_security_group.rds.id
+}

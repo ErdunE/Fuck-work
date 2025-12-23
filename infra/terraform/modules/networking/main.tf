@@ -179,3 +179,97 @@ resource "aws_security_group" "jobspy" {
     }
   )
 }
+
+# ============================================================================
+# Private Subnets for RDS (需要至少2个AZ)
+# ============================================================================
+
+resource "aws_subnet" "private_a" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.private_subnet_cidr_a
+  availability_zone       = var.availability_zone
+  map_public_ip_on_launch = false
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project}-${var.environment}-private-subnet-a"
+      Type = "Private"
+    }
+  )
+}
+
+resource "aws_subnet" "private_b" {
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = var.private_subnet_cidr_b
+  availability_zone       = var.availability_zone_b
+  map_public_ip_on_launch = false
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project}-${var.environment}-private-subnet-b"
+      Type = "Private"
+    }
+  )
+}
+
+# ============================================================================
+# RDS Subnet Group
+# ============================================================================
+
+resource "aws_db_subnet_group" "main" {
+  name       = "${var.project}-${var.environment}-db-subnet-group"
+  subnet_ids = [aws_subnet.private_a.id, aws_subnet.private_b.id]
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project}-${var.environment}-db-subnet-group"
+    }
+  )
+}
+
+# ============================================================================
+# Security Group - RDS
+# ============================================================================
+
+resource "aws_security_group" "rds" {
+  name        = "${var.project}-${var.environment}-rds-sg"
+  description = "Security group for RDS PostgreSQL"
+  vpc_id      = aws_vpc.main.id
+
+  # PostgreSQL from Backend
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.backend.id]
+    description     = "Allow PostgreSQL from Backend"
+  }
+
+  # PostgreSQL from JobSpy
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.jobspy.id]
+    description     = "Allow PostgreSQL from JobSpy"
+  }
+
+  # Allow all outbound traffic
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    description = "Allow all outbound traffic"
+  }
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project}-${var.environment}-rds-sg"
+    }
+  )
+}

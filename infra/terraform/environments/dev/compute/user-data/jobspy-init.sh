@@ -2,7 +2,7 @@
 set -e
 
 # ============================================================================
-# FuckWork jobspy EC2 Initialization Script
+# FuckWork jobspy EC2 Initialization Script (RDS Version)
 # ============================================================================
 
 echo "=========================================="
@@ -38,7 +38,7 @@ echo "Creating jobspy directory..."
 mkdir -p /home/ec2-user/jobspy
 cd /home/ec2-user/jobspy
 
-# Create run script
+# Create run script (connects to RDS)
 echo "Creating run script..."
 cat > /home/ec2-user/jobspy/run-jobspy.sh << 'RUNSCRIPT'
 #!/bin/bash
@@ -56,11 +56,11 @@ aws ecr get-login-password --region ${region} | docker login --username AWS --pa
 echo "Pulling jobspy image..."
 docker pull ${ecr_jobspy_url}:latest
 
-# Run jobspy
+# Run jobspy (connects to RDS)
 echo "Running jobspy..."
 docker run --rm \
   --name fuckwork_jobspy \
-  -e DATABASE_URL=postgresql://fuckwork:${postgres_password}@${backend_instance_ip}:5432/fuckwork \
+  -e DATABASE_URL=postgresql://fuckwork:${postgres_password}@${rds_endpoint}/fuckwork \
   -e ENVIRONMENT=production \
   ${ecr_jobspy_url}:latest
 
@@ -103,7 +103,6 @@ systemctl enable jobspy.service
 # ============================================================================
 echo "Setting up Docker auto-cleanup cron job..."
 
-# Create cleanup script
 cat > /usr/local/bin/docker-cleanup.sh << 'CLEANUP'
 #!/bin/bash
 echo "[$(date)] Starting Docker cleanup..."
@@ -117,7 +116,6 @@ CLEANUP
 
 chmod +x /usr/local/bin/docker-cleanup.sh
 
-# Setup Docker cleanup cron via /etc/cron.d/
 cat > /etc/cron.d/fuckwork-docker-cleanup << 'CRONEOF'
 # Docker cleanup daily at 3 AM
 0 3 * * * root /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1
@@ -133,6 +131,9 @@ echo ""
 echo "This instance will:"
 echo "1. Run jobspy on boot"
 echo "2. Auto-shutdown after completion"
+echo ""
+echo "Database: RDS PostgreSQL"
+echo "  Endpoint: ${rds_endpoint}"
 echo ""
 echo "NOTE: jobspy Docker image must be pushed to ECR first:"
 echo "  ${ecr_jobspy_url}:latest"

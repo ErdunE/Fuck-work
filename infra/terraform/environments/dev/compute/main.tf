@@ -427,6 +427,8 @@ resource "aws_instance" "backend" {
     ecr_backend_url   = aws_ecr_repository.backend.repository_url
     postgres_password = var.postgres_password
     s3_backups_bucket = aws_s3_bucket.backups.id
+    rds_endpoint      = aws_db_instance.postgres.endpoint
+    rds_hostname      = aws_db_instance.postgres.address
   })
 
   tags = merge(
@@ -466,7 +468,7 @@ resource "aws_instance" "jobspy" {
   user_data = templatefile("${path.module}/user-data/jobspy-init.sh", {
     region              = var.aws_region
     ecr_jobspy_url      = aws_ecr_repository.jobspy.repository_url
-    backend_instance_ip = aws_instance.backend.private_ip
+    rds_endpoint       = aws_db_instance.postgres.endpoint
     postgres_password   = var.postgres_password
   })
 
@@ -657,4 +659,54 @@ resource "aws_lambda_permission" "allow_eventbridge" {
   function_name = aws_lambda_function.start_jobspy.function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.start_jobspy_hourly.arn
+}
+
+# ============================================================================
+# RDS PostgreSQL Instance
+# ============================================================================
+
+resource "aws_db_instance" "postgres" {
+  identifier = "${var.project}-${var.environment}-postgres"
+
+  # Engine
+  engine               = "postgres"
+  engine_version       = "16.3"
+  instance_class       = var.rds_instance_class
+  
+  # Storage
+  allocated_storage     = var.rds_allocated_storage
+  max_allocated_storage = 100  # Auto-scaling up to 100GB
+  storage_type          = "gp3"
+  storage_encrypted     = true
+
+  # Database
+  db_name  = "fuckwork"
+  username = "fuckwork"
+  password = var.postgres_password
+
+  # Network
+  db_subnet_group_name   = module.networking.db_subnet_group_name
+  vpc_security_group_ids = [module.networking.rds_security_group_id]
+  publicly_accessible    = false
+
+  # Backup
+  backup_retention_period = var.rds_backup_retention_period
+  backup_window          = "03:00-04:00"  # UTC, 10-11 PM EST
+  maintenance_window     = "Mon:04:00-Mon:05:00"
+
+  # Other settings
+  multi_az               = false  # Single AZ for dev (cheaper)
+  deletion_protection    = false  # Set to true for prod
+  skip_final_snapshot    = true   # Set to false for prod
+  
+  # Performance Insights (free for db.t3.micro)
+  performance_insights_enabled = true
+  performance_insights_retention_period = 7
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project}-${var.environment}-postgres"
+    }
+  )
 }
