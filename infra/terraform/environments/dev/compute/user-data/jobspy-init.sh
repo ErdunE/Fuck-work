@@ -92,6 +92,27 @@ SERVICEEOF
 systemctl daemon-reload
 systemctl enable jobspy.service
 
+# ============================================================================
+# Docker Auto-Cleanup Cron Job
+# ============================================================================
+echo "Setting up Docker auto-cleanup cron job..."
+
+cat > /usr/local/bin/docker-cleanup.sh << 'CLEANUP'
+#!/bin/bash
+echo "[$(date)] Starting Docker cleanup..."
+docker container prune -f --filter "until=24h"
+docker image prune -f
+docker images --format "{{.Repository}}:{{.Tag}}" | grep "fuckwork" | tail -n +3 | xargs -r docker rmi 2>/dev/null || true
+docker network prune -f
+docker system df
+echo "[$(date)] Docker cleanup finished"
+CLEANUP
+
+chmod +x /usr/local/bin/docker-cleanup.sh
+(crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1") | crontab -
+
+echo "✅ Docker auto-cleanup configured"
+
 echo "=========================================="
 echo "jobspy initialization completed!"
 echo "=========================================="

@@ -110,13 +110,22 @@ resource "aws_security_group" "backend" {
     description = "Allow SSH from specified IPs only"
   }
 
-  # PostgreSQL - only from within the same security group
+  # PostgreSQL - from same security group
   ingress {
     from_port   = 5432
     to_port     = 5432
     protocol    = "tcp"
     self        = true
     description = "Allow PostgreSQL from same security group"
+  }
+
+  # PostgreSQL - from JobSpy security group
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.jobspy.id]
+    description     = "Allow PostgreSQL from JobSpy"
   }
 
   # Allow all outbound traffic

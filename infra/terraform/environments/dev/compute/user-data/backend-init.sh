@@ -165,6 +165,45 @@ SERVICEEOF
 systemctl daemon-reload
 systemctl enable fuckwork.service
 
+# ============================================================================
+# Docker Auto-Cleanup Cron Job
+# ============================================================================
+echo "Setting up Docker auto-cleanup cron job..."
+
+# Create cleanup script
+cat > /usr/local/bin/docker-cleanup.sh << 'CLEANUP'
+#!/bin/bash
+# Docker cleanup script - runs daily at 3 AM
+
+echo "[$(date)] Starting Docker cleanup..."
+
+# Remove stopped containers (older than 24 hours)
+docker container prune -f --filter "until=24h"
+
+# Remove dangling images (untagged)
+docker image prune -f
+
+# Remove unused images (keep last 2 versions)
+# This will remove old ECR images but keep the latest 2
+docker images --format "{{.Repository}}:{{.Tag}}" | grep "fuckwork" | tail -n +3 | xargs -r docker rmi 2>/dev/null || true
+
+# Remove unused networks
+docker network prune -f
+
+# Show remaining usage
+echo "[$(date)] Cleanup complete. Current usage:"
+docker system df
+
+echo "[$(date)] Docker cleanup finished"
+CLEANUP
+
+chmod +x /usr/local/bin/docker-cleanup.sh
+
+# Add to cron (runs daily at 3 AM)
+(crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1") | crontab -
+
+echo "✅ Docker auto-cleanup configured (daily at 3 AM)"
+
 echo "=========================================="
 echo "Backend initialization completed!"
 echo "=========================================="
@@ -174,3 +213,5 @@ echo "1. Push backend Docker image to: ${ecr_backend_url}"
 echo "2. SSH into instance: ssh -i ~/.ssh/fuckwork-dev ec2-user@<PUBLIC_IP>"
 echo "3. Start services: cd /home/ec2-user/fuckwork && docker-compose up -d"
 echo ""
+
+
