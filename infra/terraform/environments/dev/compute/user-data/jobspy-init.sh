@@ -115,7 +115,8 @@ echo "[$(date)] Docker cleanup finished"
 CLEANUP
 
 chmod +x /usr/local/bin/docker-cleanup.sh
-(crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1") | crontab -
+sleep 2
+(/usr/bin/crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1") | /usr/bin/crontab -
 
 echo "✅ Docker auto-cleanup configured"
 

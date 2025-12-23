@@ -135,7 +135,7 @@ chmod +x /home/ec2-user/backup-postgres.sh
 
 # Setup daily backups via cron
 echo "Setting up daily backups..."
-(crontab -u ec2-user -l 2>/dev/null; echo "0 2 * * * /home/ec2-user/backup-postgres.sh >> /var/log/postgres-backup.log 2>&1") | crontab -u ec2-user -
+(/usr/bin/crontab -u ec2-user -l 2>/dev/null; echo "0 2 * * * /home/ec2-user/backup-postgres.sh >> /var/log/postgres-backup.log 2>&1") | /usr/bin/crontab -u ec2-user -
 
 # Login to ECR
 echo "Logging into ECR..."
@@ -206,7 +206,8 @@ CLEANUP
 chmod +x /usr/local/bin/docker-cleanup.sh
 
 # Add to cron (runs daily at 3 AM)
-(crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1") | crontab -
+sleep 2
+(/usr/bin/crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1") | /usr/bin/crontab -
 
 echo "✅ Docker auto-cleanup configured (daily at 3 AM)"
 
