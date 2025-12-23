@@ -875,7 +875,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_memory_low" {
   namespace           = "AWS/RDS"
   period              = 300
   statistic           = "Average"
-  threshold           = 104857600  # 100MB in bytes
+  threshold           = 52428800  # 100MB in bytes
   alarm_description   = "[WARNING] RDS 可用内存 < 100MB - 性能可能下降"
   alarm_actions       = [aws_sns_topic.alerts.arn]
   ok_actions          = [aws_sns_topic.alerts.arn]
