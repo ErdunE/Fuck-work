@@ -13,13 +13,13 @@ echo "=========================================="
 echo "Updating system packages..."
 dnf update -y
 
-# Install Docker
-
 # Install cronie for cron jobs
 echo "Installing cronie..."
 dnf install -y cronie
 systemctl start crond
 systemctl enable crond
+
+# Install Docker
 echo "Installing Docker..."
 dnf install -y docker
 systemctl start docker
@@ -103,6 +103,7 @@ systemctl enable jobspy.service
 # ============================================================================
 echo "Setting up Docker auto-cleanup cron job..."
 
+# Create cleanup script
 cat > /usr/local/bin/docker-cleanup.sh << 'CLEANUP'
 #!/bin/bash
 echo "[$(date)] Starting Docker cleanup..."
@@ -115,8 +116,13 @@ echo "[$(date)] Docker cleanup finished"
 CLEANUP
 
 chmod +x /usr/local/bin/docker-cleanup.sh
-sleep 2
-(/usr/bin/crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1") | /usr/bin/crontab -
+
+# Setup Docker cleanup cron via /etc/cron.d/
+cat > /etc/cron.d/fuckwork-docker-cleanup << 'CRONEOF'
+# Docker cleanup daily at 3 AM
+0 3 * * * root /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1
+CRONEOF
+chmod 644 /etc/cron.d/fuckwork-docker-cleanup
 
 echo "✅ Docker auto-cleanup configured"
 

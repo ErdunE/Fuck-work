@@ -13,13 +13,13 @@ echo "=========================================="
 echo "Updating system packages..."
 dnf update -y
 
-# Install Docker
-
 # Install cronie for cron jobs
 echo "Installing cronie..."
 dnf install -y cronie
 systemctl start crond
 systemctl enable crond
+
+# Install Docker
 echo "Installing Docker..."
 dnf install -y docker
 systemctl start docker
@@ -29,7 +29,7 @@ usermod -aG docker ec2-user
 # Install Docker Compose
 echo "Installing Docker Compose..."
 DOCKER_COMPOSE_VERSION="2.24.0"
-curl -L "https://github.com/docker/compose/releases/download/v$${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+curl -L "https://github.com/docker/compose/releases/download/v${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
 chmod +x /usr/local/bin/docker-compose
 
 # Install AWS CLI v2
@@ -71,16 +71,16 @@ services:
     image: postgres:16
     container_name: fuckwork_postgres
     environment:
-      POSTGRES_USER: $${POSTGRES_USER}
-      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD}
-      POSTGRES_DB: $${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -93,10 +93,10 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: $${DATABASE_URL}
-      ENVIRONMENT: $${ENVIRONMENT}
-      AWS_REGION: $${AWS_REGION}
-      S3_BACKUPS_BUCKET: $${S3_BACKUPS_BUCKET}
+      DATABASE_URL: ${DATABASE_URL}
+      ENVIRONMENT: ${ENVIRONMENT}
+      AWS_REGION: ${AWS_REGION}
+      S3_BACKUPS_BUCKET: ${S3_BACKUPS_BUCKET}
     ports:
       - "80:8000"
     restart: unless-stopped
@@ -112,30 +112,34 @@ cat > /home/ec2-user/backup-postgres.sh << 'BACKUPEOF'
 set -e
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_FILE="fuckwork_backup_$${TIMESTAMP}.sql.gz"
+BACKUP_FILE="fuckwork_backup_${TIMESTAMP}.sql.gz"
 BACKUP_DIR="/home/ec2-user/fuckwork/backups"
 S3_BUCKET="${s3_backups_bucket}"
 
-mkdir -p $${BACKUP_DIR}
+mkdir -p ${BACKUP_DIR}
 
 echo "Creating database backup..."
-docker exec fuckwork_postgres pg_dump -U fuckwork fuckwork | gzip > $${BACKUP_DIR}/$${BACKUP_FILE}
+docker exec fuckwork_postgres pg_dump -U fuckwork fuckwork | gzip > ${BACKUP_DIR}/${BACKUP_FILE}
 
 echo "Uploading to S3..."
-aws s3 cp $${BACKUP_DIR}/$${BACKUP_FILE} s3://$${S3_BUCKET}/postgres/
+aws s3 cp ${BACKUP_DIR}/${BACKUP_FILE} s3://${S3_BUCKET}/postgres/
 
 echo "Cleaning up old local backups..."
-cd $${BACKUP_DIR}
+cd ${BACKUP_DIR}
 ls -t fuckwork_backup_*.sql.gz | tail -n +8 | xargs -r rm --
 
-echo "Backup completed: $${BACKUP_FILE}"
+echo "Backup completed: ${BACKUP_FILE}"
 BACKUPEOF
 
 chmod +x /home/ec2-user/backup-postgres.sh
 
-# Setup daily backups via cron
+# Setup daily backups via /etc/cron.d/
 echo "Setting up daily backups..."
-(/usr/bin/crontab -u ec2-user -l 2>/dev/null; echo "0 2 * * * /home/ec2-user/backup-postgres.sh >> /var/log/postgres-backup.log 2>&1") | /usr/bin/crontab -u ec2-user -
+cat > /etc/cron.d/fuckwork-postgres-backup << 'CRONEOF'
+# PostgreSQL daily backup (runs at 2 AM)
+0 2 * * * ec2-user /home/ec2-user/backup-postgres.sh >> /var/log/postgres-backup.log 2>&1
+CRONEOF
+chmod 644 /etc/cron.d/fuckwork-postgres-backup
 
 # Login to ECR
 echo "Logging into ECR..."
@@ -190,7 +194,6 @@ docker container prune -f --filter "until=24h"
 docker image prune -f
 
 # Remove unused images (keep last 2 versions)
-# This will remove old ECR images but keep the latest 2
 docker images --format "{{.Repository}}:{{.Tag}}" | grep "fuckwork" | tail -n +3 | xargs -r docker rmi 2>/dev/null || true
 
 # Remove unused networks
@@ -205,9 +208,12 @@ CLEANUP
 
 chmod +x /usr/local/bin/docker-cleanup.sh
 
-# Add to cron (runs daily at 3 AM)
-sleep 2
-(/usr/bin/crontab -l 2>/dev/null; echo "0 3 * * * /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1") | /usr/bin/crontab -
+# Setup Docker cleanup cron via /etc/cron.d/
+cat > /etc/cron.d/fuckwork-docker-cleanup << 'CRONEOF'
+# Docker cleanup daily at 3 AM
+0 3 * * * root /usr/local/bin/docker-cleanup.sh >> /var/log/docker-cleanup.log 2>&1
+CRONEOF
+chmod 644 /etc/cron.d/fuckwork-docker-cleanup
 
 echo "✅ Docker auto-cleanup configured (daily at 3 AM)"
 
@@ -220,5 +226,3 @@ echo "1. Push backend Docker image to: ${ecr_backend_url}"
 echo "2. SSH into instance: ssh -i ~/.ssh/fuckwork-dev ec2-user@<PUBLIC_IP>"
 echo "3. Start services: cd /home/ec2-user/fuckwork && docker-compose up -d"
 echo ""
-
-
