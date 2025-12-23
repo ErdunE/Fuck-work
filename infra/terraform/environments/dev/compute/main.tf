@@ -710,3 +710,200 @@ resource "aws_db_instance" "postgres" {
     }
   )
 }
+
+# ============================================================================
+# SNS Topic for Alerts
+# ============================================================================
+
+resource "aws_sns_topic" "alerts" {
+  name = "${var.project}-${var.environment}-alerts"
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project}-${var.environment}-alerts"
+    }
+  )
+}
+
+resource "aws_sns_topic_subscription" "email_alerts" {
+  topic_arn = aws_sns_topic.alerts.arn
+  protocol  = "email"
+  endpoint  = var.alert_email
+}
+
+# ============================================================================
+# CloudWatch Alarms - CRITICAL (系统不可用)
+# ============================================================================
+
+# 1. Backend EC2 状态检查失败
+resource "aws_cloudwatch_metric_alarm" "backend_status_check" {
+  alarm_name          = "${var.project}-${var.environment}-backend-status-failed"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "StatusCheckFailed"
+  namespace           = "AWS/EC2"
+  period              = 60
+  statistic           = "Maximum"
+  threshold           = 0
+  alarm_description   = "[CRITICAL] Backend EC2 状态检查失败 - API 和 Scorer 可能不可用"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    InstanceId = aws_instance.backend.id
+  }
+
+  tags = var.common_tags
+}
+
+# 2. RDS 存储空间不足
+resource "aws_cloudwatch_metric_alarm" "rds_storage_low" {
+  alarm_name          = "${var.project}-${var.environment}-rds-storage-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "FreeStorageSpace"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 5368709120  # 5GB in bytes
+  alarm_description   = "[CRITICAL] RDS 存储空间 < 5GB - 需要立即清理或扩容"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  tags = var.common_tags
+}
+
+# 3. Lambda 执行失败
+resource "aws_cloudwatch_metric_alarm" "lambda_errors" {
+  alarm_name          = "${var.project}-${var.environment}-lambda-errors"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 1
+  metric_name         = "Errors"
+  namespace           = "AWS/Lambda"
+  period              = 300
+  statistic           = "Sum"
+  threshold           = 0
+  alarm_description   = "[CRITICAL] Lambda start_jobspy 执行失败 - JobSpy 无法启动"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    FunctionName = aws_lambda_function.start_jobspy.function_name
+  }
+
+  tags = var.common_tags
+}
+
+# ============================================================================
+# CloudWatch Alarms - WARNING (性能问题)
+# ============================================================================
+
+# 4. Backend EC2 CPU 过高
+resource "aws_cloudwatch_metric_alarm" "backend_cpu_high" {
+  alarm_name          = "${var.project}-${var.environment}-backend-cpu-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/EC2"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 80
+  alarm_description   = "[WARNING] Backend EC2 CPU > 80% 持续 10 分钟"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    InstanceId = aws_instance.backend.id
+  }
+
+  tags = var.common_tags
+}
+
+# 5. RDS CPU 过高
+resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
+  alarm_name          = "${var.project}-${var.environment}-rds-cpu-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 80
+  alarm_description   = "[WARNING] RDS CPU > 80% 持续 10 分钟"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  tags = var.common_tags
+}
+
+# 6. RDS 连接数过高
+resource "aws_cloudwatch_metric_alarm" "rds_connections_high" {
+  alarm_name          = "${var.project}-${var.environment}-rds-connections-high"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "DatabaseConnections"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 50
+  alarm_description   = "[WARNING] RDS 连接数 > 50 - 可能有连接泄漏"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  tags = var.common_tags
+}
+
+# 7. RDS 可用内存低
+resource "aws_cloudwatch_metric_alarm" "rds_memory_low" {
+  alarm_name          = "${var.project}-${var.environment}-rds-memory-low"
+  comparison_operator = "LessThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "FreeableMemory"
+  namespace           = "AWS/RDS"
+  period              = 300
+  statistic           = "Average"
+  threshold           = 104857600  # 100MB in bytes
+  alarm_description   = "[WARNING] RDS 可用内存 < 100MB - 性能可能下降"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    DBInstanceIdentifier = aws_db_instance.postgres.identifier
+  }
+
+  tags = var.common_tags
+}
+
+# 8. JobSpy EC2 状态检查失败（仅在运行时）
+resource "aws_cloudwatch_metric_alarm" "jobspy_status_check" {
+  alarm_name          = "${var.project}-${var.environment}-jobspy-status-failed"
+  comparison_operator = "GreaterThanThreshold"
+  evaluation_periods  = 2
+  metric_name         = "StatusCheckFailed"
+  namespace           = "AWS/EC2"
+  period              = 60
+  statistic           = "Maximum"
+  threshold           = 0
+  alarm_description   = "[WARNING] JobSpy EC2 状态检查失败 - 抓取任务可能失败"
+  alarm_actions       = [aws_sns_topic.alerts.arn]
+  ok_actions          = [aws_sns_topic.alerts.arn]
+
+  dimensions = {
+    InstanceId = aws_instance.jobspy.id
+  }
+
+  tags = var.common_tags
+}
