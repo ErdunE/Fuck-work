@@ -71,16 +71,16 @@ services:
     image: postgres:16
     container_name: fuckwork_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: $${POSTGRES_USER}
+      POSTGRES_PASSWORD: $${POSTGRES_PASSWORD}
+      POSTGRES_DB: $${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -93,10 +93,10 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: ${DATABASE_URL}
-      ENVIRONMENT: ${ENVIRONMENT}
-      AWS_REGION: ${AWS_REGION}
-      S3_BACKUPS_BUCKET: ${S3_BACKUPS_BUCKET}
+      DATABASE_URL: $${DATABASE_URL}
+      ENVIRONMENT: $${ENVIRONMENT}
+      AWS_REGION: $${AWS_REGION}
+      S3_BACKUPS_BUCKET: $${S3_BACKUPS_BUCKET}
     ports:
       - "80:8000"
     restart: unless-stopped
@@ -122,7 +122,7 @@ echo "Creating database backup..."
 docker exec fuckwork_postgres pg_dump -U fuckwork fuckwork | gzip > $${BACKUP_DIR}/$${BACKUP_FILE}
 
 echo "Uploading to S3..."
-aws s3 cp $${BACKUP_DIR}/$${BACKUP_FILE} s3://${S3_BUCKET}/postgres/
+aws s3 cp $${BACKUP_DIR}/$${BACKUP_FILE} s3://$${S3_BUCKET}/postgres/
 
 echo "Cleaning up old local backups..."
 cd $${BACKUP_DIR}
