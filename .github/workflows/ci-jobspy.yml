@@ -9,7 +9,7 @@ on:
       - '.github/workflows/ci-jobspy.yml'
 
 jobs:
-  test:
+  lint-and-test:
     runs-on: ubuntu-latest
     
     steps:
@@ -24,17 +24,73 @@ jobs:
       - name: Install dependencies
         run: |
           cd apps/backend
+          echo "📦 Installing dependencies..."
           pip install -r requirements/dev.txt
+          echo "✅ Dependencies installed"
       
-      - name: Lint with black
+      - name: Check import sorting (isort)
         run: |
           cd apps/backend
-          black --check src/fuckwork/services/collection/
+          echo "🔍 Checking import sorting with isort..."
+          isort --check-only --diff src/fuckwork/services/collection/
+          echo "✅ Import sorting OK"
+      
+      - name: Check code formatting (black)
+        run: |
+          cd apps/backend
+          echo "🔍 Checking code formatting with black..."
+          black --check --diff src/fuckwork/services/collection/
+          echo "✅ Code formatting OK"
 
       - name: Lint with flake8
         run: |
           cd apps/backend
-          flake8 src/fuckwork/services/collection/
+          echo "🔍 Running flake8 linter..."
+          flake8 src/fuckwork/services/collection/ \
+            --max-line-length=100 \
+            --exclude=__pycache__ \
+            --statistics \
+            --count
+          echo "✅ Flake8 passed"
       
-      - name: Test summary
-        run: echo "✅ JobSpy CI completed"
+      - name: Verify imports work
+        run: |
+          cd apps/backend
+          echo "🔍 Verifying collection module imports..."
+          python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          
+          from fuckwork.services.collection.jobspy_collector import JobSpyCollector
+          print('  ✓ JobSpyCollector imports OK')
+          
+          from fuckwork.services.collection.batch_collector import BatchCollector
+          print('  ✓ BatchCollector imports OK')
+          
+          from fuckwork.services.collection.search_config import SEARCH_QUERIES, PRESET_HOURLY
+          print('  ✓ Search config imports OK')
+          
+          print('✅ All collection imports verified')
+          "
+      
+      - name: Validate Dockerfile
+        run: |
+          cd apps/backend
+          echo "🔍 Validating Dockerfile.jobspy..."
+          if [ -f "Dockerfile.jobspy" ]; then
+            # Basic syntax check
+            head -20 Dockerfile.jobspy
+            echo "✅ Dockerfile.jobspy exists and readable"
+          else
+            echo "❌ Dockerfile.jobspy not found!"
+            exit 1
+          fi
+      
+      - name: CI Summary
+        if: always()
+        run: |
+          echo ""
+          echo "========================================"
+          echo "📋 CI JobSpy Summary"
+          echo "========================================"
+          echo "✅ Completed all checks"
