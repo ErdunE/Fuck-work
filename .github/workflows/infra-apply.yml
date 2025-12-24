@@ -5,6 +5,7 @@ on:
     branches: [main, dev]
     paths:
       - 'infra/terraform/**'
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -19,11 +20,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (GitHub Actions Role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::302222527269:role/fuckwork-github-actions-terraform-role
           aws-region: us-east-1
+      
+      - name: Assume Terraform Execution Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::302222527269:role/fuckwork-dev-terraform-execution-role
+          aws-region: us-east-1
+          role-chaining: true
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

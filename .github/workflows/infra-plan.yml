@@ -6,6 +6,7 @@ on:
     paths:
       - 'infra/terraform/**'
       - '.github/workflows/infra-plan.yml'
+  workflow_dispatch:
 
 permissions:
   id-token: write
@@ -20,11 +21,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (GitHub Actions Role)
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::302222527269:role/fuckwork-github-actions-terraform-role
           aws-region: us-east-1
+      
+      - name: Assume Terraform Execution Role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::302222527269:role/fuckwork-dev-terraform-execution-role
+          aws-region: us-east-1
+          role-chaining: true
       
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -50,7 +58,7 @@ jobs:
         id: plan
         run: |
           cd infra/terraform/environments/dev
-          terraform plan -no-color
+          terraform plan -no-color -out=tfplan 2>&1 | tee plan_output.txt
         continue-on-error: true
       
       - name: Comment Plan on PR
@@ -58,14 +66,13 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           script: |
-            const output = `#### Terraform Plan 📖
-            \`\`\`
-            ${{ steps.plan.outputs.stdout }}
-            \`\`\`
-            `;
+            const fs = require('fs');
+            const planOutput = fs.readFileSync('infra/terraform/environments/dev/plan_output.txt', 'utf8');
+            const truncated = planOutput.length > 60000 ? planOutput.substring(0, 60000) + '\n... (truncated)' : planOutput;
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: output
+              body: `#### Terraform Plan 📖\n\`\`\`\n${truncated}\n\`\`\``
             });
