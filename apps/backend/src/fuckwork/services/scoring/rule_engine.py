@@ -31,6 +31,8 @@ class RuleEngine:
         self.rules: List[Dict[str, Any]] = data.get("rules", [])
         if not isinstance(self.rules, list):
             raise ValueError("Rule table must contain a 'rules' list")
+        
+        logger.info(f"Loaded {len(self.rules)} rules from {path}")
 
     def check(self, job_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """
@@ -58,7 +60,6 @@ class RuleEngine:
                 logger.exception("Error evaluating rule %s: %s", rule.get("id"), exc)
                 continue
 
-        activated_rules = self._adjust_recruiter_weights(activated_rules, job_data)
         logger.debug("Activated rules: %s", [r["id"] for r in activated_rules])
         return activated_rules
 
@@ -69,21 +70,21 @@ class RuleEngine:
             return False
 
         value = self._get_nested_value(job_data, data_source)
-        if value is None:
-            return False
-
+        
         pattern_type = rule.get("pattern_type")
         pattern_value = rule.get("pattern_value")
         rule_id = rule.get("id")
 
-        # Rules that trigger when regex does NOT match (absence detection)
-        negated_regex_rules = {"B4", "B9", "B14", "B18"}
+        # Handle field_exists pattern type (checks if value is not None/empty)
+        if pattern_type == "field_exists":
+            return self._check_field_exists(value)
+
+        # For other pattern types, value must exist
+        if value is None:
+            return False
 
         if pattern_type == "regex":
-            matches = self._match_regex(value, self._ensure_iterable(pattern_value))
-            if rule_id in negated_regex_rules:
-                return not matches
-            return matches
+            return self._match_regex(value, self._ensure_iterable(pattern_value))
         if pattern_type == "string_contains":
             return self._string_contains(value, pattern_value)
         if pattern_type == "string_contains_any":
@@ -97,23 +98,52 @@ class RuleEngine:
         if pattern_type == "numeric_less_than":
             return self._numeric_less_than(value, pattern_value)
         if pattern_type == "boolean":
-            # Special handling for applicant count missing (C3)
-            if rule_id == "C3":
-                return value is None
-            if rule_id == "C10":
-                return bool(value)
             return self._boolean_match(value, pattern_value, job_data)
-
         if pattern_type == "body_shop_pattern_check":
             return self._check_body_shop_pattern(value, job_data)
-
         if pattern_type == "action_verb_check":
             return self._check_missing_action_verbs(value)
-
         if pattern_type == "extreme_formatting_check":
             return self._check_extreme_formatting(value)
+        if pattern_type == "jd_length_check":
+            # Returns True if JD is SHORTER than threshold (negative signal)
+            return self._check_jd_length_short(value, pattern_value)
+        if pattern_type == "jd_length_check_min":
+            # Returns True if JD is LONGER than threshold (positive signal)
+            return self._check_jd_length_long(value, pattern_value)
 
         return False
+
+    @staticmethod
+    def _check_field_exists(value: Any) -> bool:
+        """Check if a field exists and has a meaningful value."""
+        if value is None:
+            return False
+        if isinstance(value, str) and value.strip() == "":
+            return False
+        if isinstance(value, (list, dict)) and len(value) == 0:
+            return False
+        return True
+
+    @staticmethod
+    def _check_jd_length_short(text: Any, threshold: Any) -> bool:
+        """Return True if JD is shorter than threshold characters."""
+        try:
+            text_str = str(text) if text else ""
+            threshold_int = int(threshold) if threshold else 500
+            return len(text_str) < threshold_int
+        except (TypeError, ValueError):
+            return False
+
+    @staticmethod
+    def _check_jd_length_long(text: Any, threshold: Any) -> bool:
+        """Return True if JD is longer than threshold characters."""
+        try:
+            text_str = str(text) if text else ""
+            threshold_int = int(threshold) if threshold else 3000
+            return len(text_str) > threshold_int
+        except (TypeError, ValueError):
+            return False
 
     @staticmethod
     def _match_regex(text: Any, patterns: Iterable[str]) -> bool:
@@ -167,7 +197,6 @@ class RuleEngine:
                 return value is bool(expected) and value == expected
             except Exception:
                 return False
-
         return False
 
     @staticmethod
@@ -289,75 +318,21 @@ class RuleEngine:
     def _check_missing_action_verbs(jd_text: Any) -> bool:
         text = str(jd_text).lower()
         action_verbs = [
-            "build",
-            "develop",
-            "create",
-            "design",
-            "implement",
-            "architect",
-            "construct",
-            "code",
-            "write",
-            "program",
-            "work",
-            "collaborate",
-            "partner",
-            "coordinate",
-            "contribute",
-            "participate",
-            "engage",
-            "join",
-            "support",
-            "lead",
-            "manage",
-            "direct",
-            "oversee",
-            "supervise",
-            "guide",
-            "mentor",
-            "coach",
-            "drive",
-            "own",
-            "improve",
-            "optimize",
-            "enhance",
-            "refine",
-            "streamline",
-            "scale",
-            "upgrade",
-            "modernize",
-            "analyze",
-            "solve",
-            "troubleshoot",
-            "debug",
-            "investigate",
-            "research",
-            "evaluate",
-            "assess",
-            "maintain",
-            "operate",
-            "monitor",
-            "ensure",
-            "deploy",
-            "run",
-            "execute",
-            "perform",
-            "communicate",
-            "document",
-            "present",
-            "report",
-            "share",
-            "explain",
+            "build", "develop", "create", "design", "implement", "architect",
+            "construct", "code", "write", "program", "work", "collaborate",
+            "partner", "coordinate", "contribute", "participate", "engage",
+            "join", "support", "lead", "manage", "direct", "oversee",
+            "supervise", "guide", "mentor", "coach", "drive", "own",
+            "improve", "optimize", "enhance", "refine", "streamline", "scale",
+            "upgrade", "modernize", "analyze", "solve", "troubleshoot", "debug",
+            "investigate", "research", "evaluate", "assess", "maintain", "operate",
+            "monitor", "ensure", "deploy", "run", "execute", "perform",
+            "communicate", "document", "present", "report", "share", "explain",
             "demonstrate",
         ]
         responsibility_phrases = [
-            "responsibilities",
-            "you will",
-            "you'll",
-            "your role",
-            "what you'll do",
-            "day-to-day",
-            "in this role",
+            "responsibilities", "you will", "you'll", "your role",
+            "what you'll do", "day-to-day", "in this role",
         ]
         has_action_verbs = any(verb in text for verb in action_verbs)
         has_responsibility_section = any(p in text for p in responsibility_phrases)
@@ -367,7 +342,6 @@ class RuleEngine:
     def _check_extreme_formatting(jd_text: Any) -> bool:
         text = str(jd_text)
         suspect = 0
-        import re
 
         if re.search(r" {10,}", text):
             suspect += 1
@@ -386,98 +360,11 @@ class RuleEngine:
     def _effective_weight(
         self, rule: Dict[str, Any], job_data: Dict[str, Any]
     ) -> float:
-        """Compute context-aware weight (e.g., soften Easy Apply when info is complete)."""
+        """Compute context-aware weight adjustments."""
         try:
             weight = float(rule.get("weight", 0.0))
         except (TypeError, ValueError):
             return 0.0
 
-        rule_id = rule.get("id")
-
-        if rule_id == "C10":
-            # If company info is complete, reduce penalty impact.
-            if self._is_company_info_complete(job_data):
-                posted_days = self._get_nested_value(
-                    job_data, "platform_metadata.posted_days_ago"
-                )
-                if posted_days is not None and posted_days > 60:
-                    return 0.0
-                return weight * 0.5
-        if rule_id == "C5":
-            applicants = self._get_nested_value(
-                job_data, "platform_metadata.applicants_count"
-            )
-            if isinstance(applicants, (int, float)) and applicants > 0:
-                return weight * 0.4
-        if rule_id == "C1":
-            # Staleness penalty softened slightly to avoid over-penalization.
-            posted_days = self._get_nested_value(
-                job_data, "platform_metadata.posted_days_ago"
-            )
-            if posted_days is not None:
-                return weight * 0.5
-        if rule_id == "B9":
-            # Salary transparency applies strongest in certain locations.
-            domain_matches = self._get_nested_value(
-                job_data, "company_info.domain_matches_name"
-            )
-            size_emp = self._get_nested_value(job_data, "company_info.size_employees")
-            if (
-                domain_matches is True
-                and isinstance(size_emp, (int, float))
-                and size_emp >= 10000
-            ):
-                return weight * 0.5
-            location = str(self._get_nested_value(job_data, "location") or "").lower()
-            if any(
-                key in location
-                for key in ["ca", "california", "ny", "new york", "wa", "washington"]
-            ):
-                return weight
-            if (
-                domain_matches is True
-                and isinstance(size_emp, (int, float))
-                and size_emp >= 1000
-            ):
-                return weight * 0.33
-            if domain_matches is True:
-                return weight * 0.55
-        if rule_id == "B4":
-            # Reduce penalty for missing tech stack to avoid over-penalization.
-            return weight * 0.33
-        if rule_id == "A11":
-            # If high posting frequency already captured by A3, reduce double penalty.
-            recent_jobs = self._get_nested_value(
-                job_data, "poster_info.recent_job_count_7d"
-            )
-            if isinstance(recent_jobs, (int, float)) and recent_jobs >= 8:
-                return weight * 0.5
-        if rule_id == "C7":
-            # Generic remote location should be mild.
-            return weight * 0.5
-        if rule_id == "D3":
-            rating = self._get_nested_value(job_data, "company_info.glassdoor_rating")
-            if rating is not None:
-                return weight * 0.67
-        if rule_id == "D1":
-            # Soften layoffs penalty slightly for tolerance alignment.
-            return weight * 0.4
+        # No complex weight adjustments in v2.0 - keep it simple
         return weight
-
-    def _adjust_recruiter_weights(
-        self, activated_rules: List[Dict[str, Any]], job_data: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
-        """Soften stacked recruiter/body-shop signals when company domain matches (less suspicious)."""
-        recruiter_rules = [
-            r for r in activated_rules if str(r.get("id", "")).startswith("A")
-        ]
-        domain_matches = self._get_nested_value(
-            job_data, "company_info.domain_matches_name"
-        )
-        if domain_matches is True and len(recruiter_rules) >= 5:
-            for r in recruiter_rules:
-                try:
-                    r["weight"] = float(r["weight"]) * 0.1
-                except (TypeError, ValueError, KeyError):
-                    continue
-        return activated_rules

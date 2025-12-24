@@ -1,4 +1,12 @@
-"""Score fusion logic for authenticity scoring (spec section 3)."""
+"""
+Score fusion logic for authenticity scoring - v3.1
+
+Adjustments from v3.0:
+- Raised BASE_SCORE from 55 to 60
+- Increased MAX_POSITIVE_GAIN from 45 to 40 (max score now 100)
+- Reduced short JD penalty
+- Better scaling for positive signals
+"""
 
 from __future__ import annotations
 
@@ -7,13 +15,20 @@ from typing import Any, Dict, List, Optional
 
 
 class ScoreFusion:
-    """Calculate authenticity score, level, and confidence from activated rules."""
+    """Calculate authenticity score based on positive and negative signals."""
 
-    PENALTY_FACTOR: float = 1.8
-    MAX_GAIN: float = 1.15  # 15% max boost
-    STRONG_RULE_THRESHOLD: float = 0.18
-    LEVEL_LIKELY_REAL: float = 80.0
-    LEVEL_UNCERTAIN: float = 55.0
+    # Base score for a job with no signals
+    BASE_SCORE: float = 60.0
+    
+    # Maximum points that can be gained from positive signals
+    MAX_POSITIVE_GAIN: float = 40.0  # 60 + 40 = 100
+    
+    # Maximum points that can be lost from negative signals  
+    MAX_NEGATIVE_LOSS: float = 55.0  # 60 - 55 = 5 (minimum score ~5)
+    
+    # Thresholds for levels
+    LEVEL_LIKELY_REAL: float = 75.0
+    LEVEL_UNCERTAIN: float = 50.0
 
     def calculate(
         self,
@@ -21,46 +36,59 @@ class ScoreFusion:
         job_data: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
-        Calculate authenticity score from activated rules.
-
-        Args:
-            activated_rules: List of activated rule dictionaries.
-            job_data: Optional job data for confidence coverage calculation.
-
-        Returns:
-            Dictionary with score, level, confidence, and weight sums.
+        Calculate authenticity score using v3.1 formula.
         """
-        # Extract collection metadata for platform-aware weight adjustment (Phase 2A)
-        collection_meta = {}
-        if job_data is not None:
-            collection_meta = job_data.get("collection_metadata", {})
-
         negative_rules = [r for r in activated_rules if r.get("signal") == "negative"]
         positive_rules = [r for r in activated_rules if r.get("signal") == "positive"]
 
-        # Apply platform-aware weight adjustment (Phase 2A Stage 7)
-        negative_sum = sum(
-            self._adjust_weight_for_platform(r, collection_meta) for r in negative_rules
-        )
-        base_score = 100 * math.exp(-negative_sum * self.PENALTY_FACTOR)
+        # Calculate positive contribution with diminishing returns
+        positive_sum = sum(self._safe_weight(r) for r in positive_rules)
+        # Adjusted scaling: easier to reach higher scores with good signals
+        if positive_sum > 0:
+            # Faster growth curve for positive signals
+            positive_gain = self.MAX_POSITIVE_GAIN * (1 - math.exp(-positive_sum * 2.5))
+        else:
+            positive_gain = 0.0
 
-        positive_sum = sum(
-            self._adjust_weight_for_platform(r, collection_meta) for r in positive_rules
-        )
-        gain = min(self.MAX_GAIN, (1 + positive_sum) ** 0.25)
+        # Calculate negative contribution
+        negative_sum = sum(self._safe_weight(r) for r in negative_rules)
+        if negative_sum > 0:
+            # Softer penalty curve for minor issues
+            negative_loss = self.MAX_NEGATIVE_LOSS * (1 - math.exp(-negative_sum * 1.8))
+        else:
+            negative_loss = 0.0
 
-        final_score = base_score * gain
+        # Check for critical negative signals (staffing company, recruiter language)
+        has_critical = any(
+            r.get("confidence") == "high" and self._safe_weight(r) >= 0.20
+            for r in negative_rules
+        )
+        
+        # If critical signal present, cap the maximum score
+        if has_critical:
+            max_possible = 45.0  # Can't be "likely real" if critical red flag
+            positive_gain = min(positive_gain, max_possible - self.BASE_SCORE + negative_loss)
+
+        # Calculate final score
+        final_score = self.BASE_SCORE + positive_gain - negative_loss
         final_score = self._clamp(final_score, 0.0, 100.0)
 
+        # Determine level
         level = self._determine_level(final_score)
-        confidence = self._calculate_confidence(activated_rules, job_data)
+        
+        # Calculate confidence
+        confidence = self._calculate_confidence(
+            activated_rules, job_data, positive_sum, negative_sum
+        )
 
         return {
             "authenticity_score": round(final_score, 1),
             "level": level,
             "confidence": confidence,
-            "negative_weight_sum": round(negative_sum, 2),
             "positive_weight_sum": round(positive_sum, 2),
+            "negative_weight_sum": round(negative_sum, 2),
+            "positive_gain": round(positive_gain, 1),
+            "negative_loss": round(negative_loss, 1),
         }
 
     def _determine_level(self, score: float) -> str:
@@ -74,85 +102,46 @@ class ScoreFusion:
     def _calculate_confidence(
         self,
         activated_rules: List[Dict[str, Any]],
-        job_data: Optional[Dict[str, Any]] = None,
+        job_data: Optional[Dict[str, Any]],
+        positive_sum: float,
+        negative_sum: float,
     ) -> str:
-        """
-        Confidence is based on:
-        1. Count of strong rules (weight >= STRONG_RULE_THRESHOLD)
-        2. Data coverage of required fields (if job_data provided)
-        """
-        strong_count = sum(
-            1
-            for r in activated_rules
-            if self._safe_weight(r) >= self.STRONG_RULE_THRESHOLD
-        )
-
-        coverage = 0.0
-        if job_data is not None:
-            required_fields = [
-                "jd_text",
-                "poster_info",
-                "platform_metadata.posted_days_ago",
-                "company_name",
+        """Calculate confidence based on signal strength and data coverage."""
+        high_conf_rules = sum(1 for r in activated_rules if r.get("confidence") == "high")
+        total_rules = len(activated_rules)
+        total_weight = positive_sum + negative_sum
+        
+        # Data completeness check
+        data_fields_present = 0
+        if job_data:
+            check_fields = [
+                ("jd_text", lambda x: x and len(str(x)) > 200),
+                ("title", lambda x: x and len(str(x)) > 3),
+                ("company_name", lambda x: x and len(str(x)) > 1),
+                ("company_info.url", lambda x: x is not None),
+                ("company_info.industry", lambda x: x is not None),
             ]
-            present = sum(
-                1
-                for field in required_fields
-                if self._get_nested_value(job_data, field) is not None
-            )
-            coverage = present / len(required_fields)
-
-        confidence_score = (0.5 * min(1.0, strong_count / 3.0)) + (0.5 * coverage)
-
-        if strong_count == 0 and coverage >= 0.75:
-            max_weight = max(
-                (self._safe_weight(r) for r in activated_rules), default=0.0
-            )
-            if not activated_rules or max_weight < 0.05:
-                return "High"
-            if len(activated_rules) >= 5 and max_weight < 0.2:
-                return "High"
-        if confidence_score >= 0.66:
+            for field, validator in check_fields:
+                value = self._get_nested_value(job_data, field)
+                if validator(value):
+                    data_fields_present += 1
+        
+        data_coverage = data_fields_present / 5.0
+        
+        # High confidence: Clear signals or multiple high-weight rules
+        if high_conf_rules >= 2:
             return "High"
-        if confidence_score >= 0.33:
+        if total_weight >= 0.4 and (high_conf_rules >= 1 or total_rules >= 4):
+            return "High"
+        if negative_sum >= 0.25:  # Clear negative signal
+            return "High"
+        
+        # Medium confidence: Some signals present
+        if total_rules >= 2 or total_weight >= 0.15 or data_coverage >= 0.4:
             return "Medium"
+        
+        # Low confidence: Few signals, poor data
         return "Low"
-
-    def _adjust_weight_for_platform(
-        self, rule: Dict[str, Any], collection_meta: Dict[str, Any]
-    ) -> float:
-        """
-        Adjust rule weight based on platform capabilities.
-
-        KEY LOGIC (Phase 2A Stage 7):
-        - A-series (Recruiter) rules: Only apply if poster expected AND present
-        - Other rules: Keep original weight
-
-        Args:
-            rule: Rule dict with rule_id and weight
-            collection_meta: Platform metadata with poster_expected/present
-
-        Returns:
-            Adjusted weight (0.0 if should skip rule)
-        """
-        rule_id = rule.get("rule_id", "")
-        base_weight = self._safe_weight(rule)
-
-        # A-series rules (Recruiter signals)
-        if rule_id.startswith("A"):
-            poster_expected = collection_meta.get("poster_expected", False)
-            poster_present = collection_meta.get("poster_present", False)
-
-            # If poster not expected (e.g., Indeed), skip rule entirely
-            if not poster_expected:
-                return 0.0
-
-            # If poster expected but not present (extraction failure), reduce weight
-            if not poster_present:
-                return base_weight * 0.5
-
-        # All other rules: keep original weight
-        return base_weight
 
     @staticmethod
     def _safe_weight(rule: Dict[str, Any]) -> float:

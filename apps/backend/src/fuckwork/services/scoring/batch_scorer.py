@@ -49,23 +49,39 @@ def score_unscored_jobs(limit: int = 100) -> Dict[str, int]:
 
         for job in unscored_jobs:
             try:
-                # Prepare job data
+                # Prepare job data with ALL available fields
                 job_data = {
                     "job_id": job.job_id,
                     "jd_text": job.jd_text or "",
                     "title": job.title,
                     "company_name": job.company_name,
+                    "location": job.location,
+                    "platform": job.platform,
+                    "url": job.url,
+                    # Include all JSONB fields for rule evaluation
+                    "poster_info": job.poster_info or {},
+                    "company_info": job.company_info or {},
+                    "platform_metadata": job.platform_metadata or {},
+                    "collection_metadata": job.collection_metadata or {},
+                    "derived_signals": job.derived_signals or {},
                 }
 
                 # Score the job
                 result = scorer.score_job(job_data)
 
-                # Update database
+                # Update database with ALL scoring results
                 job.authenticity_score = result["authenticity_score"]
                 job.authenticity_level = result["level"]
                 job.confidence = result["confidence"]
+                job.red_flags = result.get("red_flags", [])
+                job.positive_signals = result.get("positive_signals", [])
 
                 scored += 1
+
+                logger.info(
+                    f"Scored job {job.job_id}: score={result['authenticity_score']}, "
+                    f"level={result['level']}, confidence={result['confidence']}"
+                )
 
                 if scored % 10 == 0:
                     logger.info(f"Progress: {scored}/{total} scored")

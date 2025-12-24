@@ -421,6 +421,7 @@ LOCATIONS = {
 TIME_WINDOWS = {
     "today": 24,  # Last 24 hours
     "hourly": 1,  # Last 1 hour
+    "four_hours": 4,  # Last 4 hours
     "recent": 72,  # Last 3 days
     "week": 168,  # Last 7 days
     "month": 720,  # Last 30 days
@@ -590,11 +591,12 @@ def get_search_stats(preset_name: str = None):
     }
 
 
-# NEW: Hourly collection preset (all industries, past 1 hour)
+# Scheduled collection preset (all industries, past 4 hours)
+# Runs every 4 hours via EventBridge -> Lambda -> JobSpy EC2
 PRESET_HOURLY = {
     "categories": list(SEARCH_QUERIES.keys()),  # All 22 industries
     "platforms": PRIMARY_PLATFORMS,
     "location": "us_national",
-    "time_window": "hourly",  # Past 1 hour
+    "time_window": "four_hours",  # Past 4 hours 
     "results_wanted": "standard",  # 50 per query
 }
