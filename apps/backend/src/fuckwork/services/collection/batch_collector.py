@@ -7,6 +7,8 @@ Phase 2.6 - Coverage Expansion.
 
 import logging
 import time
+import os
+import json
 from typing import Dict, List
 from datetime import datetime
 from .jobspy_collector import JobSpyCollector
@@ -17,6 +19,79 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
+
+def send_sns_report(stats: Dict) -> bool:
+    """
+    Send collection report via SNS.
+    
+    Args:
+        stats: Collection statistics dictionary
+        
+    Returns:
+        True if sent successfully, False otherwise
+    """
+    sns_topic_arn = os.environ.get("SNS_TOPIC_ARN")
+    
+    if not sns_topic_arn:
+        logger.warning("SNS_TOPIC_ARN not set, skipping report")
+        return False
+    
+    try:
+        import boto3
+        sns = boto3.client("sns", region_name=os.environ.get("AWS_REGION", "us-east-1"))
+        
+        # Format duration
+        duration_mins = stats.get("duration_seconds", 0) / 60
+        
+        # Build message
+        subject = f"JobSpy Report: {stats.get('total_jobs_saved', 0)} jobs saved"
+        
+        message_lines = [
+            "=" * 50,
+            "JobSpy Collection Report",
+            "=" * 50,
+            "",
+            f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M UTC')}",
+            f"Duration: {duration_mins:.1f} minutes",
+            "",
+            "--- Collection Stats ---",
+            f"Total Queries: {stats.get('total_queries', 0)}",
+            f"Successful: {stats.get('successful_queries', 0)}",
+            f"Failed: {stats.get('failed_queries', 0)}",
+            "",
+            "--- Job Stats ---",
+            f"Jobs Collected: {stats.get('total_jobs_collected', 0):,}",
+            f"Jobs Saved: {stats.get('total_jobs_saved', 0):,}",
+            f"Duplicates Skipped: {stats.get('total_duplicates', 0):,}",
+            "",
+            "--- By Category ---",
+        ]
+        
+        for category, cat_stats in stats.get("by_category", {}).items():
+            message_lines.append(
+                f"  {category}: {cat_stats.get('saved', 0)} saved / {cat_stats.get('collected', 0)} collected"
+            )
+        
+        message_lines.extend([
+            "",
+            "=" * 50,
+        ])
+        
+        message = "\n".join(message_lines)
+        
+        sns.publish(
+            TopicArn=sns_topic_arn,
+            Subject=subject,
+            Message=message
+        )
+        
+        logger.info(f"SNS report sent successfully")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Failed to send SNS report: {e}")
+        return False
 
 
 class BatchCollector:
@@ -133,6 +208,10 @@ class BatchCollector:
         ).total_seconds()
 
         self._print_summary(stats)
+        
+        # Send SNS report
+        send_sns_report(stats)
+        
         return stats
 
     def _print_summary(self, stats: Dict):

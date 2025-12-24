@@ -62,6 +62,8 @@ docker run --rm \
   --name fuckwork_jobspy \
   -e DATABASE_URL=postgresql://fuckwork:${postgres_password}@${rds_endpoint}/fuckwork \
   -e ENVIRONMENT=production \
+  -e SNS_TOPIC_ARN=arn:aws:sns:${region}:302222527269:fuckwork-dev-alerts \
+  -e AWS_REGION=${region} \
   ${ecr_jobspy_url}:latest
 
 echo "jobspy completed successfully!"
