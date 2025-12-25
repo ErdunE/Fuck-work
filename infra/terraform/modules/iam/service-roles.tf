@@ -17,7 +17,7 @@ resource "aws_iam_role" "terraform_execution" {
         Principal = {
           AWS = "arn:aws:iam::${var.aws_account_id}:root"
         }
-        Action = "sts:AssumeRole"
+        Action = ["sts:AssumeRole", "sts:TagSession"]
         Condition = {
           Bool = {
             "aws:SecureTransport" = "true"
@@ -53,7 +53,7 @@ resource "aws_iam_role" "ec2_backend" {
         Principal = {
           Service = "ec2.amazonaws.com"
         }
-        Action = "sts:AssumeRole"
+        Action = ["sts:AssumeRole", "sts:TagSession"]
       }
     ]
   })
@@ -150,7 +150,7 @@ resource "aws_iam_role" "rds_monitoring" {
         Principal = {
           Service = "monitoring.rds.amazonaws.com"
         }
-        Action = "sts:AssumeRole"
+        Action = ["sts:AssumeRole", "sts:TagSession"]
       }
     ]
   })
