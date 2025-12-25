@@ -37,3 +37,32 @@ output "iam_groups" {
     readonly           = module.iam.readonly_group_name
   }
 }
+
+# ============================================================================
+# COGNITO OUTPUTS
+# ============================================================================
+
+output "cognito_user_pool_id" {
+  description = "Cognito User Pool ID"
+  value       = module.auth.user_pool_id
+}
+
+output "cognito_client_id" {
+  description = "Cognito App Client ID (for frontend)"
+  value       = module.auth.client_id
+}
+
+output "cognito_domain" {
+  description = "Cognito domain prefix"
+  value       = module.auth.domain
+}
+
+output "cognito_hosted_ui_url" {
+  description = "Cognito Hosted UI URL"
+  value       = module.auth.hosted_ui_url
+}
+
+output "cognito_issuer_url" {
+  description = "Cognito Issuer URL (for backend JWT validation)"
+  value       = module.auth.issuer_url
+}

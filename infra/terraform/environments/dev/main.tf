@@ -29,3 +29,33 @@ module "iam" {
     Repository  = "github.com/${var.github_org}/${var.github_repo}"
   }
 }
+
+# ============================================================================
+# AUTH MODULE CONFIGURATION - Cognito
+# ============================================================================
+
+module "auth" {
+  source = "../../modules/auth"
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  # OAuth callback URLs (localhost for dev, will add CloudFront URL later)
+  callback_urls = [
+    "http://localhost:3000",
+    "http://localhost:3000/callback",
+    "http://localhost:5173",
+    "http://localhost:5173/callback"
+  ]
+
+  logout_urls = [
+    "http://localhost:3000",
+    "http://localhost:5173"
+  ]
+
+  tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+  }
+}

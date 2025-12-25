@@ -221,7 +221,7 @@ resource "aws_iam_policy" "github_actions_terraform" {
     Statement = [
       {
         Effect = "Allow"
-        Action = "sts:AssumeRole"
+        Action = ["sts:AssumeRole", "sts:TagSession"]
         Resource = aws_iam_role.terraform_execution.arn
       },
       {
