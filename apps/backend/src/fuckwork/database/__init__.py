@@ -3,9 +3,10 @@ Database connection and session management for FuckWork.
 Provides SQLAlchemy engine, session factory, and model exports.
 """
 
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-import os
 
 # Database URL from environment or default to local dev
 DATABASE_URL = os.getenv(
@@ -13,31 +14,29 @@ DATABASE_URL = os.getenv(
 )
 
 # Create engine with connection pooling
-engine = create_engine(
-    DATABASE_URL, pool_size=5, max_overflow=10, pool_pre_ping=True, echo=False
-)
+engine = create_engine(DATABASE_URL, pool_size=5, max_overflow=10, pool_pre_ping=True, echo=False)
 
 # Session factory
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 # Import models (after engine is created)
 from .models import (  # noqa: E402
-    Base,
-    Job,
-    User,
-    UserProfile,
-    UserEducation,
-    UserExperience,
-    UserProject,
-    UserSkill,
-    UserKnowledgeEntry,
-    ApplyTask,
+    ActiveApplySession,
     ApplyEvent,
     ApplyRun,
-    AutomationPreference,
+    ApplyTask,
     AutomationEvent,
-    ActiveApplySession,
+    AutomationPreference,
+    Base,
+    Job,
     ObservabilityEvent,
+    User,
+    UserEducation,
+    UserExperience,
+    UserKnowledgeEntry,
+    UserProfile,
+    UserProject,
+    UserSkill,
 )
 
 

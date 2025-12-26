@@ -15,20 +15,21 @@ Architecture:
 """
 
 from datetime import date
-from typing import Optional, List, Dict
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from typing import Dict, List, Optional
 
-from src.fuckwork.database import get_db
+from fastapi import APIRouter, Depends
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from src.fuckwork.api.auth import get_current_user
 from src.fuckwork.database import (
     User,
-    UserProfile,
     UserEducation,
     UserExperience,
+    UserProfile,
     UserSkill,
+    get_db,
 )
-from src.fuckwork.api.auth import get_current_user
 
 router = APIRouter(prefix="/api/users/me", tags=["derived-profile"])
 
@@ -84,9 +85,7 @@ class DerivedProfile(BaseModel):
 
     # Metadata (Phase 5.2.1 Review Fix)
     missing_fields: List[str] = []  # Fields that are required but null/empty
-    source_fields: Dict[str, List[str]] = (
-        {}
-    )  # Mapping of derived field -> raw fields used
+    source_fields: Dict[str, List[str]] = {}  # Mapping of derived field -> raw fields used
 
 
 # Computation Functions
@@ -148,11 +147,7 @@ def compute_highest_degree(education_records: List[UserEducation]) -> Optional[s
         degree_lower = edu.degree.lower()
 
         # Detect degree level
-        if (
-            "phd" in degree_lower
-            or "doctorate" in degree_lower
-            or "ph.d" in degree_lower
-        ):
+        if "phd" in degree_lower or "doctorate" in degree_lower or "ph.d" in degree_lower:
             level = degree_hierarchy["PhD"]
             degree_name = "PhD"
         elif (
@@ -174,9 +169,7 @@ def compute_highest_degree(education_records: List[UserEducation]) -> Optional[s
         ):
             level = degree_hierarchy["BS"]
             degree_name = "BS"
-        elif (
-            "associate" in degree_lower or "as" in degree_lower or "a.s" in degree_lower
-        ):
+        elif "associate" in degree_lower or "as" in degree_lower or "a.s" in degree_lower:
             level = degree_hierarchy["AS"]
             degree_name = "AS"
         else:
@@ -231,9 +224,7 @@ def compute_years_of_experience(
             continue
 
         # Calculate months
-        months = (end.year - exp.start_date.year) * 12 + (
-            end.month - exp.start_date.month
-        )
+        months = (end.year - exp.start_date.year) * 12 + (end.month - exp.start_date.month)
         if months > 0:
             total_months += months
 
@@ -266,10 +257,7 @@ def compute_work_authorization_primitives(
     value_lower = raw_value.lower().strip()
 
     # US Citizen: authorized, no sponsorship needed
-    if any(
-        keyword in value_lower
-        for keyword in ["us citizen", "citizen", "usc", "u.s. citizen"]
-    ):
+    if any(keyword in value_lower for keyword in ["us citizen", "citizen", "usc", "u.s. citizen"]):
         return (True, False, "US_CITIZEN")
 
     # Green Card / Permanent Resident: authorized, no sponsorship needed
@@ -288,16 +276,12 @@ def compute_work_authorization_primitives(
         return (True, True, "OPT")
 
     # Explicitly requires sponsorship (unknown status)
-    if any(
-        keyword in value_lower
-        for keyword in ["sponsor", "sponsorship", "require sponsor"]
-    ):
+    if any(keyword in value_lower for keyword in ["sponsor", "sponsorship", "require sponsor"]):
         return (None, True, "REQUIRES_SPONSORSHIP")
 
     # Not authorized explicitly
     if any(
-        keyword in value_lower
-        for keyword in ["not authorized", "no authorization", "not eligible"]
+        keyword in value_lower for keyword in ["not authorized", "no authorization", "not eligible"]
     ):
         return (False, None, "NOT_AUTHORIZED")
 
@@ -366,15 +350,9 @@ def get_derived_profile(
     - Null-safe legal_name computation
     """
     # Fetch raw data
-    profile = (
-        db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
-    )
-    education = (
-        db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
-    )
-    experience = (
-        db.query(UserExperience).filter(UserExperience.user_id == current_user.id).all()
-    )
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    education = db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
+    experience = db.query(UserExperience).filter(UserExperience.user_id == current_user.id).all()
     skills = db.query(UserSkill).filter(UserSkill.user_id == current_user.id).all()
 
     # Compute derived fields
@@ -383,9 +361,7 @@ def get_derived_profile(
     graduation_year = compute_graduation_year(education)
     years_of_experience = compute_years_of_experience(experience)
     work_authorized_us, requires_sponsorship, work_auth_category = (
-        compute_work_authorization_primitives(
-            profile.work_authorization if profile else None
-        )
+        compute_work_authorization_primitives(profile.work_authorization if profile else None)
     )
     normalized_skills_list = extract_normalized_skills(skills)
 

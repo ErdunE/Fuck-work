@@ -5,32 +5,33 @@ Phase 3.3 - User Foundation Layer.
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from src.fuckwork.database import get_db
-from src.fuckwork.database import (
-    User,
-    UserProfile,
-    UserEducation,
-    UserExperience,
-    UserProject,
-    UserSkill,
-    UserKnowledgeEntry,
-)
+
 from src.fuckwork.api.models_user import (
-    UserCreate,
-    UserResponse,
-    UserProfileUpdate,
-    UserProfileResponse,
     EducationCreate,
     EducationResponse,
     ExperienceCreate,
     ExperienceResponse,
+    FullUserProfileResponse,
+    KnowledgeEntryCreate,
+    KnowledgeEntryResponse,
     ProjectCreate,
     ProjectResponse,
     SkillCreate,
     SkillResponse,
-    KnowledgeEntryCreate,
-    KnowledgeEntryResponse,
-    FullUserProfileResponse,
+    UserCreate,
+    UserProfileResponse,
+    UserProfileUpdate,
+    UserResponse,
+)
+from src.fuckwork.database import (
+    User,
+    UserEducation,
+    UserExperience,
+    UserKnowledgeEntry,
+    UserProfile,
+    UserProject,
+    UserSkill,
+    get_db,
 )
 
 router = APIRouter()
@@ -83,9 +84,7 @@ def get_full_user_profile(user_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{user_id}/profile", response_model=UserProfileResponse)
-def update_profile(
-    user_id: int, profile_data: UserProfileUpdate, db: Session = Depends(get_db)
-):
+def update_profile(user_id: int, profile_data: UserProfileUpdate, db: Session = Depends(get_db)):
     """
     Update or create user core profile.
     """
@@ -113,9 +112,7 @@ def update_profile(
 
 
 @router.post("/{user_id}/education", response_model=EducationResponse, status_code=201)
-def add_education(
-    user_id: int, education_data: EducationCreate, db: Session = Depends(get_db)
-):
+def add_education(user_id: int, education_data: EducationCreate, db: Session = Depends(get_db)):
     """
     Add education entry.
     """
@@ -134,12 +131,8 @@ def add_education(
 # Experience Management
 
 
-@router.post(
-    "/{user_id}/experience", response_model=ExperienceResponse, status_code=201
-)
-def add_experience(
-    user_id: int, experience_data: ExperienceCreate, db: Session = Depends(get_db)
-):
+@router.post("/{user_id}/experience", response_model=ExperienceResponse, status_code=201)
+def add_experience(user_id: int, experience_data: ExperienceCreate, db: Session = Depends(get_db)):
     """
     Add work experience entry.
     """
@@ -159,9 +152,7 @@ def add_experience(
 
 
 @router.post("/{user_id}/projects", response_model=ProjectResponse, status_code=201)
-def add_project(
-    user_id: int, project_data: ProjectCreate, db: Session = Depends(get_db)
-):
+def add_project(user_id: int, project_data: ProjectCreate, db: Session = Depends(get_db)):
     """
     Add project entry.
     """
@@ -200,9 +191,7 @@ def add_skill(user_id: int, skill_data: SkillCreate, db: Session = Depends(get_d
 # Knowledge Base Management
 
 
-@router.post(
-    "/{user_id}/knowledge", response_model=KnowledgeEntryResponse, status_code=201
-)
+@router.post("/{user_id}/knowledge", response_model=KnowledgeEntryResponse, status_code=201)
 def add_knowledge_entry(
     user_id: int, knowledge_data: KnowledgeEntryCreate, db: Session = Depends(get_db)
 ):

@@ -3,26 +3,27 @@ Core answer engine logic.
 Fetches user data, builds context, generates grounded answers.
 """
 
-from typing import Optional, List
+import logging
+from typing import List, Optional
+
 from sqlalchemy.orm import Session
+
 from src.fuckwork.database import (
     User,
 )
+
 from .ollama_client import call_ollama
 from .prompt_templates import (
     build_application_prompt,
-    build_recruiter_prompt,
     build_general_prompt,
+    build_recruiter_prompt,
 )
 from .schemas import AnswerResponse
-import logging
 
 logger = logging.getLogger(__name__)
 
 
-def compile_user_context(
-    user_id: int, db: Session, context_filter: Optional[str] = None
-) -> str:
+def compile_user_context(user_id: int, db: Session, context_filter: Optional[str] = None) -> str:
     """
     Compile user's knowledge into a single context string.
 
@@ -108,9 +109,7 @@ def compile_user_context(
         if entries:
             context_parts.append("\nADDITIONAL CONTEXT:")
             for entry in entries:
-                context_parts.append(
-                    f"\n[{entry.entry_type.replace('_', ' ').title()}]"
-                )
+                context_parts.append(f"\n[{entry.entry_type.replace('_', ' ').title()}]")
                 context_parts.append(entry.content)
 
     return "\n".join(context_parts)

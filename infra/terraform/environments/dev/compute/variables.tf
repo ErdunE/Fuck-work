@@ -135,3 +135,19 @@ variable "alert_email" {
   type        = string
   default     = "erdundevelop@gmail.com"
 }
+
+# ============================================================================
+# Cognito Configuration
+# ============================================================================
+
+variable "cognito_user_pool_id" {
+  description = "Cognito User Pool ID"
+  type        = string
+  default     = "us-east-1_qR7CY6Zlu"
+}
+
+variable "cognito_client_id" {
+  description = "Cognito App Client ID"
+  type        = string
+  default     = "707ese5rpkr3pjnhn9e6f8tpu6"
+}

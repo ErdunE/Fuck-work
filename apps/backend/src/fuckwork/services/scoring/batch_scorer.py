@@ -3,10 +3,11 @@ Batch scoring service for processing unscored jobs.
 """
 
 import logging
-from typing import Dict
 from pathlib import Path
+from typing import Dict
 
-from src.fuckwork.database import SessionLocal, Job
+from src.fuckwork.database import Job, SessionLocal
+
 from .scorer import AuthenticityScorer
 
 logger = logging.getLogger(__name__)
@@ -35,10 +36,7 @@ def score_unscored_jobs(limit: int = 100) -> Dict[str, int]:
     try:
         # Get jobs without scores
         unscored_jobs = (
-            session.query(Job)
-            .filter(Job.authenticity_score.is_(None))
-            .limit(limit)
-            .all()
+            session.query(Job).filter(Job.authenticity_score.is_(None)).limit(limit).all()
         )
 
         total = len(unscored_jobs)

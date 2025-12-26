@@ -6,25 +6,20 @@ from pathlib import Path
 from typing import Dict
 
 import pytest
-
 from apps.backend.authenticity_scoring import AuthenticityScorer
 
 
 @pytest.fixture(scope="module")
 def scorer() -> AuthenticityScorer:
     """Initialize scorer with rule table."""
-    rule_path = (
-        Path(__file__).resolve().parent.parent / "data" / "authenticity_rule_table.json"
-    )
+    rule_path = Path(__file__).resolve().parent.parent / "data" / "authenticity_rule_table.json"
     return AuthenticityScorer(str(rule_path))
 
 
 @pytest.fixture(scope="module")
 def sample_jobs() -> Dict:
     """Load sample dataset."""
-    dataset_path = (
-        Path(__file__).resolve().parent / "data" / "authenticity_sample_dataset.json"
-    )
+    dataset_path = Path(__file__).resolve().parent / "data" / "authenticity_sample_dataset.json"
     with dataset_path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -96,9 +91,7 @@ def test_end_to_end_pipeline(scorer: AuthenticityScorer) -> None:
     assert "A5" in activated_ids  # "Recruiter" in title
 
 
-def test_sample_dataset_validation(
-    scorer: AuthenticityScorer, sample_jobs: Dict
-) -> None:
+def test_sample_dataset_validation(scorer: AuthenticityScorer, sample_jobs: Dict) -> None:
     """
     Validate scoring against all 5 sample jobs from dataset.
 
@@ -161,9 +154,7 @@ def test_performance_single_job(scorer: AuthenticityScorer) -> None:
     assert "authenticity_score" in result
 
 
-def test_high_quality_job_scores_well(
-    scorer: AuthenticityScorer, sample_jobs: Dict
-) -> None:
+def test_high_quality_job_scores_well(scorer: AuthenticityScorer, sample_jobs: Dict) -> None:
     """Verify EXAMPLE_HIGH_1 scores highly."""
     stripe_job = next(j for j in sample_jobs["jobs"] if j["job_id"] == "EXAMPLE_HIGH_1")
     result = scorer.score_job(stripe_job)

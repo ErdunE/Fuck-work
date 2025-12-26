@@ -3,7 +3,6 @@
 from typing import Dict
 
 import pytest
-
 from apps.backend.authenticity_scoring.explanation_engine import ExplanationEngine
 
 
@@ -77,8 +76,7 @@ def test_red_flags_sorted_by_weight(engine: ExplanationEngine) -> None:
 
 def test_red_flags_max_five(engine: ExplanationEngine) -> None:
     activated = [
-        _make_rule(f"R{i}", 0.1 + i * 0.01, "negative", f"Issue number {i}")
-        for i in range(10)
+        _make_rule(f"R{i}", 0.1 + i * 0.01, "negative", f"Issue number {i}") for i in range(10)
     ]
     result = engine.generate(30.0, "likely fake", activated)
 

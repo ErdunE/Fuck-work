@@ -2,24 +2,25 @@
 Job search endpoints + manual job entry (Phase 5.2).
 """
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from typing import Optional
-from pydantic import BaseModel
 import hashlib
-from src.fuckwork.database import get_db
-from src.fuckwork.database import Job, User
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from src.fuckwork.api.auth import get_current_user
 from src.fuckwork.api.models import (
+    DecisionSummary,
+    JobDecisionExplanation,
+    JobDecisionResponse,
+    JobResponse,
     JobSearchRequest,
     JobSearchResponse,
-    JobResponse,
-    JobDecisionResponse,
-    JobDecisionExplanation,
-    DecisionSummary,
 )
 from src.fuckwork.api.services.job_service import JobService
 from src.fuckwork.core.decision import explain_job_decision
-from src.fuckwork.api.auth import get_current_user
+from src.fuckwork.database import Job, User, get_db
 
 router = APIRouter()
 

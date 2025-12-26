@@ -31,7 +31,7 @@ class RuleEngine:
         self.rules: List[Dict[str, Any]] = data.get("rules", [])
         if not isinstance(self.rules, list):
             raise ValueError("Rule table must contain a 'rules' list")
-        
+
         logger.info(f"Loaded {len(self.rules)} rules from {path}")
 
     def check(self, job_data: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -70,7 +70,7 @@ class RuleEngine:
             return False
 
         value = self._get_nested_value(job_data, data_source)
-        
+
         pattern_type = rule.get("pattern_type")
         pattern_value = rule.get("pattern_value")
         rule_id = rule.get("id")
@@ -88,9 +88,7 @@ class RuleEngine:
         if pattern_type == "string_contains":
             return self._string_contains(value, pattern_value)
         if pattern_type == "string_contains_any":
-            return self._string_contains_any(
-                value, self._ensure_iterable(pattern_value)
-            )
+            return self._string_contains_any(value, self._ensure_iterable(pattern_value))
         if pattern_type == "string_equals_any":
             return self._string_equals_any(value, self._ensure_iterable(pattern_value))
         if pattern_type == "numeric_threshold":
@@ -188,9 +186,7 @@ class RuleEngine:
         except (TypeError, ValueError):
             return False
 
-    def _boolean_match(
-        self, value: Any, expected: Any, job_data: Dict[str, Any]
-    ) -> bool:
+    def _boolean_match(self, value: Any, expected: Any, job_data: Dict[str, Any]) -> bool:
         # Only evaluate boolean types by default to avoid misfiring on dict/int.
         if isinstance(value, bool):
             try:
@@ -232,9 +228,7 @@ class RuleEngine:
         values = list(company_info.values())
         return any(v not in (None, "", [], {}) for v in values)
 
-    def _check_body_shop_pattern(
-        self, company_name: Any, job_data: Dict[str, Any]
-    ) -> bool:
+    def _check_body_shop_pattern(self, company_name: Any, job_data: Dict[str, Any]) -> bool:
         """
         Detect generic body-shop company name patterns.
 
@@ -267,9 +261,7 @@ class RuleEngine:
         if not has_generic_keyword:
             return False
 
-        domain_matches = self._get_nested_value(
-            job_data, "company_info.domain_matches_name"
-        )
+        domain_matches = self._get_nested_value(job_data, "company_info.domain_matches_name")
         company_size = self._get_nested_value(job_data, "company_info.size_employees")
         glassdoor = self._get_nested_value(job_data, "company_info.glassdoor_rating")
 
@@ -318,21 +310,75 @@ class RuleEngine:
     def _check_missing_action_verbs(jd_text: Any) -> bool:
         text = str(jd_text).lower()
         action_verbs = [
-            "build", "develop", "create", "design", "implement", "architect",
-            "construct", "code", "write", "program", "work", "collaborate",
-            "partner", "coordinate", "contribute", "participate", "engage",
-            "join", "support", "lead", "manage", "direct", "oversee",
-            "supervise", "guide", "mentor", "coach", "drive", "own",
-            "improve", "optimize", "enhance", "refine", "streamline", "scale",
-            "upgrade", "modernize", "analyze", "solve", "troubleshoot", "debug",
-            "investigate", "research", "evaluate", "assess", "maintain", "operate",
-            "monitor", "ensure", "deploy", "run", "execute", "perform",
-            "communicate", "document", "present", "report", "share", "explain",
+            "build",
+            "develop",
+            "create",
+            "design",
+            "implement",
+            "architect",
+            "construct",
+            "code",
+            "write",
+            "program",
+            "work",
+            "collaborate",
+            "partner",
+            "coordinate",
+            "contribute",
+            "participate",
+            "engage",
+            "join",
+            "support",
+            "lead",
+            "manage",
+            "direct",
+            "oversee",
+            "supervise",
+            "guide",
+            "mentor",
+            "coach",
+            "drive",
+            "own",
+            "improve",
+            "optimize",
+            "enhance",
+            "refine",
+            "streamline",
+            "scale",
+            "upgrade",
+            "modernize",
+            "analyze",
+            "solve",
+            "troubleshoot",
+            "debug",
+            "investigate",
+            "research",
+            "evaluate",
+            "assess",
+            "maintain",
+            "operate",
+            "monitor",
+            "ensure",
+            "deploy",
+            "run",
+            "execute",
+            "perform",
+            "communicate",
+            "document",
+            "present",
+            "report",
+            "share",
+            "explain",
             "demonstrate",
         ]
         responsibility_phrases = [
-            "responsibilities", "you will", "you'll", "your role",
-            "what you'll do", "day-to-day", "in this role",
+            "responsibilities",
+            "you will",
+            "you'll",
+            "your role",
+            "what you'll do",
+            "day-to-day",
+            "in this role",
         ]
         has_action_verbs = any(verb in text for verb in action_verbs)
         has_responsibility_section = any(p in text for p in responsibility_phrases)
@@ -357,9 +403,7 @@ class RuleEngine:
             suspect += 1
         return suspect >= 1
 
-    def _effective_weight(
-        self, rule: Dict[str, Any], job_data: Dict[str, Any]
-    ) -> float:
+    def _effective_weight(self, rule: Dict[str, Any], job_data: Dict[str, Any]) -> float:
         """Compute context-aware weight adjustments."""
         try:
             weight = float(rule.get("weight", 0.0))

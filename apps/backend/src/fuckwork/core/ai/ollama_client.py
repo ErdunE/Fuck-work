@@ -3,8 +3,9 @@ Ollama client for local LLM inference.
 Minimal wrapper around Ollama HTTP API.
 """
 
-import requests
 import logging
+
+import requests
 
 logger = logging.getLogger(__name__)
 

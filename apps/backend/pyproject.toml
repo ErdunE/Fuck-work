@@ -1,0 +1,20 @@
+[tool.black]
+line-length = 100
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["src", "fuckwork"]
+
+[tool.flake8]
+max-line-length = 100
+exclude = [
+    ".git",
+    "__pycache__",
+    "migrations",
+    "src/fuckwork/services/scoring/tests",
+    "src/fuckwork/services/scoring/manual_validation.py"
+]
+# 忽略一些常见的无害错误
+ignore = ["E226", "E402", "E722", "F541", "F841", "F401"]

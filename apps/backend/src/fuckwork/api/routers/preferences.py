@@ -6,12 +6,13 @@ Extension polls these preferences and caches locally.
 
 from datetime import datetime
 from typing import Optional
+
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, AutomationPreference
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
+from src.fuckwork.database import AutomationPreference, User, get_db
 
 router = APIRouter(prefix="/api/users/me", tags=["automation-preferences"])
 
@@ -103,9 +104,7 @@ def get_automation_preferences(
     return AutomationPreferencesResponse.from_orm(prefs)
 
 
-@router.put(
-    "/automation-preferences", response_model=AutomationPreferencesUpdateResponse
-)
+@router.put("/automation-preferences", response_model=AutomationPreferencesUpdateResponse)
 def update_automation_preferences(
     request: AutomationPreferencesUpdateRequest,
     current_user: User = Depends(get_current_user),

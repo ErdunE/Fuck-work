@@ -19,13 +19,13 @@ class ScoreFusion:
 
     # Base score for a job with no signals
     BASE_SCORE: float = 60.0
-    
+
     # Maximum points that can be gained from positive signals
     MAX_POSITIVE_GAIN: float = 40.0  # 60 + 40 = 100
-    
-    # Maximum points that can be lost from negative signals  
+
+    # Maximum points that can be lost from negative signals
     MAX_NEGATIVE_LOSS: float = 55.0  # 60 - 55 = 5 (minimum score ~5)
-    
+
     # Thresholds for levels
     LEVEL_LIKELY_REAL: float = 75.0
     LEVEL_UNCERTAIN: float = 50.0
@@ -60,10 +60,9 @@ class ScoreFusion:
 
         # Check for critical negative signals (staffing company, recruiter language)
         has_critical = any(
-            r.get("confidence") == "high" and self._safe_weight(r) >= 0.20
-            for r in negative_rules
+            r.get("confidence") == "high" and self._safe_weight(r) >= 0.20 for r in negative_rules
         )
-        
+
         # If critical signal present, cap the maximum score
         if has_critical:
             max_possible = 45.0  # Can't be "likely real" if critical red flag
@@ -75,7 +74,7 @@ class ScoreFusion:
 
         # Determine level
         level = self._determine_level(final_score)
-        
+
         # Calculate confidence
         confidence = self._calculate_confidence(
             activated_rules, job_data, positive_sum, negative_sum
@@ -110,7 +109,7 @@ class ScoreFusion:
         high_conf_rules = sum(1 for r in activated_rules if r.get("confidence") == "high")
         total_rules = len(activated_rules)
         total_weight = positive_sum + negative_sum
-        
+
         # Data completeness check
         data_fields_present = 0
         if job_data:
@@ -125,9 +124,9 @@ class ScoreFusion:
                 value = self._get_nested_value(job_data, field)
                 if validator(value):
                     data_fields_present += 1
-        
+
         data_coverage = data_fields_present / 5.0
-        
+
         # High confidence: Clear signals or multiple high-weight rules
         if high_conf_rules >= 2:
             return "High"
@@ -135,11 +134,11 @@ class ScoreFusion:
             return "High"
         if negative_sum >= 0.25:  # Clear negative signal
             return "High"
-        
+
         # Medium confidence: Some signals present
         if total_rules >= 2 or total_weight >= 0.15 or data_coverage >= 0.4:
             return "Medium"
-        
+
         # Low confidence: Few signals, poor data
         return "Low"
 

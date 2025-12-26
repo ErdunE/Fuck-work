@@ -12,14 +12,14 @@ Endpoints:
 
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
 
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, ActiveApplySession, ApplyTask, ApplyRun
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
 from src.fuckwork.api.observability_logger import log_event
+from src.fuckwork.database import ActiveApplySession, ApplyRun, ApplyTask, User, get_db
 
 router = APIRouter(prefix="/api/users/me", tags=["active-session"])
 
@@ -104,9 +104,7 @@ def set_active_session(
 
     # Upsert active session (one per user)
     existing = (
-        db.query(ActiveApplySession)
-        .filter(ActiveApplySession.user_id == current_user.id)
-        .first()
+        db.query(ActiveApplySession).filter(ActiveApplySession.user_id == current_user.id).first()
     )
 
     if existing:
@@ -177,9 +175,7 @@ def get_active_session(
     Automatically deletes expired sessions.
     """
     session = (
-        db.query(ActiveApplySession)
-        .filter(ActiveApplySession.user_id == current_user.id)
-        .first()
+        db.query(ActiveApplySession).filter(ActiveApplySession.user_id == current_user.id).first()
     )
 
     # Check if expired
@@ -218,9 +214,7 @@ def clear_active_session(
     Removes the active session and logs a session_cleared event.
     """
     session = (
-        db.query(ActiveApplySession)
-        .filter(ActiveApplySession.user_id == current_user.id)
-        .first()
+        db.query(ActiveApplySession).filter(ActiveApplySession.user_id == current_user.id).first()
     )
 
     if session:

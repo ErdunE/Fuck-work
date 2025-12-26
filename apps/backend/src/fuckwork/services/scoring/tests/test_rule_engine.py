@@ -2,15 +2,12 @@ from pathlib import Path
 from typing import Dict, List
 
 import pytest
-
 from apps.backend.authenticity_scoring.rule_engine import RuleEngine
 
 
 @pytest.fixture(scope="module")
 def rule_engine() -> RuleEngine:
-    rule_path = (
-        Path(__file__).resolve().parent.parent / "data" / "authenticity_rule_table.json"
-    )
+    rule_path = Path(__file__).resolve().parent.parent / "data" / "authenticity_rule_table.json"
     return RuleEngine(str(rule_path))
 
 
@@ -141,9 +138,7 @@ def test_no_activation_when_missing_data(rule_engine: RuleEngine) -> None:
 
 def test_multiple_rules_trigger(rule_engine: RuleEngine) -> None:
     job = base_job()
-    job["jd_text"] = (
-        "Our client offers contract work; apply ASAP and email hiring2025@gmail.com"
-    )
+    job["jd_text"] = "Our client offers contract work; apply ASAP and email hiring2025@gmail.com"
     job["platform_metadata"]["repost_count"] = 4
     job["poster_info"]["recent_job_count_7d"] = 12
     ids = _activated_ids(rule_engine, job)

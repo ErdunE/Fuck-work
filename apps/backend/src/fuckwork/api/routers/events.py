@@ -5,14 +5,15 @@ Developer-grade debugging to replace browser console.
 """
 
 from datetime import datetime
-from typing import Optional, List
-from fastapi import APIRouter, Depends, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, AutomationEvent
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
+from src.fuckwork.database import AutomationEvent, User, get_db
 
 router = APIRouter(prefix="/api/users/me", tags=["automation-events"])
 
@@ -160,12 +161,7 @@ def get_automation_events(
     total = query.count()
 
     # Get paginated results (most recent first)
-    events = (
-        query.order_by(desc(AutomationEvent.created_at))
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+    events = query.order_by(desc(AutomationEvent.created_at)).offset(offset).limit(limit).all()
 
     return AutomationEventsListResponse(
         events=[AutomationEventResponse.from_orm(e) for e in events],

@@ -2,9 +2,10 @@
 Make pipeline executable as a module: python3 -m pipeline.run_pipeline
 """
 
-from .run_pipeline import run_full_pipeline
-import sys
 import logging
+import sys
+
+from .run_pipeline import run_full_pipeline
 
 logging.basicConfig(level=logging.INFO)
 

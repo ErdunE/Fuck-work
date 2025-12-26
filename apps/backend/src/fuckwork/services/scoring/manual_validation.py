@@ -22,7 +22,6 @@ from typing import Any, Callable, Dict, List, Tuple
 # Adjust if your package layout changes
 from apps.backend.authenticity_scoring import AuthenticityScorer
 
-
 # ---------------------------------------------------------------------------
 # Pretty printing helpers
 # ---------------------------------------------------------------------------
@@ -59,9 +58,7 @@ _SCORER: AuthenticityScorer | None = None
 def get_scorer() -> AuthenticityScorer:
     global _SCORER
     if _SCORER is None:
-        rule_path = (
-            Path(__file__).resolve().parent / "data" / "authenticity_rule_table.json"
-        )
+        rule_path = Path(__file__).resolve().parent / "data" / "authenticity_rule_table.json"
         if not rule_path.exists():
             raise FileNotFoundError(
                 f"Rule table not found at {rule_path}. "
@@ -303,10 +300,7 @@ def test_scam_job() -> Tuple[bool, str]:
     ids = activated_ids(result)
 
     passed = score <= 20 and level == "likely fake"
-    msg = (
-        f"Score={score}, level={level}, activated={ids}, "
-        f"red_flags={result['red_flags']}"
-    )
+    msg = f"Score={score}, level={level}, activated={ids}, " f"red_flags={result['red_flags']}"
     return passed, msg
 
 
@@ -327,10 +321,7 @@ def test_minimal_job() -> Tuple[bool, str]:
 
     # We expect "uncertain", low confidence, mid score (not 0 / not 100)
     passed = (50 <= score <= 80) and level == "uncertain" and conf == "Low"
-    msg = (
-        f"Score={score}, level={level}, confidence={conf}, "
-        f"red_flags={result['red_flags']}"
-    )
+    msg = f"Score={score}, level={level}, confidence={conf}, " f"red_flags={result['red_flags']}"
     return passed, msg
 
 
@@ -455,10 +446,7 @@ def test_unicode_job() -> Tuple[bool, str]:
 
     # Expect reasonably good score, definitely NOT flagged as body-shop
     passed = score >= 60 and "A7" not in ids
-    msg = (
-        f"Score={score}, level={level}, activated={ids}, "
-        f"red_flags={result['red_flags']}"
-    )
+    msg = f"Score={score}, level={level}, activated={ids}, " f"red_flags={result['red_flags']}"
     return passed, msg
 
 
@@ -510,9 +498,7 @@ def test_long_jd() -> Tuple[bool, str]:
     job["job_id"] = "long_jd"
     # 1000 pseudo-skills
     job["jd_text"] = (
-        "Requirements: "
-        + ", ".join(f"skill{i}" for i in range(1000))
-        + ". End of description."
+        "Requirements: " + ", ".join(f"skill{i}" for i in range(1000)) + ". End of description."
     )
     start = time.time()
     result = scorer.score_job(job)
@@ -596,9 +582,7 @@ def _rule_activation_job() -> Dict[str, Any]:
     return job
 
 
-def _rule_test(
-    rule_id: str, modify: Callable[[Dict[str, Any]], None]
-) -> Tuple[bool, str]:
+def _rule_test(rule_id: str, modify: Callable[[Dict[str, Any]], None]) -> Tuple[bool, str]:
     scorer = get_scorer()
     job = _rule_activation_job()
     modify(job)
@@ -741,9 +725,7 @@ def test_rule_A14() -> Tuple[bool, str]:
 @register_test("Rule B1 activation (junior role with senior experience)", "RULE")
 def test_rule_B1() -> Tuple[bool, str]:
     def modify(job: Dict[str, Any]) -> None:
-        job["jd_text"] = (
-            "Junior Software Engineer position. Must have 5+ years of experience."
-        )
+        job["jd_text"] = "Junior Software Engineer position. Must have 5+ years of experience."
 
     return _rule_test("B1", modify)
 
@@ -983,9 +965,7 @@ def test_recruiter_cluster_dedup() -> Tuple[bool, str]:
     job["company_info"]["domain_matches_name"] = True
     job["company_info"]["size_employees"] = 20000
 
-    job["jd_text"] = (
-        "Our client is looking for engineers. Email us at hiring2025@gmail.com."
-    )
+    job["jd_text"] = "Our client is looking for engineers. Email us at hiring2025@gmail.com."
     job["poster_info"]["title"] = "Senior Technical Recruiter"
     job["poster_info"]["company"] = "Apex Systems"
     job["poster_info"]["recent_job_count_7d"] = 15
@@ -1004,9 +984,7 @@ def test_recruiter_cluster_dedup() -> Tuple[bool, str]:
     return passed, msg
 
 
-@register_test(
-    "Interaction: Clean job with many weak flags keeps High confidence", "INTERACTION"
-)
+@register_test("Interaction: Clean job with many weak flags keeps High confidence", "INTERACTION")
 def test_many_weak_flags_high_confidence() -> Tuple[bool, str]:
     scorer = get_scorer()
     job = base_job()
@@ -1104,11 +1082,7 @@ def main() -> None:
             else Colors.RED if result["status"] in ("FAIL", "ERROR") else Colors.YELLOW
         )
         status_str = Colors.wrap(result["status"], color)
-        print(
-            f"[{status_str}] {test.category:<11} "
-            f"{test.name} "
-            f"({result['elapsed']:.3f}s)"
-        )
+        print(f"[{status_str}] {test.category:<11} " f"{test.name} " f"({result['elapsed']:.3f}s)")
         if not result["passed"]:
             print("  " + Colors.wrap(result["message"], Colors.YELLOW))
         else:
@@ -1158,24 +1132,12 @@ def main() -> None:
 
     # NOW do the final status and exit
     if failed_total == 0:
-        print(
-            Colors.wrap(f"OVERALL: {passed_total}/{total} tests passed ✓", Colors.GREEN)
-        )
-        print(
-            Colors.wrap(
-                "PHASE 1 STATUS: Production-ready (from manual suite)", Colors.GREEN
-            )
-        )
+        print(Colors.wrap(f"OVERALL: {passed_total}/{total} tests passed ✓", Colors.GREEN))
+        print(Colors.wrap("PHASE 1 STATUS: Production-ready (from manual suite)", Colors.GREEN))
         exit_code = 0
     else:
-        print(
-            Colors.wrap(f"OVERALL: {passed_total}/{total} tests passed ✗", Colors.RED)
-        )
-        print(
-            Colors.wrap(
-                "PHASE 1 STATUS: Needs review (check failed tests above)", Colors.RED
-            )
-        )
+        print(Colors.wrap(f"OVERALL: {passed_total}/{total} tests passed ✗", Colors.RED))
+        print(Colors.wrap("PHASE 1 STATUS: Needs review (check failed tests above)", Colors.RED))
         exit_code = 1
 
     print(hr("="))

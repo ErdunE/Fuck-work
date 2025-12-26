@@ -3,13 +3,14 @@ Projects CRUD endpoints for Phase 5.2.
 Manages user project portfolio.
 """
 
-from typing import Optional, List
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, UserProject
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
+from src.fuckwork.database import User, UserProject, get_db
 
 router = APIRouter(prefix="/api/users/me/projects", tags=["profile", "projects"])
 
@@ -50,13 +51,9 @@ class ProjectListResponse(BaseModel):
 
 
 @router.get("", response_model=ProjectListResponse)
-def list_projects(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
+def list_projects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get all project entries for current user."""
-    projects = (
-        db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
-    )
+    projects = db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
     return ProjectListResponse(
         projects=[ProjectResponse.from_orm(p) for p in projects], total=len(projects)
     )
@@ -98,9 +95,7 @@ def update_project(
     )
 
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project entry not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project entry not found")
 
     # Update fields
     update_data = request.dict(exclude_unset=True)
@@ -127,9 +122,7 @@ def delete_project(
     )
 
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Project entry not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project entry not found")
 
     db.delete(project)
     db.commit()

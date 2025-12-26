@@ -5,8 +5,8 @@ Used when rule-based classifier cannot determine classification.
 Uses deepseek-r1:7b via Ollama for local, fast inference.
 """
 
-from typing import Dict, Any
 import json
+from typing import Any, Dict
 
 
 def build_classification_prompt(
