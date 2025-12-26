@@ -4,13 +4,14 @@ Manages user work experience history.
 """
 
 from datetime import date
-from typing import Optional, List
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, UserExperience
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
+from src.fuckwork.database import User, UserExperience, get_db
 
 router = APIRouter(prefix="/api/users/me/experience", tags=["profile", "experience"])
 
@@ -55,13 +56,9 @@ class ExperienceListResponse(BaseModel):
 
 
 @router.get("", response_model=ExperienceListResponse)
-def list_experience(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
+def list_experience(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get all experience entries for current user."""
-    experience = (
-        db.query(UserExperience).filter(UserExperience.user_id == current_user.id).all()
-    )
+    experience = db.query(UserExperience).filter(UserExperience.user_id == current_user.id).all()
     return ExperienceListResponse(
         experience=[ExperienceResponse.from_orm(e) for e in experience],
         total=len(experience),

@@ -2,21 +2,18 @@
 Pydantic models for API requests and responses.
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional, List, Literal, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional
+
+from pydantic import BaseModel, Field
 
 
 class JobSearchFilters(BaseModel):
     """Filter parameters for job search"""
 
     # Authenticity score range
-    min_score: Optional[float] = Field(
-        None, ge=0, le=100, description="Minimum authenticity score"
-    )
-    max_score: Optional[float] = Field(
-        None, ge=0, le=100, description="Maximum authenticity score"
-    )
+    min_score: Optional[float] = Field(None, ge=0, le=100, description="Minimum authenticity score")
+    max_score: Optional[float] = Field(None, ge=0, le=100, description="Maximum authenticity score")
 
     # Job characteristics
     job_level: Optional[List[str]] = Field(
@@ -25,17 +22,13 @@ class JobSearchFilters(BaseModel):
     employment_type: Optional[List[str]] = Field(
         None, description="Employment types: full_time, internship, contract, part_time"
     )
-    work_mode: Optional[List[str]] = Field(
-        None, description="Work modes: remote, hybrid, onsite"
-    )
+    work_mode: Optional[List[str]] = Field(None, description="Work modes: remote, hybrid, onsite")
     visa_signal: Optional[List[str]] = Field(
         None, description="Visa signals: explicit_yes, explicit_no, unclear"
     )
 
     # Location
-    states: Optional[List[str]] = Field(
-        None, description="US states (e.g., CA, NY, WA)"
-    )
+    states: Optional[List[str]] = Field(None, description="US states (e.g., CA, NY, WA)")
     country: Optional[str] = Field(None, description="Country")
 
     # Salary range
@@ -43,9 +36,7 @@ class JobSearchFilters(BaseModel):
     max_salary: Optional[float] = Field(None, ge=0, description="Maximum salary")
 
     # Platform
-    platforms: Optional[List[str]] = Field(
-        None, description="Platforms: LinkedIn, Indeed, etc."
-    )
+    platforms: Optional[List[str]] = Field(None, description="Platforms: LinkedIn, Indeed, etc.")
 
     # Date range
     posted_days_ago: Optional[int] = Field(
@@ -63,9 +54,7 @@ class JobSearchFilters(BaseModel):
     min_experience_years: Optional[int] = Field(None, ge=0, le=30)
     max_experience_years: Optional[int] = Field(None, ge=0, le=30)
     has_salary_info: Optional[bool] = Field(None, description="Salary disclosed")
-    salary_interval: Optional[List[str]] = Field(
-        None, description="yearly/monthly/hourly"
-    )
+    salary_interval: Optional[List[str]] = Field(None, description="yearly/monthly/hourly")
 
     # Tier 3: Computed (calculated filters)
     is_recent: Optional[bool] = Field(None, description="Posted last 3 days")

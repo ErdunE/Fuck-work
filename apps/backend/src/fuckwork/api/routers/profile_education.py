@@ -4,13 +4,14 @@ Manages user education history.
 """
 
 from datetime import date
-from typing import Optional, List
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, UserEducation
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
+from src.fuckwork.database import User, UserEducation, get_db
 
 router = APIRouter(prefix="/api/users/me/education", tags=["profile", "education"])
 
@@ -55,13 +56,9 @@ class EducationListResponse(BaseModel):
 
 
 @router.get("", response_model=EducationListResponse)
-def list_education(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
+def list_education(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get all education entries for current user."""
-    education = (
-        db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
-    )
+    education = db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
     return EducationListResponse(
         education=[EducationResponse.from_orm(e) for e in education],
         total=len(education),
@@ -101,9 +98,7 @@ def update_education(
     """Update education entry."""
     education = (
         db.query(UserEducation)
-        .filter(
-            UserEducation.id == education_id, UserEducation.user_id == current_user.id
-        )
+        .filter(UserEducation.id == education_id, UserEducation.user_id == current_user.id)
         .first()
     )
 
@@ -132,9 +127,7 @@ def delete_education(
     """Delete education entry."""
     education = (
         db.query(UserEducation)
-        .filter(
-            UserEducation.id == education_id, UserEducation.user_id == current_user.id
-        )
+        .filter(UserEducation.id == education_id, UserEducation.user_id == current_user.id)
         .first()
     )
 

@@ -3,12 +3,14 @@ Core apply task management service.
 Handles task creation, priority assignment, and status transitions.
 """
 
-from typing import List, Tuple, Optional, Dict, Any
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, desc, asc
-from src.fuckwork.database import ApplyTask, ApplyEvent, Job, User
-from datetime import datetime
 import logging
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+from sqlalchemy import and_, asc, desc
+from sqlalchemy.orm import Session
+
+from src.fuckwork.database import ApplyEvent, ApplyTask, Job, User
 
 logger = logging.getLogger(__name__)
 

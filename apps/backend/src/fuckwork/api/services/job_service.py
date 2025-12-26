@@ -2,12 +2,14 @@
 Job search service with filtering and sorting.
 """
 
-from typing import List, Tuple, Optional
-from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, func, text, desc
 from datetime import datetime, timedelta
-from src.fuckwork.database import Job
+from typing import List, Optional, Tuple
+
+from sqlalchemy import and_, desc, func, or_, text
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.models import JobSearchFilters
+from src.fuckwork.database import Job
 
 
 class JobService:
@@ -42,37 +44,27 @@ class JobService:
 
             # Job level (from derived_signals)
             if filters.job_level:
-                conditions.append(
-                    text("derived_signals->>'job_level' = ANY(:job_levels)")
-                )
+                conditions.append(text("derived_signals->>'job_level' = ANY(:job_levels)"))
                 query = query.params(job_levels=filters.job_level)
 
             # Employment type
             if filters.employment_type:
-                conditions.append(
-                    text("derived_signals->>'employment_type' = ANY(:emp_types)")
-                )
+                conditions.append(text("derived_signals->>'employment_type' = ANY(:emp_types)"))
                 query = query.params(emp_types=filters.employment_type)
 
             # Work mode
             if filters.work_mode:
-                conditions.append(
-                    text("derived_signals->>'work_mode' = ANY(:work_modes)")
-                )
+                conditions.append(text("derived_signals->>'work_mode' = ANY(:work_modes)"))
                 query = query.params(work_modes=filters.work_mode)
 
             # Visa signal
             if filters.visa_signal:
-                conditions.append(
-                    text("derived_signals->>'visa_signal' = ANY(:visa_signals)")
-                )
+                conditions.append(text("derived_signals->>'visa_signal' = ANY(:visa_signals)"))
                 query = query.params(visa_signals=filters.visa_signal)
 
             # State filter
             if filters.states:
-                conditions.append(
-                    text("derived_signals->'geo'->>'state' = ANY(:states)")
-                )
+                conditions.append(text("derived_signals->'geo'->>'state' = ANY(:states)"))
                 query = query.params(states=filters.states)
 
             # Country filter
@@ -84,12 +76,8 @@ class JobService:
             if filters.min_salary is not None:
                 conditions.append(
                     or_(
-                        text(
-                            "(derived_signals->'salary'->>'min')::float >= :min_salary"
-                        ),
-                        text(
-                            "(derived_signals->'salary'->>'max')::float >= :min_salary"
-                        ),
+                        text("(derived_signals->'salary'->>'min')::float >= :min_salary"),
+                        text("(derived_signals->'salary'->>'max')::float >= :min_salary"),
                     )
                 )
                 query = query.params(min_salary=filters.min_salary)
@@ -97,12 +85,8 @@ class JobService:
             if filters.max_salary is not None:
                 conditions.append(
                     or_(
-                        text(
-                            "(derived_signals->'salary'->>'min')::float <= :max_salary"
-                        ),
-                        text(
-                            "(derived_signals->'salary'->>'max')::float <= :max_salary"
-                        ),
+                        text("(derived_signals->'salary'->>'min')::float <= :max_salary"),
+                        text("(derived_signals->'salary'->>'max')::float <= :max_salary"),
                     )
                 )
                 query = query.params(max_salary=filters.max_salary)
@@ -118,73 +102,55 @@ class JobService:
 
             # Tier 1: Platform Features
             if filters.easy_apply is not None:
-                conditions.append(
-                    text("(platform_metadata->>'easy_apply')::boolean = :easy_apply")
-                )
+                conditions.append(text("(platform_metadata->>'easy_apply')::boolean = :easy_apply"))
                 query = query.params(easy_apply=filters.easy_apply)
 
             if filters.actively_hiring is not None:
                 conditions.append(
-                    text(
-                        "(platform_metadata->>'actively_hiring_tag')::boolean = :actively_hiring"
-                    )
+                    text("(platform_metadata->>'actively_hiring_tag')::boolean = :actively_hiring")
                 )
                 query = query.params(actively_hiring=filters.actively_hiring)
 
             if filters.max_applicants is not None:
                 conditions.append(
-                    text(
-                        "(platform_metadata->>'applicants_count')::int <= :max_applicants"
-                    )
+                    text("(platform_metadata->>'applicants_count')::int <= :max_applicants")
                 )
                 query = query.params(max_applicants=filters.max_applicants)
 
             if filters.min_applicants is not None:
                 conditions.append(
-                    text(
-                        "(platform_metadata->>'applicants_count')::int >= :min_applicants"
-                    )
+                    text("(platform_metadata->>'applicants_count')::int >= :min_applicants")
                 )
                 query = query.params(min_applicants=filters.min_applicants)
 
             if filters.has_views_data is not None:
                 if filters.has_views_data:
-                    conditions.append(
-                        text("platform_metadata->>'views_count' IS NOT NULL")
-                    )
+                    conditions.append(text("platform_metadata->>'views_count' IS NOT NULL"))
                 else:
                     conditions.append(text("platform_metadata->>'views_count' IS NULL"))
 
             # Tier 2: Experience Requirements
             if filters.min_experience_years is not None:
                 conditions.append(
-                    text(
-                        "(derived_signals->'experience_years'->>'min')::int >= :min_exp"
-                    )
+                    text("(derived_signals->'experience_years'->>'min')::int >= :min_exp")
                 )
                 query = query.params(min_exp=filters.min_experience_years)
 
             if filters.max_experience_years is not None:
                 conditions.append(
-                    text(
-                        "(derived_signals->'experience_years'->>'max')::int <= :max_exp"
-                    )
+                    text("(derived_signals->'experience_years'->>'max')::int <= :max_exp")
                 )
                 query = query.params(max_exp=filters.max_experience_years)
 
             if filters.has_salary_info is not None:
                 if filters.has_salary_info:
-                    conditions.append(
-                        text("derived_signals->'salary'->>'min' IS NOT NULL")
-                    )
+                    conditions.append(text("derived_signals->'salary'->>'min' IS NOT NULL"))
                 else:
                     conditions.append(text("derived_signals->'salary'->>'min' IS NULL"))
 
             if filters.salary_interval:
                 conditions.append(
-                    text(
-                        "derived_signals->'salary'->>'interval' = ANY(:salary_intervals)"
-                    )
+                    text("derived_signals->'salary'->>'interval' = ANY(:salary_intervals)")
                 )
                 query = query.params(salary_intervals=filters.salary_interval)
 
@@ -205,12 +171,8 @@ class JobService:
                     elif level == "medium":
                         competition_conditions.append(
                             and_(
-                                text(
-                                    "(platform_metadata->>'applicants_count')::int >= 50"
-                                ),
-                                text(
-                                    "(platform_metadata->>'applicants_count')::int <= 200"
-                                ),
+                                text("(platform_metadata->>'applicants_count')::int >= 50"),
+                                text("(platform_metadata->>'applicants_count')::int <= 200"),
                             )
                         )
                     elif level == "high":
@@ -243,8 +205,7 @@ class JobService:
 
             if filters.min_positive_signals is not None:
                 conditions.append(
-                    func.jsonb_array_length(Job.positive_signals)
-                    >= filters.min_positive_signals
+                    func.jsonb_array_length(Job.positive_signals) >= filters.min_positive_signals
                 )
 
             # Tier 4: Advanced Filters

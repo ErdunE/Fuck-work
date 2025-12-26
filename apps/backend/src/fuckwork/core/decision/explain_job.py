@@ -13,8 +13,10 @@ Additional factors:
 - Confidence level
 """
 
-from typing import Dict, List, Literal, Any
+from typing import Any, Dict, List, Literal
+
 from pydantic import BaseModel
+
 from src.fuckwork.database import Job
 
 

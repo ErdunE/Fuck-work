@@ -5,10 +5,10 @@ Phase 3.4 - Local LLM via Ollama.
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User
+
 from src.fuckwork.core.ai import generate_answer
 from src.fuckwork.core.ai.schemas import AnswerRequest, AnswerResponse
+from src.fuckwork.database import User, get_db
 
 router = APIRouter()
 
@@ -49,6 +49,4 @@ def generate_ai_answer(request: AnswerRequest, db: Session = Depends(get_db)):
     except ConnectionError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Answer generation failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Answer generation failed: {str(e)}")

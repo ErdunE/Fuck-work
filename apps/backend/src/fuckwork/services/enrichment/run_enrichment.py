@@ -7,9 +7,11 @@ Phase 2.5.
 
 import logging
 from typing import Dict
+
 from sqlalchemy.orm.attributes import flag_modified
-from src.fuckwork.database import SessionLocal
-from src.fuckwork.database import Job
+
+from src.fuckwork.database import Job, SessionLocal
+
 from .job_enricher import JobEnricher
 
 logging.basicConfig(level=logging.INFO)

@@ -13,14 +13,14 @@ Endpoints:
 """
 
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from typing import Any, Dict, List, Optional
 
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, ApplyRun, ObservabilityEvent
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
+from src.fuckwork.database import ApplyRun, ObservabilityEvent, User, get_db
 
 router = APIRouter(prefix="/api/observability", tags=["observability"])
 
@@ -351,14 +351,10 @@ def get_run_detail(
     )
 
     if not run:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Run not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
 
     # Get event summary
-    event_count = (
-        db.query(ObservabilityEvent).filter(ObservabilityEvent.run_id == run_id).count()
-    )
+    event_count = db.query(ObservabilityEvent).filter(ObservabilityEvent.run_id == run_id).count()
 
     first_event = (
         db.query(ObservabilityEvent)
@@ -420,9 +416,7 @@ def get_run_events(
     )
 
     if not run:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Run not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Run not found")
 
     # Fetch events
     events = (
@@ -433,10 +427,6 @@ def get_run_events(
         .all()
     )
 
-    total = (
-        db.query(ObservabilityEvent).filter(ObservabilityEvent.run_id == run_id).count()
-    )
+    total = db.query(ObservabilityEvent).filter(ObservabilityEvent.run_id == run_id).count()
 
-    return RunEventsResponse(
-        events=[EventItem.from_orm(event) for event in events], total=total
-    )
+    return RunEventsResponse(events=[EventItem.from_orm(event) for event in events], total=total)

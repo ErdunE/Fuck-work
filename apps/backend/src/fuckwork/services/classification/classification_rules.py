@@ -1017,9 +1017,7 @@ SPECIALTY_KEYWORDS: Dict[str, List[str]] = {
 # ============================================================================
 
 
-def find_category_by_keywords(
-    title: str, description: str = "", job_function: str = ""
-) -> str:
+def find_category_by_keywords(title: str, description: str = "", job_function: str = "") -> str:
     """
     Match category based on keywords with PRIORITY ordering.
 
@@ -1246,9 +1244,7 @@ def get_specialty_display_names(specialty_keys: List[str]) -> List[str]:
 # ============================================================================
 
 
-def validate_classification(
-    category: str, industry: str, specialties: List[str]
-) -> bool:
+def validate_classification(category: str, industry: str, specialties: List[str]) -> bool:
     """
     Validate that classification values are valid.
 

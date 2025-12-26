@@ -6,17 +6,15 @@ Phase 2A Stage 8: Modular pipeline design.
 
 import logging
 from typing import Dict, List, Optional
-from src.fuckwork.services.collection.jobspy_collector import JobSpyCollector
+
+from src.fuckwork.database import Job, SessionLocal
 from src.fuckwork.services.collection.db_saver import JobSaver
-from src.fuckwork.services.scoring.scorer import AuthenticityScorer
-from src.fuckwork.database import SessionLocal
-from src.fuckwork.database import Job
+from src.fuckwork.services.collection.jobspy_collector import JobSpyCollector
 from src.fuckwork.services.enrichment.run_enrichment import run_job_enrichment
+from src.fuckwork.services.scoring.scorer import AuthenticityScorer
 
 # Configure logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 

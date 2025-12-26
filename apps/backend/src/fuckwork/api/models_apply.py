@@ -3,10 +3,10 @@ Pydantic models for apply task queue and orchestration APIs.
 Phase 3.5 - Apply Pipeline.
 """
 
-from pydantic import BaseModel, Field, field_validator
-from typing import Optional, List, Literal, Dict, Any
 from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional
 
+from pydantic import BaseModel, Field, field_validator
 
 # Request Models
 
@@ -18,12 +18,10 @@ class ApplyQueueRequest(BaseModel):
     job_ids: List[str] = Field(
         ..., min_length=1, max_length=100, description="List of job IDs to queue"
     )
-    priority_strategy: Literal["decision_then_newest", "newest", "highest_score"] = (
-        Field("decision_then_newest", description="How to prioritize tasks")
+    priority_strategy: Literal["decision_then_newest", "newest", "highest_score"] = Field(
+        "decision_then_newest", description="How to prioritize tasks"
     )
-    allow_duplicates: bool = Field(
-        False, description="Allow queuing jobs already in queue"
-    )
+    allow_duplicates: bool = Field(False, description="Allow queuing jobs already in queue")
 
     @field_validator("job_ids")
     def validate_job_ids(cls, v):
@@ -37,12 +35,10 @@ class ApplyQueueRequest(BaseModel):
 class ApplyTransitionRequest(BaseModel):
     """Transition task to new status"""
 
-    to_status: Literal[
-        "queued", "in_progress", "needs_user", "success", "failed", "canceled"
-    ] = Field(..., description="Target status")
-    reason: Optional[str] = Field(
-        None, max_length=500, description="Reason for transition"
+    to_status: Literal["queued", "in_progress", "needs_user", "success", "failed", "canceled"] = (
+        Field(..., description="Target status")
     )
+    reason: Optional[str] = Field(None, max_length=500, description="Reason for transition")
     details: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
 
 

@@ -553,8 +553,7 @@ def get_search_stats(preset_name: str = None):
                 "categories": len(preset["categories"]),
                 "platforms": len(preset["platforms"]),
                 "expected_jobs_per_query": RESULTS_PER_QUERY[preset["results_wanted"]],
-                "max_total_jobs": len(configs)
-                * RESULTS_PER_QUERY[preset["results_wanted"]],
+                "max_total_jobs": len(configs) * RESULTS_PER_QUERY[preset["results_wanted"]],
             }
 
     # Overall stats
@@ -597,6 +596,6 @@ PRESET_HOURLY = {
     "categories": list(SEARCH_QUERIES.keys()),  # All 22 industries
     "platforms": PRIMARY_PLATFORMS,
     "location": "us_national",
-    "time_window": "four_hours",  # Past 4 hours 
+    "time_window": "four_hours",  # Past 4 hours
     "results_wanted": "standard",  # 50 per query
 }

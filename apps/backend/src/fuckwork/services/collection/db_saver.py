@@ -5,16 +5,17 @@ Provides simple, robust job persistence with automatic duplicate detection.
 FIXED: Individual commit per job to handle duplicates gracefully.
 """
 
-from typing import List, Dict
-import sys
 import os
+import sys
+from typing import Dict, List
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from src.fuckwork.database import SessionLocal  # noqa: E402
-from src.fuckwork.database import Job  # noqa: E402
 from sqlalchemy.exc import IntegrityError  # noqa: E402
+
+from src.fuckwork.database import Job  # noqa: E402
+from src.fuckwork.database import SessionLocal  # noqa: E402
 
 
 class JobSaver:
@@ -60,9 +61,7 @@ class JobSaver:
             for job_data in jobs:
                 try:
                     # Check if URL already exists (primary deduplication)
-                    existing = (
-                        session.query(Job).filter(Job.url == job_data["url"]).first()
-                    )
+                    existing = session.query(Job).filter(Job.url == job_data["url"]).first()
 
                     if existing:
                         stats["duplicates"] += 1
@@ -133,14 +132,10 @@ class JobSaver:
             from sqlalchemy import func
 
             by_platform = dict(
-                session.query(Job.platform, func.count(Job.id))
-                .group_by(Job.platform)
-                .all()
+                session.query(Job.platform, func.count(Job.id)).group_by(Job.platform).all()
             )
 
-            scored = (
-                session.query(Job).filter(Job.authenticity_score.isnot(None)).count()
-            )
+            scored = session.query(Job).filter(Job.authenticity_score.isnot(None)).count()
             unscored = total - scored
 
             return {
@@ -171,10 +166,7 @@ class JobSaver:
 
             for url, count in duplicates:
                 jobs = (
-                    session.query(Job)
-                    .filter(Job.url == url)
-                    .order_by(Job.created_at.desc())
-                    .all()
+                    session.query(Job).filter(Job.url == url).order_by(Job.created_at.desc()).all()
                 )
 
                 for job in jobs[1:]:

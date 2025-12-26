@@ -5,48 +5,48 @@ Executes multiple search queries with rate limiting and error handling.
 Phase 2.6 - Coverage Expansion.
 """
 
-import logging
-import time
-import os
 import json
-from typing import Dict, List
+import logging
+import os
+import time
 from datetime import datetime
-from .jobspy_collector import JobSpyCollector
+from typing import Dict, List
+
 from .db_saver import JobSaver
+from .jobspy_collector import JobSpyCollector
 from .search_config import generate_search_matrix
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 
 def send_sns_report(stats: Dict) -> bool:
     """
     Send collection report via SNS.
-    
+
     Args:
         stats: Collection statistics dictionary
-        
+
     Returns:
         True if sent successfully, False otherwise
     """
     sns_topic_arn = os.environ.get("SNS_TOPIC_ARN")
-    
+
     if not sns_topic_arn:
         logger.warning("SNS_TOPIC_ARN not set, skipping report")
         return False
-    
+
     try:
         import boto3
+
         sns = boto3.client("sns", region_name=os.environ.get("AWS_REGION", "us-east-1"))
-        
+
         # Format duration
         duration_mins = stats.get("duration_seconds", 0) / 60
-        
+
         # Build message
         subject = f"JobSpy Report: {stats.get('total_jobs_saved', 0)} jobs saved"
-        
+
         message_lines = [
             "=" * 50,
             "JobSpy Collection Report",
@@ -67,28 +67,26 @@ def send_sns_report(stats: Dict) -> bool:
             "",
             "--- By Category ---",
         ]
-        
+
         for category, cat_stats in stats.get("by_category", {}).items():
             message_lines.append(
                 f"  {category}: {cat_stats.get('saved', 0)} saved / {cat_stats.get('collected', 0)} collected"
             )
-        
-        message_lines.extend([
-            "",
-            "=" * 50,
-        ])
-        
-        message = "\n".join(message_lines)
-        
-        sns.publish(
-            TopicArn=sns_topic_arn,
-            Subject=subject,
-            Message=message
+
+        message_lines.extend(
+            [
+                "",
+                "=" * 50,
+            ]
         )
-        
+
+        message = "\n".join(message_lines)
+
+        sns.publish(TopicArn=sns_topic_arn, Subject=subject, Message=message)
+
         logger.info(f"SNS report sent successfully")
         return True
-        
+
     except Exception as e:
         logger.error(f"Failed to send SNS report: {e}")
         return False
@@ -203,15 +201,13 @@ class BatchCollector:
                 time.sleep(self.delay)
 
         stats["end_time"] = datetime.now()
-        stats["duration_seconds"] = (
-            stats["end_time"] - stats["start_time"]
-        ).total_seconds()
+        stats["duration_seconds"] = (stats["end_time"] - stats["start_time"]).total_seconds()
 
         self._print_summary(stats)
-        
+
         # Send SNS report
         send_sns_report(stats)
-        
+
         return stats
 
     def _print_summary(self, stats: Dict):
@@ -220,9 +216,7 @@ class BatchCollector:
         logger.info("Batch Collection Summary")
         logger.info("=" * 80)
         logger.info(f"Duration: {stats['duration_seconds']:.1f}s")
-        logger.info(
-            f"Queries: {stats['successful_queries']}/{stats['total_queries']} successful"
-        )
+        logger.info(f"Queries: {stats['successful_queries']}/{stats['total_queries']} successful")
         logger.info(f"Jobs collected: {stats['total_jobs_collected']}")
         logger.info(f"Jobs saved: {stats['total_jobs_saved']}")
         logger.info(f"Duplicates: {stats['total_duplicates']}")
@@ -245,11 +239,11 @@ def run_preset_batch(preset_name: str = "daily"):
         preset_name: 'quick', 'daily', or 'thorough'
     """
     from .search_config import (
-        PRESET_QUICK,
         PRESET_DAILY,
-        PRESET_THOROUGH,
-        PRESET_MASSIVE,
         PRESET_HOURLY,
+        PRESET_MASSIVE,
+        PRESET_QUICK,
+        PRESET_THOROUGH,
     )
 
     presets = {

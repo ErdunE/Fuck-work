@@ -3,26 +3,28 @@ Main FastAPI application.
 """
 
 import uuid
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
+
+from .routers import active_session  # Phase 5.3.1
+from .routers import derived_profile  # Phase 5.2.1
+from .routers import observability  # Phase 5.3.0
+from .routers import profile_skills  # Phase 5.2
 from .routers import (
-    jobs,
-    users,
     ai_answer,
     apply,
     auth,
-    profile,
-    preferences,
     events,
-    tasks,
+    jobs,
+    preferences,
+    profile,
     profile_education,
     profile_experience,
     profile_projects,
-    profile_skills,  # Phase 5.2
-    derived_profile,  # Phase 5.2.1
-    observability,  # Phase 5.3.0
-    active_session,  # Phase 5.3.1
+    tasks,
+    users,
 )
 
 app = FastAPI(
@@ -77,9 +79,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth.router, prefix="/api", tags=["authentication"])  # Phase 5.0
-app.include_router(
-    profile.router, tags=["profile"]
-)  # Phase 5.0 - already has /api/users/me prefix
+app.include_router(profile.router, tags=["profile"])  # Phase 5.0 - already has /api/users/me prefix
 app.include_router(
     preferences.router, tags=["automation-preferences"]
 )  # Phase 5.0 - already has /api/users/me prefix
@@ -96,12 +96,8 @@ app.include_router(
 app.include_router(
     profile_experience.router, tags=["profile", "experience"]
 )  # /api/users/me/experience
-app.include_router(
-    profile_projects.router, tags=["profile", "projects"]
-)  # /api/users/me/projects
-app.include_router(
-    profile_skills.router, tags=["profile", "skills"]
-)  # /api/users/me/skills
+app.include_router(profile_projects.router, tags=["profile", "projects"])  # /api/users/me/projects
+app.include_router(profile_skills.router, tags=["profile", "skills"])  # /api/users/me/skills
 # Phase 5.2.1: Derived Profile (ATS-ready answers)
 app.include_router(
     derived_profile.router, tags=["derived-profile"]
@@ -109,9 +105,7 @@ app.include_router(
 # Phase 5.3.0: Observability Console
 app.include_router(observability.router, tags=["observability"])  # /api/observability/*
 # Phase 5.3.1: Session Bridge
-app.include_router(
-    active_session.router, tags=["active-session"]
-)  # /api/users/me/active-session
+app.include_router(active_session.router, tags=["active-session"])  # /api/users/me/active-session
 app.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 app.include_router(users.router, prefix="/users", tags=["users"])
 app.include_router(ai_answer.router, prefix="/ai", tags=["ai"])

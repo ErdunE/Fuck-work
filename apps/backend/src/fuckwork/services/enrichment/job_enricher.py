@@ -38,9 +38,7 @@ class JobEnricher:
             "employment_type": self._derive_employment_type(job_dict),
             "work_mode": self._derive_work_mode(job_dict),
             "visa_signal": self._derive_visa_signal(job_dict.get("jd_text", "")),
-            "experience_years": self._derive_experience_years(
-                job_dict.get("jd_text", "")
-            ),
+            "experience_years": self._derive_experience_years(job_dict.get("jd_text", "")),
             "salary": self._derive_salary(job_dict.get("platform_metadata", {})),
             "geo": self._derive_geo(job_dict.get("location", "")),
         }
@@ -71,9 +69,7 @@ class JobEnricher:
             return "new_grad"
 
         # Staff (before senior to catch "Staff Engineer")
-        if any(
-            keyword in title_lower for keyword in ["staff", "principal", "architect"]
-        ):
+        if any(keyword in title_lower for keyword in ["staff", "principal", "architect"]):
             return "staff"
 
         # Senior

@@ -5,8 +5,10 @@ Helper functions for logging observability events from backend code.
 Enables structured event capture with minimal boilerplate.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any, Dict, Optional
+
 from sqlalchemy.orm import Session
+
 from src.fuckwork.database import ObservabilityEvent
 
 

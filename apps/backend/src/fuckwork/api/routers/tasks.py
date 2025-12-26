@@ -5,15 +5,16 @@ Apply Tasks API endpoints for Phase 5.0/5.2 Web Control Plane.
 """
 
 from datetime import datetime
-from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, ApplyTask, Job, ApplyRun
+from sqlalchemy import desc
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
 from src.fuckwork.api.observability_logger import log_event
+from src.fuckwork.database import ApplyRun, ApplyTask, Job, User, get_db
 
 router = APIRouter(prefix="/api/users/me", tags=["apply-tasks"])
 
@@ -115,9 +116,7 @@ def extract_task_summary(task: ApplyTask) -> ApplyTaskSummary:
 
         # Try to get current stage from various keys
         current_stage = (
-            metadata.get("current_stage")
-            or metadata.get("apply_stage")
-            or metadata.get("stage")
+            metadata.get("current_stage") or metadata.get("apply_stage") or metadata.get("stage")
         )
 
         # Try to get last action
@@ -187,9 +186,7 @@ def get_apply_tasks(
     # Extract summaries
     summaries = [extract_task_summary(task) for task in tasks]
 
-    return ApplyTasksListResponse(
-        tasks=summaries, total=total, limit=limit, offset=offset
-    )
+    return ApplyTasksListResponse(tasks=summaries, total=total, limit=limit, offset=offset)
 
 
 @router.get("/apply-tasks/{task_id}", response_model=ApplyTaskDetail)
@@ -210,9 +207,7 @@ def get_apply_task(
     )
 
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
     return ApplyTaskDetail.from_orm(task)
 
@@ -244,9 +239,7 @@ def create_apply_task(
     # Check if task already exists for this user + job
     existing_task = (
         db.query(ApplyTask)
-        .filter(
-            ApplyTask.user_id == current_user.id, ApplyTask.job_id == request.job_id
-        )
+        .filter(ApplyTask.user_id == current_user.id, ApplyTask.job_id == request.job_id)
         .first()
     )
 
@@ -308,9 +301,7 @@ def execute_apply_task(
     )
 
     if not task:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
     # Validate status
     if task.status != "queued":

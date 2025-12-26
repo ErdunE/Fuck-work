@@ -430,12 +430,15 @@ resource "aws_instance" "backend" {
   }
 
   user_data = templatefile("${path.module}/user-data/backend-init.sh", {
-    region            = var.aws_region
-    ecr_backend_url   = aws_ecr_repository.backend.repository_url
-    postgres_password = var.postgres_password
-    s3_backups_bucket = aws_s3_bucket.backups.id
-    rds_endpoint      = aws_db_instance.postgres.endpoint
-    rds_hostname      = aws_db_instance.postgres.address
+    region               = var.aws_region
+    ecr_backend_url      = aws_ecr_repository.backend.repository_url
+    postgres_password    = var.postgres_password
+    s3_backups_bucket    = aws_s3_bucket.backups.id
+    rds_endpoint         = aws_db_instance.postgres.endpoint
+    rds_hostname         = aws_db_instance.postgres.address
+    cognito_region       = var.aws_region
+    cognito_user_pool_id = var.cognito_user_pool_id
+    cognito_client_id    = var.cognito_client_id
   })
 
   tags = merge(

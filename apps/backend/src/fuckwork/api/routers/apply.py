@@ -5,22 +5,22 @@ Phase 3.5 - Human-in-the-loop Apply Pipeline.
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.orm import Session
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User
+
 from src.fuckwork.api.auth.jwt_utils import get_current_user_from_extension_token
-from src.fuckwork.core.apply import (
-    create_tasks_from_job_ids,
-    list_tasks,
-    get_task,
-    transition_task,
-)
 from src.fuckwork.api.models_apply import (
     ApplyQueueRequest,
-    ApplyTaskResponse,
     ApplyTaskListResponse,
+    ApplyTaskResponse,
     ApplyTransitionRequest,
     ApplyTransitionResponse,
 )
+from src.fuckwork.core.apply import (
+    create_tasks_from_job_ids,
+    get_task,
+    list_tasks,
+    transition_task,
+)
+from src.fuckwork.database import User, get_db
 
 router = APIRouter()
 
@@ -52,9 +52,7 @@ def queue_apply_tasks(request: ApplyQueueRequest, db: Session = Depends(get_db))
             allow_duplicates=request.allow_duplicates,
         )
 
-        return ApplyTaskListResponse(
-            tasks=tasks, total=len(tasks), limit=len(tasks), offset=0
-        )
+        return ApplyTaskListResponse(tasks=tasks, total=len(tasks), limit=len(tasks), offset=0)
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -88,9 +86,7 @@ def list_apply_tasks(
             offset=offset,
         )
 
-        return ApplyTaskListResponse(
-            tasks=tasks, total=total, limit=limit, offset=offset
-        )
+        return ApplyTaskListResponse(tasks=tasks, total=total, limit=limit, offset=offset)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list tasks: {str(e)}")
@@ -114,9 +110,7 @@ def get_apply_task(
 
     # Verify task ownership
     if task.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="Access denied: task belongs to another user"
-        )
+        raise HTTPException(status_code=403, detail="Access denied: task belongs to another user")
 
     return task
 
@@ -156,9 +150,7 @@ def transition_apply_task(
         raise HTTPException(status_code=404, detail="Task not found")
 
     if existing_task.user_id != current_user.id:
-        raise HTTPException(
-            status_code=403, detail="Access denied: task belongs to another user"
-        )
+        raise HTTPException(status_code=403, detail="Access denied: task belongs to another user")
 
     try:
         task, event = transition_task(
@@ -171,12 +163,8 @@ def transition_apply_task(
 
         # Debug correlation id echo (no JSON schema change)
         try:
-            if isinstance(request.details, dict) and request.details.get(
-                "detection_id"
-            ):
-                response.headers["X-FW-Detection-Id"] = str(
-                    request.details.get("detection_id")
-                )
+            if isinstance(request.details, dict) and request.details.get("detection_id"):
+                response.headers["X-FW-Detection-Id"] = str(request.details.get("detection_id"))
         except Exception:
             # Never fail transition due to debug header
             pass

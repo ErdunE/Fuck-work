@@ -88,9 +88,7 @@ class ExplanationEngine:
 
         return red_flags
 
-    def _extract_positive_signals(
-        self, activated_rules: List[Dict[str, Any]]
-    ) -> List[str]:
+    def _extract_positive_signals(self, activated_rules: List[Dict[str, Any]]) -> List[str]:
         """
         Extract positive signals from activated rules.
 

@@ -58,6 +58,12 @@ ENVIRONMENT=dev
 # AWS Configuration
 AWS_REGION=${region}
 S3_BACKUPS_BUCKET=${s3_backups_bucket}
+
+# Cognito Configuration
+COGNITO_REGION=${cognito_region}
+COGNITO_USER_POOL_ID=${cognito_user_pool_id}
+COGNITO_CLIENT_ID=${cognito_client_id}
+AUTH_MODE=cognito
 ENVEOF
 
 # Create docker-compose.yml (NO PostgreSQL - using RDS)
@@ -74,6 +80,10 @@ services:
       ENVIRONMENT: $${ENVIRONMENT}
       AWS_REGION: $${AWS_REGION}
       S3_BACKUPS_BUCKET: $${S3_BACKUPS_BUCKET}
+      COGNITO_REGION: $${COGNITO_REGION}
+      COGNITO_USER_POOL_ID: $${COGNITO_USER_POOL_ID}
+      COGNITO_CLIENT_ID: $${COGNITO_CLIENT_ID}
+      AUTH_MODE: $${AUTH_MODE}
     ports:
       - "80:8000"
     restart: unless-stopped

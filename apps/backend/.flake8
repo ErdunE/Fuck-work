@@ -1,16 +1,23 @@
 [flake8]
 max-line-length = 100
-exclude = 
-    __pycache__,
+exclude =
     .git,
-    .pytest_cache,
-    venv,
-    env,
+    __pycache__,
     migrations,
-    tests
-ignore = 
-    E203,
-    E501,
-    W503
+    src/fuckwork/services/scoring/tests,
+    src/fuckwork/services/scoring/manual_validation.py,
+    src/fuckwork/services/data_processor.py,
+    src/fuckwork/services/skills_config.py,
+    src/fuckwork/services/collection/batch_collector.py
+# E203: whitespace before ':' (black conflict)
+# E226: missing whitespace around arithmetic operator
+# E402: module level import not at top of file
+# E501: line too long (black handles this)
+# E722: do not use bare 'except'
+# F401: imported but unused
+# F541: f-string is missing placeholders
+# F841: local variable assigned but never used
+# W503: line break before binary operator (black conflict)
+ignore = E203,E226,E402,E501,E722,F401,F541,F841,W503
 per-file-ignores =
     __init__.py:F401

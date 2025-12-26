@@ -4,19 +4,20 @@ JobSpy collector: Converts JobSpy DataFrame to our JobData format.
 Minimal metadata approach - only 4 fields in collection_metadata.
 """
 
-from jobspy import scrape_jobs
-import pandas as pd
-from typing import List, Dict, Optional
-from datetime import datetime, timedelta
-import sys
 import os
+import sys
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional
+
+import pandas as pd
+from jobspy import scrape_jobs
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.fuckwork.utils.platform_utils import (  # noqa: E402
-    poster_expected,
     get_platform_display_name,
+    poster_expected,
 )
 
 
@@ -236,24 +237,10 @@ class JobSpyCollector:
             return None
 
         return {
-            "name": (
-                str(row.get("poster_name"))
-                if pd.notna(row.get("poster_name"))
-                else None
-            ),
-            "title": (
-                str(row.get("poster_title"))
-                if pd.notna(row.get("poster_title"))
-                else None
-            ),
-            "company": (
-                str(row.get("company")) if pd.notna(row.get("company")) else None
-            ),
-            "link": (
-                str(row.get("poster_link"))
-                if pd.notna(row.get("poster_link"))
-                else None
-            ),
+            "name": (str(row.get("poster_name")) if pd.notna(row.get("poster_name")) else None),
+            "title": (str(row.get("poster_title")) if pd.notna(row.get("poster_title")) else None),
+            "company": (str(row.get("company")) if pd.notna(row.get("company")) else None),
+            "link": (str(row.get("poster_link")) if pd.notna(row.get("poster_link")) else None),
         }
 
     def _extract_company_info(self, row: pd.Series) -> Dict:
@@ -261,34 +248,22 @@ class JobSpyCollector:
         return {
             "name": str(row.get("company")) if pd.notna(row.get("company")) else None,
             "industry": (
-                str(row.get("company_industry"))
-                if pd.notna(row.get("company_industry"))
-                else None
+                str(row.get("company_industry")) if pd.notna(row.get("company_industry")) else None
             ),
-            "url": (
-                str(row.get("company_url"))
-                if pd.notna(row.get("company_url"))
-                else None
-            ),
+            "url": (str(row.get("company_url")) if pd.notna(row.get("company_url")) else None),
             "url_direct": (
                 str(row.get("company_url_direct"))
                 if pd.notna(row.get("company_url_direct"))
                 else None
             ),
-            "logo": (
-                str(row.get("company_logo"))
-                if pd.notna(row.get("company_logo"))
-                else None
-            ),
+            "logo": (str(row.get("company_logo")) if pd.notna(row.get("company_logo")) else None),
             "num_employees": (
                 str(row.get("company_num_employees"))
                 if pd.notna(row.get("company_num_employees"))
                 else None
             ),
             "revenue": (
-                str(row.get("company_revenue"))
-                if pd.notna(row.get("company_revenue"))
-                else None
+                str(row.get("company_revenue")) if pd.notna(row.get("company_revenue")) else None
             ),
             "description": (
                 str(row.get("company_description"))
@@ -296,9 +271,7 @@ class JobSpyCollector:
                 else None
             ),
             "rating": (
-                float(row.get("company_rating"))
-                if pd.notna(row.get("company_rating"))
-                else None
+                float(row.get("company_rating")) if pd.notna(row.get("company_rating")) else None
             ),
             "reviews_count": (
                 int(row.get("company_reviews_count"))

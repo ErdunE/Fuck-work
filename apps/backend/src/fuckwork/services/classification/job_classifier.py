@@ -9,7 +9,11 @@ Uses deepseek-r1:7b via Ollama for local inference.
 """
 
 import logging
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
+from src.fuckwork.core.ai.ollama_client import call_ollama
+
+from .classification_prompt import build_classification_prompt, parse_llm_classification
 from .classification_rules import (
     find_category_by_keywords,
     find_industry_by_keywords,
@@ -18,8 +22,6 @@ from .classification_rules import (
     get_industry_display_name,
     get_specialty_display_names,
 )
-from .classification_prompt import build_classification_prompt, parse_llm_classification
-from src.fuckwork.core.ai.ollama_client import call_ollama
 
 logger = logging.getLogger(__name__)
 
@@ -227,9 +229,7 @@ class JobClassifier:
             # Parse response
             result = parse_llm_classification(response)
 
-            logger.info(
-                f"LLM classified as: {result['category']} ({result['confidence']})"
-            )
+            logger.info(f"LLM classified as: {result['category']} ({result['confidence']})")
 
             return result
 
@@ -263,9 +263,7 @@ class JobClassifier:
 
         # Second pass: LLM for low-confidence (if enabled)
         if llm_needed:
-            logger.info(
-                f"Re-classifying {len(llm_needed)} low-confidence jobs with LLM..."
-            )
+            logger.info(f"Re-classifying {len(llm_needed)} low-confidence jobs with LLM...")
 
             for idx in llm_needed:
                 job = jobs[idx]
@@ -274,12 +272,8 @@ class JobClassifier:
                     llm_result = self._classify_with_llm(
                         title=job.get("title", ""),
                         company_name=job.get("company_name", ""),
-                        company_industry=job.get("company_info", {}).get(
-                            "industry", ""
-                        ),
-                        job_function=job.get("derived_signals", {}).get(
-                            "job_function", ""
-                        ),
+                        company_industry=job.get("company_info", {}).get("industry", ""),
+                        job_function=job.get("derived_signals", {}).get("job_function", ""),
                         description_snippet=job.get("jd_text", "")[:500],
                         skills=job.get("derived_signals", {}).get("skills", []),
                     )
@@ -306,9 +300,7 @@ class JobClassifier:
                         )
 
                 except Exception as e:
-                    logger.warning(
-                        f"LLM failed for job {idx}, keeping rule-based result: {e}"
-                    )
+                    logger.warning(f"LLM failed for job {idx}, keeping rule-based result: {e}")
 
         return results
 
@@ -359,9 +351,7 @@ def add_classification_to_job(
     return job
 
 
-def classify_jobs_batch(
-    jobs: List[Dict[str, Any]], use_llm: bool = True
-) -> List[Dict[str, Any]]:
+def classify_jobs_batch(jobs: List[Dict[str, Any]], use_llm: bool = True) -> List[Dict[str, Any]]:
     """
     Classify a batch of jobs and add to their derived_signals.
 
@@ -408,16 +398,15 @@ def classify_unclassified_jobs(
     Returns:
         Stats dict with counts
     """
-    from src.fuckwork.database import Job
     from sqlalchemy.orm.attributes import flag_modified
+
+    from src.fuckwork.database import Job
 
     classifier = JobClassifier(use_llm_fallback=use_llm)
 
     # Find unclassified jobs
     unclassified = (
-        db_session.query(Job)
-        .filter(~Job.derived_signals.has_key("classification"))
-        .all()
+        db_session.query(Job).filter(~Job.derived_signals.has_key("classification")).all()
     )
 
     total = len(unclassified)
@@ -467,9 +456,7 @@ def classify_unclassified_jobs(
         logger.info(f"Batch committed ({stats['classified']}/{total})")
 
     logger.info(f"✓ Classification complete: {stats['classified']} jobs")
-    logger.info(
-        f"  Rules: {stats['rules']}, LLM: {stats['llm']}, Errors: {stats['errors']}"
-    )
+    logger.info(f"  Rules: {stats['rules']}, LLM: {stats['llm']}, Errors: {stats['errors']}")
 
     return stats
 
@@ -489,13 +476,12 @@ if __name__ == "__main__":
         python -m job_classification.job_classifier --no-llm
     """
     import sys
+
     from src.fuckwork.database import SessionLocal
 
     use_llm = "--no-llm" not in sys.argv
 
-    logging.basicConfig(
-        level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-    )
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
     logger.info("=" * 70)
     logger.info("Job Classification Pipeline")

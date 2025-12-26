@@ -4,22 +4,23 @@ SQLAlchemy ORM models for FuckWork Phase 2A.
 Minimal schema with 4-field collection_metadata.
 """
 
+from datetime import datetime
+
 from sqlalchemy import (
+    TIMESTAMP,
+    Boolean,
     Column,
+    Date,
+    Float,
+    ForeignKey,
+    Index,
     Integer,
     String,
     Text,
-    Float,
-    TIMESTAMP,
-    ForeignKey,
-    Boolean,
-    Date,
-    Index,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
-from datetime import datetime
 
 Base = declarative_base()
 
@@ -119,6 +120,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
     password_hash = Column(String(255))  # Phase 5.0: nullable for stub auth
+    cognito_sub = Column(String(255), unique=True, index=True)  # Cognito user UUID
     token_version = Column(
         Integer, nullable=False, default=1, index=True
     )  # Phase 5.3.2: Token revocation
@@ -134,24 +136,14 @@ class User(Base):
         uselist=False,
         cascade="all, delete-orphan",
     )
-    education = relationship(
-        "UserEducation", back_populates="user", cascade="all, delete-orphan"
-    )
-    experience = relationship(
-        "UserExperience", back_populates="user", cascade="all, delete-orphan"
-    )
-    projects = relationship(
-        "UserProject", back_populates="user", cascade="all, delete-orphan"
-    )
-    skills = relationship(
-        "UserSkill", back_populates="user", cascade="all, delete-orphan"
-    )
+    education = relationship("UserEducation", back_populates="user", cascade="all, delete-orphan")
+    experience = relationship("UserExperience", back_populates="user", cascade="all, delete-orphan")
+    projects = relationship("UserProject", back_populates="user", cascade="all, delete-orphan")
+    skills = relationship("UserSkill", back_populates="user", cascade="all, delete-orphan")
     knowledge_entries = relationship(
         "UserKnowledgeEntry", back_populates="user", cascade="all, delete-orphan"
     )
-    apply_tasks = relationship(
-        "ApplyTask", back_populates="user", cascade="all, delete-orphan"
-    )
+    apply_tasks = relationship("ApplyTask", back_populates="user", cascade="all, delete-orphan")
     automation_preferences = relationship(
         "AutomationPreference",
         back_populates="user",
@@ -174,9 +166,7 @@ class UserProfile(Base):
     __tablename__ = "user_profiles"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(
-        Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True
-    )
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
     version = Column(Integer, default=1)  # Phase 5.0: for future schema migrations
 
     # Personal info
@@ -374,21 +364,15 @@ class ApplyTask(Base):
 
     # Relationships
     user = relationship("User", back_populates="apply_tasks")
-    events = relationship(
-        "ApplyEvent", back_populates="task", cascade="all, delete-orphan"
-    )
+    events = relationship("ApplyEvent", back_populates="task", cascade="all, delete-orphan")
 
     # Composite index for queue ordering
     __table_args__ = (
-        Index(
-            "idx_apply_tasks_queue_order", "user_id", "status", "priority", "created_at"
-        ),
+        Index("idx_apply_tasks_queue_order", "user_id", "status", "priority", "created_at"),
     )
 
     def __repr__(self):
-        return (
-            f"<ApplyTask(id={self.id}, job_id='{self.job_id}', status='{self.status}')>"
-        )
+        return f"<ApplyTask(id={self.id}, job_id='{self.job_id}', status='{self.status}')>"
 
 
 class ApplyEvent(Base):
@@ -429,9 +413,7 @@ class AutomationPreference(Base):
     __tablename__ = "automation_preferences"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(
-        Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True
-    )
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
     version = Column(Integer, default=1)  # Schema version for future migrations
 
     # Global Automation Settings (maps to extension Phase 4.3)
@@ -440,9 +422,7 @@ class AutomationPreference(Base):
     require_review_before_submit = Column(Boolean, default=True)  # Safety gate
 
     # Future Expansion Hooks (JSONB for flexibility)
-    per_ats_overrides = Column(
-        JSONB, default={}
-    )  # {"greenhouse": {"auto_fill": false}}
+    per_ats_overrides = Column(JSONB, default={})  # {"greenhouse": {"auto_fill": false}}
     field_autofill_rules = Column(JSONB, default={})  # Custom field mappings
     submit_review_timeout_ms = Column(Integer, default=0)  # 0 = explicit confirm
 
@@ -470,12 +450,8 @@ class AutomationEvent(Base):
     __tablename__ = "automation_events"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(
-        Integer, ForeignKey("users.id"), index=True
-    )  # SET NULL on user delete
-    task_id = Column(
-        Integer, ForeignKey("apply_tasks.id"), index=True
-    )  # SET NULL on task delete
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)  # SET NULL on user delete
+    task_id = Column(Integer, ForeignKey("apply_tasks.id"), index=True)  # SET NULL on task delete
     session_id = Column(String(255), index=True)  # From apply_session.task_id
 
     # Event Classification
@@ -510,9 +486,7 @@ class AutomationEvent(Base):
     task = relationship("ApplyTask")
 
     # Composite indexes for fast queries
-    __table_args__ = (
-        Index("idx_automation_events_type_category", "event_type", "event_category"),
-    )
+    __table_args__ = (Index("idx_automation_events_type_category", "event_type", "event_category"),)
 
     def __repr__(self):
         return f"<AutomationEvent(id={self.id}, type='{self.event_type}', decision='{self.automation_decision}')>"
@@ -545,9 +519,7 @@ class ApplyRun(Base):
     ats_kind = Column(
         String(100), nullable=True, index=True
     )  # greenhouse, workday, lever, linkedin_easy_apply, unknown
-    intent = Column(
-        String(100), nullable=True
-    )  # application_form, login_required, unknown
+    intent = Column(String(100), nullable=True)  # application_form, login_required, unknown
     stage = Column(
         String(100), nullable=True
     )  # analyzing, ready_to_fill, filling, filled, ready_to_submit, manual_review, blocked, completed
@@ -573,9 +545,7 @@ class ApplyRun(Base):
 
     # Relationships
     user = relationship("User", foreign_keys=[user_id])
-    events = relationship(
-        "ObservabilityEvent", back_populates="run", cascade="all, delete-orphan"
-    )
+    events = relationship("ObservabilityEvent", back_populates="run", cascade="all, delete-orphan")
 
     # Composite indexes for querying
     __table_args__ = (
@@ -584,9 +554,7 @@ class ApplyRun(Base):
     )
 
     def __repr__(self):
-        return (
-            f"<ApplyRun(id={self.id}, status='{self.status}', ats='{self.ats_kind}')>"
-        )
+        return f"<ApplyRun(id={self.id}, status='{self.status}', ats='{self.ats_kind}')>"
 
 
 class ObservabilityEvent(Base):
@@ -637,7 +605,9 @@ class ObservabilityEvent(Base):
     )
 
     def __repr__(self):
-        return f"<ObservabilityEvent(id={self.id}, event='{self.event_name}', source='{self.source}')>"
+        return (
+            f"<ObservabilityEvent(id={self.id}, event='{self.event_name}', source='{self.source}')>"
+        )
 
 
 class ActiveApplySession(Base):

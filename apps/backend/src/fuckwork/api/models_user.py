@@ -3,10 +3,10 @@ Pydantic models for user profile and knowledge APIs.
 Phase 3.3 - User Foundation Layer.
 """
 
-from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, List, Literal
-from datetime import datetime, date
+from datetime import date, datetime
+from typing import List, Literal, Optional
 
+from pydantic import BaseModel, EmailStr, Field
 
 # User Account
 

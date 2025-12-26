@@ -3,13 +3,14 @@ Skills CRUD endpoints for Phase 5.2.
 Manages user skills.
 """
 
-from typing import Optional, List
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from src.fuckwork.database import get_db
-from src.fuckwork.database import User, UserSkill
+from sqlalchemy.orm import Session
+
 from src.fuckwork.api.auth import get_current_user
+from src.fuckwork.database import User, UserSkill, get_db
 
 router = APIRouter(prefix="/api/users/me/skills", tags=["profile", "skills"])
 
@@ -46,14 +47,10 @@ class SkillListResponse(BaseModel):
 
 
 @router.get("", response_model=SkillListResponse)
-def list_skills(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
+def list_skills(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get all skill entries for current user."""
     skills = db.query(UserSkill).filter(UserSkill.user_id == current_user.id).all()
-    return SkillListResponse(
-        skills=[SkillResponse.from_orm(s) for s in skills], total=len(skills)
-    )
+    return SkillListResponse(skills=[SkillResponse.from_orm(s) for s in skills], total=len(skills))
 
 
 @router.post("", response_model=SkillResponse, status_code=status.HTTP_201_CREATED)
@@ -90,9 +87,7 @@ def update_skill(
     )
 
     if not skill:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Skill entry not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill entry not found")
 
     # Update fields
     update_data = request.dict(exclude_unset=True)
@@ -119,9 +114,7 @@ def delete_skill(
     )
 
     if not skill:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Skill entry not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill entry not found")
 
     db.delete(skill)
     db.commit()

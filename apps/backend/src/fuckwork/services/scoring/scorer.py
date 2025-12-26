@@ -32,9 +32,7 @@ class AuthenticityScorer:
         self.score_fusion = ScoreFusion()
         self.explanation_engine = ExplanationEngine()
 
-        logger.info(
-            "AuthenticityScorer initialized with rules from %s", rule_table_path
-        )
+        logger.info("AuthenticityScorer initialized with rules from %s", rule_table_path)
 
     def score_job(self, job_data: Dict[str, Any]) -> Dict[str, Any]:
         """

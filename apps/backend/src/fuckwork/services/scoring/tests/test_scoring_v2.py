@@ -50,7 +50,7 @@ Benefits:
         "company_info": {
             "url": "https://linkedin.com/company/nvidia",
             "logo": "https://logo.com/nvidia.png",
-            "industry": "Technology"
+            "industry": "Technology",
         },
         "expected_level": "likely real",
         "expected_positive_count": 5,  # benefits, responsibilities, qualifications, salary, company info
@@ -110,7 +110,7 @@ Our interview process includes a recruiter call, technical phone screen, and vir
             "url": "https://linkedin.com/company/google",
             "logo": "https://logo.com/google.png",
             "industry": "Technology",
-            "url_direct": "https://careers.google.com"
+            "url_direct": "https://careers.google.com",
         },
         "expected_level": "likely real",
         "expected_positive_count": 8,
@@ -158,7 +158,7 @@ Compensation: $130,000 - $180,000 base salary plus equity and comprehensive bene
         "company_info": {
             "url": "https://linkedin.com/company/amazon",
             "logo": "https://logo.com/amazon.png",
-            "industry": "E-commerce"
+            "industry": "E-commerce",
         },
         "expected_level": "likely real",
         "expected_positive_count": 7,
@@ -182,7 +182,7 @@ Requirements:
 """,
         "company_info": {
             "url": "https://linkedin.com/company/techstartup",
-            "industry": "Technology"
+            "industry": "Technology",
         },
         "expected_level": "uncertain",
         "expected_positive_count": 2,
@@ -192,80 +192,90 @@ Requirements:
 
 def test_scoring_v2():
     """Test the new scoring rules on sample data."""
-    
+
     print("=" * 70)
     print("Scoring System v2.0 Test Suite")
     print("=" * 70)
-    
+
     # Verify rule table exists
     assert RULE_TABLE_PATH.exists(), f"Rule table not found: {RULE_TABLE_PATH}"
-    
+
     # Initialize scorer
     scorer = AuthenticityScorer(str(RULE_TABLE_PATH))
     print(f"\n✅ Loaded rules from {RULE_TABLE_PATH.name}")
-    
+
     print(f"\n📊 Testing {len(SAMPLE_JOBS)} sample jobs:\n")
     print("-" * 70)
-    
+
     results = []
     for job in SAMPLE_JOBS:
         result = scorer.score_job(job)
-        
+
         print(f"\n🔹 {job['title']} @ {job['company_name']}")
-        print(f"   Score: {result['authenticity_score']:5.1f} | Level: {result['level']:<12} | Confidence: {result['confidence']}")
-        
-        negative_count = len(result.get('red_flags', []))
-        positive_count = len(result.get('positive_signals', []))
-        
-        if result['red_flags']:
-            flags_display = result['red_flags'][:3]
-            suffix = f"... (+{len(result['red_flags'])-3} more)" if len(result['red_flags']) > 3 else ""
+        print(
+            f"   Score: {result['authenticity_score']:5.1f} | Level: {result['level']:<12} | Confidence: {result['confidence']}"
+        )
+
+        negative_count = len(result.get("red_flags", []))
+        positive_count = len(result.get("positive_signals", []))
+
+        if result["red_flags"]:
+            flags_display = result["red_flags"][:3]
+            suffix = (
+                f"... (+{len(result['red_flags'])-3} more)" if len(result["red_flags"]) > 3 else ""
+            )
             print(f"   ❌ Red flags ({negative_count}): {flags_display}{suffix}")
         else:
             print(f"   ❌ Red flags: None")
-            
-        if result['positive_signals']:
-            signals_display = result['positive_signals'][:3]
-            suffix = f"... (+{len(result['positive_signals'])-3} more)" if len(result['positive_signals']) > 3 else ""
+
+        if result["positive_signals"]:
+            signals_display = result["positive_signals"][:3]
+            suffix = (
+                f"... (+{len(result['positive_signals'])-3} more)"
+                if len(result["positive_signals"]) > 3
+                else ""
+            )
             print(f"   ✅ Positive ({positive_count}): {signals_display}{suffix}")
         else:
             print(f"   ✅ Positive: None")
-        
+
         # Check expectations
-        expected_level = job.get('expected_level')
+        expected_level = job.get("expected_level")
         if expected_level:
-            status = "✓" if result['level'] == expected_level else "✗"
-            if result['level'] != expected_level:
+            status = "✓" if result["level"] == expected_level else "✗"
+            if result["level"] != expected_level:
                 print(f"   ⚠️  Expected level '{expected_level}', got '{result['level']}'")
-        
-        results.append({
-            'job_id': job['job_id'],
-            'score': result['authenticity_score'],
-            'level': result['level'],
-            'confidence': result['confidence'],
-            'positive_count': positive_count,
-            'negative_count': negative_count,
-        })
-    
+
+        results.append(
+            {
+                "job_id": job["job_id"],
+                "score": result["authenticity_score"],
+                "level": result["level"],
+                "confidence": result["confidence"],
+                "positive_count": positive_count,
+                "negative_count": negative_count,
+            }
+        )
+
     # Summary statistics
     print("\n" + "=" * 70)
     print("📈 Summary Statistics")
     print("=" * 70)
-    
-    scores = [r['score'] for r in results]
+
+    scores = [r["score"] for r in results]
     print(f"   Score range: {min(scores):.1f} - {max(scores):.1f}")
     print(f"   Average score: {sum(scores)/len(scores):.1f}")
-    
-    levels = [r['level'] for r in results]
+
+    levels = [r["level"] for r in results]
     print(f"   Likely Real: {levels.count('likely real')}")
     print(f"   Uncertain: {levels.count('uncertain')}")
     print(f"   Likely Fake: {levels.count('likely fake')}")
-    
-    avg_positive = sum(r['positive_count'] for r in results) / len(results)
-    avg_negative = sum(r['negative_count'] for r in results) / len(results)
+
+    avg_positive = sum(r["positive_count"] for r in results) / len(results)
+    avg_negative = sum(r["negative_count"] for r in results) / len(results)
     print(f"   Avg positive signals: {avg_positive:.1f}")
     print(f"   Avg negative signals: {avg_negative:.1f}")
-    
+
     print("\n✅ Test complete!")
     return results
 
@@ -273,35 +283,41 @@ def test_scoring_v2():
 def test_positive_signals_populated():
     """Verify that positive signals are now being detected."""
     scorer = AuthenticityScorer(str(RULE_TABLE_PATH))
-    
+
     # High quality job should have positive signals
     good_job = SAMPLE_JOBS[0]  # NVIDIA job
     result = scorer.score_job(good_job)
-    
-    assert len(result['positive_signals']) > 0, "Good job should have positive signals"
+
+    assert len(result["positive_signals"]) > 0, "Good job should have positive signals"
     print(f"✅ Positive signals working: {len(result['positive_signals'])} detected")
 
 
 def test_recruiter_detection():
     """Verify recruiter/agency jobs are properly flagged."""
     scorer = AuthenticityScorer(str(RULE_TABLE_PATH))
-    
+
     recruiter_job = SAMPLE_JOBS[1]  # Apex Systems job
     result = scorer.score_job(recruiter_job)
-    
-    assert result['level'] == 'likely fake', f"Recruiter job should be 'likely fake', got '{result['level']}'"
-    assert len(result['red_flags']) >= 2, "Recruiter job should have multiple red flags"
-    print(f"✅ Recruiter detection working: score={result['authenticity_score']}, flags={len(result['red_flags'])}")
+
+    assert (
+        result["level"] == "likely fake"
+    ), f"Recruiter job should be 'likely fake', got '{result['level']}'"
+    assert len(result["red_flags"]) >= 2, "Recruiter job should have multiple red flags"
+    print(
+        f"✅ Recruiter detection working: score={result['authenticity_score']}, flags={len(result['red_flags'])}"
+    )
 
 
 def test_short_jd_detection():
     """Verify short JDs are flagged."""
     scorer = AuthenticityScorer(str(RULE_TABLE_PATH))
-    
+
     short_job = SAMPLE_JOBS[3]  # ABC Solutions job
     result = scorer.score_job(short_job)
-    
-    has_short_flag = any('short' in flag.lower() or 'under' in flag.lower() for flag in result['red_flags'])
+
+    has_short_flag = any(
+        "short" in flag.lower() or "under" in flag.lower() for flag in result["red_flags"]
+    )
     assert has_short_flag, "Short JD should be flagged"
     print(f"✅ Short JD detection working: {result['red_flags']}")
 

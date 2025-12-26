@@ -3,21 +3,23 @@ User Profile API endpoints for Phase 5.0 Web Control Plane.
 Authoritative source of truth for autofill operations.
 """
 
-from datetime import datetime, date
-from typing import Optional, List
+from datetime import date, datetime
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
-from src.fuckwork.database import get_db
+from sqlalchemy.orm import Session
+
+from src.fuckwork.api.auth import get_current_user
 from src.fuckwork.database import (
     User,
-    UserProfile,
     UserEducation,
     UserExperience,
+    UserProfile,
     UserProject,
     UserSkill,
+    get_db,
 )
-from src.fuckwork.api.auth import get_current_user
 
 router = APIRouter(prefix="/api/users/me", tags=["profile"])
 
@@ -171,9 +173,7 @@ class ProfileUpdateResponse(BaseModel):
 
 
 @router.get("/profile", response_model=ProfileResponse)
-def get_profile(
-    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
-):
+def get_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     Get current user's profile.
 
@@ -181,9 +181,7 @@ def get_profile(
     Authoritative source for autofill operations.
     Extension fetches this to fill application forms.
     """
-    profile = (
-        db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
-    )
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
 
     if not profile:
         # Create empty profile if it doesn't exist
@@ -193,15 +191,9 @@ def get_profile(
         db.refresh(profile)
 
     # Phase 5.2: Fetch related collections (SQLAlchemy relationships handle joins)
-    education = (
-        db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
-    )
-    experience = (
-        db.query(UserExperience).filter(UserExperience.user_id == current_user.id).all()
-    )
-    projects = (
-        db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
-    )
+    education = db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
+    experience = db.query(UserExperience).filter(UserExperience.user_id == current_user.id).all()
+    projects = db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
     skills = db.query(UserSkill).filter(UserSkill.user_id == current_user.id).all()
 
     # Build response with collections
@@ -228,9 +220,7 @@ def get_profile(
         work_authorization=profile.work_authorization,
         visa_status=profile.visa_status,
         willing_to_relocate=(
-            profile.willing_to_relocate
-            if hasattr(profile, "willing_to_relocate")
-            else None
+            profile.willing_to_relocate if hasattr(profile, "willing_to_relocate") else None
         ),
         government_employment_history=(
             profile.government_employment_history
@@ -257,9 +247,7 @@ def update_profile(
     Supports partial updates - only provided fields are updated.
     Timestamps updated automatically.
     """
-    profile = (
-        db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
-    )
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
 
     if not profile:
         # Create profile if it doesn't exist
