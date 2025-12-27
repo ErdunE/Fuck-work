@@ -1,8 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
 import type { 
-  LoginRequest, 
-  RegisterRequest, 
-  AuthResponse, 
   User,
   Profile,
   DerivedProfile,
@@ -22,7 +19,7 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 class APIService {
-  private client: AxiosInstance
+  public client: AxiosInstance
 
   constructor() {
     this.client = axios.create({
@@ -32,7 +29,7 @@ class APIService {
       }
     })
 
-    // Add auth token to requests
+    // Add Cognito token to requests
     this.client.interceptors.request.use((config) => {
       const token = this.getToken()
       if (token) {
@@ -46,6 +43,7 @@ class APIService {
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
+          console.log('[API] 401 Unauthorized, clearing auth...')
           this.clearAuth()
           window.location.href = '/login'
         }
@@ -54,36 +52,26 @@ class APIService {
     )
   }
 
-  // Auth methods
+  // Get Cognito ID token (used for API authentication)
   getToken(): string | null {
-    return localStorage.getItem('fw_jwt_token')
+    return localStorage.getItem('fw_id_token')
   }
 
-  setToken(token: string): void {
-    localStorage.setItem('fw_jwt_token', token)
-  }
-
+  // Clear all auth tokens
   clearAuth(): void {
-    localStorage.removeItem('fw_jwt_token')
+    localStorage.removeItem('fw_id_token')
+    localStorage.removeItem('fw_access_token')
+    localStorage.removeItem('fw_refresh_token')
+    localStorage.removeItem('fw_token_expires_at')
   }
 
-  async register(data: RegisterRequest): Promise<{ user_id: number; email: string; message: string }> {
-    const response = await this.client.post('/api/auth/register', data)
-    return response.data
-  }
-
-  async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await this.client.post('/api/auth/login', data)
-    const authData = response.data
-    this.setToken(authData.access_token)
-    return authData
-  }
-
+  // Logout - calls backend to invalidate extension tokens
   async logout(): Promise<{ ok: boolean; message: string }> {
     const response = await this.client.post('/api/auth/logout')
     return response.data
   }
 
+  // Get current user from backend
   async getCurrentUser(): Promise<User> {
     const response = await this.client.get('/api/auth/me')
     return response.data
@@ -238,9 +226,6 @@ class APIService {
     return response.data
   }
 
-  /**
-   * Execute a queued apply task
-   */
   async executeApplyTask(taskId: number): Promise<{
     run_id: number
     job_url: string
@@ -251,13 +236,7 @@ class APIService {
     return response.data
   }
 
-  // ============================================================
   // Phase 5.3.0: Observability Console API
-  // ============================================================
-
-  /**
-   * Get observability runs with filters
-   */
   async getObservabilityRuns(filters: {
     limit?: number
     offset?: number
@@ -276,30 +255,17 @@ class APIService {
     return response.data
   }
 
-  /**
-   * Get observability run detail
-   */
   async getObservabilityRun(runId: number): Promise<any> {
     const response = await this.client.get(`/api/observability/runs/${runId}`)
     return response.data
   }
 
-  /**
-   * Get observability run events timeline
-   */
   async getObservabilityRunEvents(runId: number, limit: number = 500): Promise<RunEventsResponse> {
     const response = await this.client.get(`/api/observability/runs/${runId}/events?limit=${limit}`)
     return response.data
   }
 
-  // ============================================================
   // Phase 5.3.1: Active Session Bridge API
-  // ============================================================
-
-  /**
-   * Set active apply session
-   * Phase 5.3.1: Enables deterministic session handoff to extension
-   */
   async setActiveSession(data: {
     task_id: number
     run_id: number
@@ -318,10 +284,6 @@ class APIService {
     return response.data
   }
 
-  /**
-   * Get active apply session
-   * Phase 5.3.1: Extension uses this to attach to the correct run
-   */
   async getActiveSession(): Promise<{
     active: boolean
     task_id?: number
@@ -335,10 +297,6 @@ class APIService {
     return response.data
   }
 
-  /**
-   * Clear active apply session
-   * Phase 5.3.1: Called when run completes or user cancels
-   */
   async clearActiveSession(): Promise<{ ok: boolean; message: string }> {
     const response = await this.client.delete('/api/users/me/active-session')
     return response.data
@@ -346,4 +304,3 @@ class APIService {
 }
 
 export default new APIService()
-

@@ -84,7 +84,9 @@ def get_or_create_user_from_cognito(db: Session, cognito_sub: str, email: str) -
         # Update cognito_sub if not set (migration path)
         if not user.cognito_sub:
             user.cognito_sub = cognito_sub
-            db.commit()
+        # Update last_login_at on every login
+        user.last_login_at = datetime.utcnow()
+        db.commit()
         return user
 
     # Create new user

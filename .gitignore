@@ -129,3 +129,6 @@ terraform.rc
 
 # Lock file (keep this one)
 # .terraform.lock.hcl
+
+# OAuth credentials - never commit
+auth.tfvars

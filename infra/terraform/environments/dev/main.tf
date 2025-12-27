@@ -31,7 +31,7 @@ module "iam" {
 }
 
 # ============================================================================
-# AUTH MODULE CONFIGURATION - Cognito
+# AUTH MODULE CONFIGURATION - Cognito with Social Login
 # ============================================================================
 
 module "auth" {
@@ -52,6 +52,19 @@ module "auth" {
     "http://localhost:3000",
     "http://localhost:5173"
   ]
+
+  # Social Login Credentials
+  google_client_id     = var.google_client_id
+  google_client_secret = var.google_client_secret
+
+  facebook_app_id     = var.facebook_app_id
+  facebook_app_secret = var.facebook_app_secret
+
+  github_client_id     = var.github_client_id
+  github_client_secret = var.github_client_secret
+
+  linkedin_client_id     = var.linkedin_client_id
+  linkedin_client_secret = var.linkedin_client_secret
 
   tags = {
     Project     = var.project_name
