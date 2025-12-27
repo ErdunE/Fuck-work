@@ -109,8 +109,8 @@ resource "aws_iam_policy" "github_actions_deploy" {
           "s3:ListBucket"
         ]
         Resource = [
-          "arn:aws:s3:::${var.project_name}-${var.environment}-frontend",
-          "arn:aws:s3:::${var.project_name}-${var.environment}-frontend/*"
+          "arn:aws:s3:::${var.project_name}-${var.environment}-frontend-${var.aws_account_id}",
+          "arn:aws:s3:::${var.project_name}-${var.environment}-frontend-${var.aws_account_id}/*"
         ]
       },
       {
