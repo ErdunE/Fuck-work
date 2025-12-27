@@ -1,65 +1,95 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { getLoginUrl, getSignupUrl } from '../config/cognito'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const { isAuthenticated, loading } = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
-    try {
-      await login(email, password)
-      navigate('/')
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed')
-    } finally {
-      setLoading(false)
+  useEffect(() => {
+    // If already authenticated, redirect to home
+    if (!loading && isAuthenticated) {
+      navigate('/', { replace: true })
     }
+  }, [isAuthenticated, loading, navigate])
+
+  const handleLogin = () => {
+    window.location.href = getLoginUrl()
+  }
+
+  const handleSignup = () => {
+    window.location.href = getSignupUrl()
+  }
+
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center' 
+      }}>
+        <p>Loading...</p>
+      </div>
+    )
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="card" style={{ maxWidth: '400px', width: '100%' }}>
-        <h1 style={{ marginBottom: '20px' }}>FuckWork - Login</h1>
-        <form onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label>Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
-          <div className="form-group">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
-          {error && <div className="error">{error}</div>}
-          <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', marginTop: '10px' }}>
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-        <p style={{ marginTop: '20px', textAlign: 'center' }}>
-          Don't have an account? <Link to="/register">Register</Link>
+    <div style={{ 
+      minHeight: '100vh', 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    }}>
+      <div className="card" style={{ 
+        maxWidth: '400px', 
+        width: '100%',
+        textAlign: 'center',
+        padding: '40px'
+      }}>
+        <h1 style={{ marginBottom: '10px', fontSize: '2rem' }}>🚀 FuckWork</h1>
+        <p style={{ marginBottom: '30px', color: '#666' }}>
+          Automate your job applications
+        </p>
+        
+        <button 
+          onClick={handleLogin}
+          className="btn btn-primary" 
+          style={{ 
+            width: '100%', 
+            marginBottom: '15px',
+            padding: '12px',
+            fontSize: '1rem'
+          }}
+        >
+          Log In
+        </button>
+        
+        <button 
+          onClick={handleSignup}
+          className="btn" 
+          style={{ 
+            width: '100%',
+            padding: '12px',
+            fontSize: '1rem',
+            background: '#f3f4f6',
+            border: '1px solid #d1d5db',
+            color: '#374151'
+          }}
+        >
+          Create Account
+        </button>
+        
+        <p style={{ 
+          marginTop: '30px', 
+          fontSize: '0.85rem', 
+          color: '#999' 
+        }}>
+          Secure authentication powered by AWS Cognito
         </p>
       </div>
     </div>
   )
 }
-

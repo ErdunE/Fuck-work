@@ -1,167 +1,166 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import api from '../services/api'
+import { getLoginUrl, getLogoutUrl, refreshTokens } from '../config/cognito'
 import type { User } from '../types'
 
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<void>
+  login: () => void
   logout: () => void
   isAuthenticated: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Token storage keys
+const TOKEN_KEYS = {
+  idToken: 'fw_id_token',
+  accessToken: 'fw_access_token',
+  refreshToken: 'fw_refresh_token',
+  expiresAt: 'fw_token_expires_at',
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Phase A: Fetch extension token from backend
-  const fetchExtensionToken = async (): Promise<string | null> => {
-    try {
-      const response = await fetch('http://localhost:8000/api/auth/extension-token', {
-        method: 'POST',
-        credentials: 'include',  // Web App uses cookie auth
-        headers: { 'Content-Type': 'application/json' }
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        console.log('[FW Web] Extension token fetched successfully')
-        return data.token
-      }
-      
-      console.warn('[FW Web] Failed to fetch extension token:', response.status)
-      return null
-    } catch (err) {
-      console.error('[FW Web] Extension token fetch error:', err)
-      return null
+  // Get stored tokens
+  const getStoredTokens = useCallback(() => {
+    return {
+      idToken: localStorage.getItem(TOKEN_KEYS.idToken),
+      accessToken: localStorage.getItem(TOKEN_KEYS.accessToken),
+      refreshToken: localStorage.getItem(TOKEN_KEYS.refreshToken),
+      expiresAt: localStorage.getItem(TOKEN_KEYS.expiresAt),
     }
-  }
-
-  useEffect(() => {
-    // Check if user is already logged in
-    const initAuth = async () => {
-      const token = api.getToken()
-      if (token) {
-        try {
-          const currentUser = await api.getCurrentUser()
-          setUser(currentUser)
-          
-          // Phase A: Broadcast extension token to extension on page load
-          const extToken = await fetchExtensionToken()
-          if (extToken) {
-            window.postMessage({ type: 'FW_EXTENSION_TOKEN', token: extToken }, '*')
-            console.log('[FW Web] Extension token broadcasted on init')
-          }
-        } catch (error) {
-          console.error('Failed to get current user:', error)
-          api.clearAuth()
-        }
-      }
-      setLoading(false)
-    }
-    
-    initAuth()
   }, [])
 
-  // Phase 5.3.2: Broadcast auth events to extension
-  const broadcastAuthBootstrap = (token: string, expiresAt: string, userId: number) => {
-    console.log('[FW Web Auth] Broadcasting auth bootstrap to extension', { userId })
-    
-    window.postMessage({
-      type: 'FW_AUTH_BOOTSTRAP',
-      token,
-      expires_at: expiresAt,
-      user_id: userId,
-      mode: 'replace'  // Always replace (clears any existing token)
-    }, '*')
-  }
+  // Check if tokens are expired
+  const isTokenExpired = useCallback((): boolean => {
+    const expiresAt = localStorage.getItem(TOKEN_KEYS.expiresAt)
+    if (!expiresAt) return true
+    return Date.now() > parseInt(expiresAt) - 5 * 60 * 1000
+  }, [])
 
-  const broadcastAuthClear = (reason: string) => {
-    console.log('[FW Web Auth] Broadcasting auth clear to extension', { reason })
-    
-    window.postMessage({
-      type: 'FW_AUTH_CLEAR',
-      reason
-    }, '*')
-  }
+  // Clear all stored tokens
+  const clearTokens = useCallback(() => {
+    Object.values(TOKEN_KEYS).forEach(key => localStorage.removeItem(key))
+  }, [])
 
-  // Phase A: Notify extension via window.postMessage (content script will relay)
-  const notifyExtensionAuthChanged = (isAuthenticated: boolean) => {
-    console.log('[FW Web] Auth state changed →', isAuthenticated ? 'authenticated' : 'logged out')
-    
-    // Broadcast to page - content script will relay to background
-    window.postMessage(
-      {
-        type: 'FW_AUTH_CHANGED',
-        isAuthenticated
-      },
-      '*'
-    )
-  }
+  // Try to refresh tokens
+  const tryRefreshTokens = useCallback(async (): Promise<boolean> => {
+    const { refreshToken } = getStoredTokens()
+    if (!refreshToken) return false
 
-  const login = async (email: string, password: string) => {
-    const authData = await api.login({ email, password })
-    const currentUser = await api.getCurrentUser()
-    setUser(currentUser)
-    
-    // Phase 5.3.2: Broadcast to extension (legacy token-based)
-    broadcastAuthBootstrap(
-      authData.access_token,
-      authData.expires_at,
-      authData.user_id
-    )
-    
-    // Phase A: Fetch and broadcast extension token
-    const extToken = await fetchExtensionToken()
-    if (extToken) {
-      window.postMessage({ type: 'FW_EXTENSION_TOKEN', token: extToken }, '*')
-      console.log('[FW Web] Sent FW_EXTENSION_TOKEN to extension')
+    try {
+      console.log('[Auth] Refreshing tokens...')
+      const tokens = await refreshTokens(refreshToken)
+      
+      localStorage.setItem(TOKEN_KEYS.idToken, tokens.id_token)
+      localStorage.setItem(TOKEN_KEYS.accessToken, tokens.access_token)
+      
+      const expiresAt = Date.now() + tokens.expires_in * 1000
+      localStorage.setItem(TOKEN_KEYS.expiresAt, expiresAt.toString())
+      
+      console.log('[Auth] Tokens refreshed successfully')
+      return true
+    } catch (err) {
+      console.error('[Auth] Token refresh failed:', err)
+      return false
     }
-    
-    // Phase A: Notify extension background of auth change (legacy)
-    notifyExtensionAuthChanged(true)
-  }
+  }, [getStoredTokens])
 
-  const register = async (email: string, password: string) => {
-    await api.register({ email, password })
-    // Auto-login after registration
-    await login(email, password)
-  }
+  // Fetch extension token from backend
+  const fetchExtensionToken = useCallback(async (): Promise<string | null> => {
+    try {
+      const response = await api.client.post('/api/auth/extension-token')
+      console.log('[Auth] Extension token fetched successfully')
+      return response.data.token
+    } catch (err) {
+      console.error('[Auth] Extension token fetch error:', err)
+      return null
+    }
+  }, [])
 
-  const logout = () => {
-    // Phase 5.3.2: Broadcast clear BEFORE calling backend (legacy)
-    broadcastAuthClear('logout')
+  // Initialize auth state
+  useEffect(() => {
+    const initAuth = async () => {
+      const { idToken } = getStoredTokens()
+      
+      if (!idToken) {
+        console.log('[Auth] No token found')
+        setLoading(false)
+        return
+      }
+
+      // Check if token is expired
+      if (isTokenExpired()) {
+        console.log('[Auth] Token expired, trying to refresh...')
+        const refreshed = await tryRefreshTokens()
+        if (!refreshed) {
+          console.log('[Auth] Refresh failed, clearing tokens')
+          clearTokens()
+          setLoading(false)
+          return
+        }
+      }
+
+      // Verify token with backend and get user info
+      try {
+        const currentUser = await api.getCurrentUser()
+        setUser(currentUser)
+        console.log('[Auth] User authenticated:', currentUser.email)
+        
+        // Broadcast extension token
+        const extToken = await fetchExtensionToken()
+        if (extToken) {
+          window.postMessage({ type: 'FW_EXTENSION_TOKEN', token: extToken }, '*')
+          console.log('[Auth] Extension token broadcasted')
+        }
+      } catch (error) {
+        console.error('[Auth] Failed to verify token:', error)
+        clearTokens()
+      }
+      
+      setLoading(false)
+    }
+
+    initAuth()
+  }, [getStoredTokens, isTokenExpired, tryRefreshTokens, clearTokens, fetchExtensionToken])
+
+  // Login - redirect to Cognito Hosted UI
+  const login = useCallback(() => {
+    console.log('[Auth] Redirecting to Cognito login...')
+    window.location.href = getLoginUrl()
+  }, [])
+
+  // Logout - clear local tokens AND Cognito session
+  const logout = useCallback(() => {
+    console.log('[Auth] Logging out...')
     
-    // Phase A: Broadcast extension logout (new token-based)
+    // Notify extension
     window.postMessage({ type: 'FW_EXTENSION_LOGOUT' }, '*')
-    console.log('[FW Web] Sent FW_EXTENSION_LOGOUT to extension')
     
-    // Phase A: Notify extension background of auth change (legacy)
-    notifyExtensionAuthChanged(false)
-    
-    // Call backend logout to increment token_version
+    // Call backend logout (non-blocking)
     api.logout().catch(err => {
-      console.warn('Backend logout failed (non-blocking):', err)
+      console.warn('[Auth] Backend logout failed (non-blocking):', err)
     })
     
-    // Clear frontend state
-    api.clearAuth()
+    // Clear local tokens FIRST
+    clearTokens()
     setUser(null)
     
-    console.log('[FW Web Auth] Logout complete')
-    window.location.href = '/login'
-  }
+    // Then redirect to Cognito logout to clear Cognito session
+    // This will redirect back to /login after Cognito clears the session
+    window.location.href = getLogoutUrl()
+  }, [clearTokens])
 
   const value = {
     user,
     loading,
     login,
-    register,
     logout,
-    isAuthenticated: !!user
+    isAuthenticated: !!user,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
@@ -174,4 +173,3 @@ export function useAuth() {
   }
   return context
 }
-

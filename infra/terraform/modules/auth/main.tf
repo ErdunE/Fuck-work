@@ -5,8 +5,8 @@
 resource "aws_cognito_user_pool" "main" {
   name = "${var.project_name}-${var.environment}-users"
 
-  # Username configuration
-  username_attributes      = ["email"]
+  # Username configuration - allow email and phone
+  username_attributes      = ["email", "phone_number"]
   auto_verified_attributes = ["email"]
 
   # Password policy
@@ -25,6 +25,10 @@ resource "aws_cognito_user_pool" "main" {
       name     = "verified_email"
       priority = 1
     }
+    recovery_mechanism {
+      name     = "verified_phone_number"
+      priority = 2
+    }
   }
 
   # Email configuration (use Cognito default for now)
@@ -32,11 +36,18 @@ resource "aws_cognito_user_pool" "main" {
     email_sending_account = "COGNITO_DEFAULT"
   }
 
+  # SMS configuration for phone auth
+  sms_configuration {
+    external_id    = "${var.project_name}-${var.environment}-sms"
+    sns_caller_arn = aws_iam_role.cognito_sms.arn
+    sns_region     = data.aws_region.current.name
+  }
+
   # Schema attributes
   schema {
     name                     = "email"
     attribute_data_type      = "String"
-    required                 = true
+    required                 = false
     mutable                  = true
     developer_only_attribute = false
 
@@ -46,8 +57,25 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
-  # MFA configuration (optional for now)
-  mfa_configuration = "OFF"
+  schema {
+    name                     = "phone_number"
+    attribute_data_type      = "String"
+    required                 = false
+    mutable                  = true
+    developer_only_attribute = false
+
+    string_attribute_constraints {
+      min_length = 1
+      max_length = 20
+    }
+  }
+
+  # MFA configuration (optional SMS)
+  mfa_configuration = "OPTIONAL"
+  
+  software_token_mfa_configuration {
+    enabled = true
+  }
 
   # User pool add-ons
   user_pool_add_ons {
@@ -59,6 +87,7 @@ resource "aws_cognito_user_pool" "main" {
     default_email_option = "CONFIRM_WITH_CODE"
     email_subject        = "Your ${var.project_name} verification code"
     email_message        = "Your verification code is {####}"
+    sms_message          = "Your ${var.project_name} code is {####}"
   }
 
   tags = merge(var.tags, {
@@ -67,8 +96,65 @@ resource "aws_cognito_user_pool" "main" {
 }
 
 # ============================================================================
+# IAM Role for Cognito SMS
+# ============================================================================
+
+data "aws_region" "current" {}
+
+resource "aws_iam_role" "cognito_sms" {
+  name = "${var.project_name}-${var.environment}-cognito-sms"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "cognito-idp.amazonaws.com"
+        }
+        Condition = {
+          StringEquals = {
+            "sts:ExternalId" = "${var.project_name}-${var.environment}-sms"
+          }
+        }
+      }
+    ]
+  })
+
+  tags = var.tags
+}
+
+resource "aws_iam_role_policy" "cognito_sms" {
+  name = "${var.project_name}-${var.environment}-cognito-sms-policy"
+  role = aws_iam_role.cognito_sms.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = "sns:Publish"
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# ============================================================================
 # Cognito User Pool Client - For Frontend App
 # ============================================================================
+
+locals {
+  # Build list of enabled identity providers
+  identity_providers = compact([
+    "COGNITO",
+    var.google_client_id != "" ? "Google" : "",
+    var.facebook_app_id != "" ? "Facebook" : "",
+    
+    var.linkedin_client_id != "" ? "LinkedIn" : "",
+  ])
+}
 
 resource "aws_cognito_user_pool_client" "frontend" {
   name         = "${var.project_name}-${var.environment}-frontend-client"
@@ -103,9 +189,10 @@ resource "aws_cognito_user_pool_client" "frontend" {
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["email", "openid", "profile"]
   
-  supported_identity_providers = ["COGNITO"]
+  # Dynamic list of identity providers
+  supported_identity_providers = local.identity_providers
 
-  # Callback URLs (will be updated with actual URLs)
+  # Callback URLs
   callback_urls = length(var.callback_urls) > 0 ? var.callback_urls : [
     "http://localhost:3000/callback",
     "http://localhost:3000"
@@ -113,6 +200,14 @@ resource "aws_cognito_user_pool_client" "frontend" {
 
   logout_urls = length(var.logout_urls) > 0 ? var.logout_urls : [
     "http://localhost:3000"
+  ]
+
+  # Ensure identity providers are created first
+  depends_on = [
+    aws_cognito_identity_provider.google,
+    aws_cognito_identity_provider.facebook,
+    
+    aws_cognito_identity_provider.linkedin,
   ]
 }
 
