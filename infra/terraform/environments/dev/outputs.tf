@@ -1,5 +1,5 @@
 # ============================================================================
-# OUTPUTS
+# IAM OUTPUTS
 # ============================================================================
 
 output "terraform_execution_role_arn" {
@@ -65,4 +65,42 @@ output "cognito_hosted_ui_url" {
 output "cognito_issuer_url" {
   description = "Cognito Issuer URL (for backend JWT validation)"
   value       = module.auth.issuer_url
+}
+
+# ============================================================================
+# CDN OUTPUTS
+# ============================================================================
+
+output "frontend_url" {
+  description = "Frontend URL (CloudFront)"
+  value       = module.cdn.frontend_url
+}
+
+output "frontend_s3_bucket" {
+  description = "Frontend S3 bucket name"
+  value       = module.cdn.s3_bucket_name
+}
+
+output "cloudfront_distribution_id" {
+  description = "CloudFront distribution ID (for cache invalidation)"
+  value       = module.cdn.cloudfront_distribution_id
+}
+
+output "cloudfront_domain_name" {
+  description = "CloudFront domain name"
+  value       = module.cdn.cloudfront_domain_name
+}
+
+# ============================================================================
+# API GATEWAY OUTPUTS
+# ============================================================================
+
+output "api_gateway_endpoint" {
+  description = "API Gateway endpoint URL (use this for frontend API calls)"
+  value       = module.api_gateway.api_endpoint
+}
+
+output "api_gateway_id" {
+  description = "API Gateway ID"
+  value       = module.api_gateway.api_id
 }

@@ -143,11 +143,11 @@ variable "alert_email" {
 variable "cognito_user_pool_id" {
   description = "Cognito User Pool ID"
   type        = string
-  default     = "us-east-1_qR7CY6Zlu"
+  default     = "us-east-1_WYlLzbaux"
 }
 
 variable "cognito_client_id" {
   description = "Cognito App Client ID"
   type        = string
-  default     = "707ese5rpkr3pjnhn9e6f8tpu6"
+  default     = "3cafqu6vn90p9s0qnqn7i1puf0"
 }
