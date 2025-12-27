@@ -132,3 +132,7 @@ terraform.rc
 
 # OAuth credentials - never commit
 auth.tfvars
+
+# Frontend environment files
+apps/web_control_plane/.env.local
+apps/web_control_plane/.env.production.local

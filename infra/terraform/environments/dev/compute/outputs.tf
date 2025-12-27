@@ -23,7 +23,7 @@ output "backend_instance_id" {
 
 output "backend_public_ip" {
   description = "Backend EC2 public IP"
-  value       = aws_instance.backend.public_ip
+  value       = aws_eip.backend.public_ip
 }
 
 output "backend_private_ip" {
@@ -70,12 +70,12 @@ output "jobspy_ecr_repository_url" {
 
 output "ssh_command_backend" {
   description = "SSH command to connect to backend instance"
-  value       = "ssh -i ~/.ssh/fuckwork-dev ec2-user@${aws_instance.backend.public_ip}"
+  value       = "ssh -i ~/.ssh/fuckwork-dev ec2-user@${aws_eip.backend.public_ip}"
 }
 
 output "backend_api_url" {
   description = "Backend API URL"
-  value       = "http://${aws_instance.backend.public_ip}"
+  value       = "http://${aws_eip.backend.public_ip}"
 }
 
 output "tableplus_connection_instructions" {
@@ -92,7 +92,7 @@ output "tableplus_connection_instructions" {
   Database: fuckwork
   
   ✅ Enable "Over SSH":
-  SSH Host: ${aws_instance.backend.public_ip}
+  SSH Host: ${aws_eip.backend.public_ip}
   SSH User: ec2-user
   SSH Key: ~/.ssh/fuckwork-dev
   

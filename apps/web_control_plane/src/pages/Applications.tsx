@@ -16,8 +16,8 @@ export default function Applications() {
     setLoading(true)
     setMessage('')
     try {
-      const data = await api.getTasks()
-      setTasks(data)
+      const data = await api.getApplyTasks()
+      setTasks(data.tasks)
     } catch (error: any) {
       console.error('Failed to load tasks:', error)
       setMessage(error.response?.data?.detail || 'Failed to load applications')

@@ -917,3 +917,23 @@ resource "aws_cloudwatch_metric_alarm" "jobspy_status_check" {
 
   tags = var.common_tags
 }
+
+# ============================================================================
+# Elastic IP for Backend EC2 (Fixed Public IP)
+# ============================================================================
+
+resource "aws_eip" "backend" {
+  domain = "vpc"
+
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project}-${var.environment}-backend-eip"
+    }
+  )
+}
+
+resource "aws_eip_association" "backend" {
+  instance_id   = aws_instance.backend.id
+  allocation_id = aws_eip.backend.id
+}

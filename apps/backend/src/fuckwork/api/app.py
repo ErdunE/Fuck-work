@@ -55,6 +55,8 @@ app.add_middleware(RequestIDMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://d2ms37p4zmachn.cloudfront.net",  # CloudFront (Production)
+        "https://mdbwfzrzsj.execute-api.us-east-1.amazonaws.com",  # API Gateway
         "http://localhost:3000",  # Web Control Plane
         "http://127.0.0.1:3000",  # Web Control Plane (IP-based)
         "http://localhost:5173",  # Vite dev server

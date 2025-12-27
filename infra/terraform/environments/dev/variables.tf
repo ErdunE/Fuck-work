@@ -40,6 +40,12 @@ variable "enforce_mfa" {
   default     = true
 }
 
+variable "backend_ip" {
+  description = "Backend EC2 Elastic IP address"
+  type        = string
+  default     = "54.86.18.90"
+}
+
 # ============================================================================
 # Social Login OAuth Credentials
 # ============================================================================
