@@ -7,61 +7,74 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Primary: Blue accent
-        primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-        },
-        // Semantic only (no unnecessary colors)
-        success: { 
-          50: '#f0fdf4', 
-          600: '#16a34a', 
-          700: '#15803d' 
-        },
-        warning: { 
-          50: '#fffbeb', 
-          600: '#d97706', 
-          700: '#b45309' 
-        },
-        danger: { 
-          50: '#fef2f2', 
-          600: '#dc2626', 
-          700: '#b91c1c' 
-        },
+        // 背景色
+        'bg-primary': '#FFFFFF',
+        'bg-secondary': '#FAFAFA',
+        'bg-tertiary': '#F5F5F7',
+
+        // 文字色
+        'text-primary': '#1D1D1F',
+        'text-secondary': '#86868B',
+        'text-tertiary': '#6E6E73',
+
+        // 边框色
+        'border-default': '#D2D2D7',
+        'border-light': '#E8E8ED',
+
+        // 点缀色（关键操作）
+        'accent-blue': '#007AFF',
+        'accent-blue-hover': '#0066CC',
+        'accent-green': '#34C759',
+        'accent-orange': '#FF9500',
+        'accent-red': '#FF3B30',
       },
       fontFamily: {
-        sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        'sans': ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+      fontSize: {
+        'page-title': ['32px', { lineHeight: '40px', fontWeight: '600' }],
+        'section-title': ['24px', { lineHeight: '32px', fontWeight: '600' }],
+        'card-title': ['18px', { lineHeight: '28px', fontWeight: '500' }],
+        'body': ['16px', { lineHeight: '26px', fontWeight: '400' }],
+        'body-small': ['14px', { lineHeight: '22px', fontWeight: '400' }],
+        'label': ['12px', { lineHeight: '16px', fontWeight: '500' }],
       },
       spacing: {
-        // CRITICAL: Custom pixel-perfect values (NOT rem!)
-        // Default Tailwind: w-48 = 12rem = 192px
-        // Our custom: w-12 = 48px
-        '1': '4px',    // 4px
-        '2': '8px',    // 8px
-        '3': '12px',   // 12px
-        '4': '16px',   // 16px
-        '5': '20px',   // 20px
-        '6': '24px',   // 24px
-        '8': '32px',   // 32px
-        '10': '40px',  // 40px (button height)
-        '12': '48px',  // 48px (score badge)
-        '16': '64px',  // 64px (nav height)
-        '60': '240px', // 240px (Profile sidebar)
-        '70': '280px', // 280px (FilterPanel width)
+        'xs': '8px',
+        'sm': '16px',
+        'md': '24px',
+        'lg': '32px',
+        'xl': '48px',
+        '2xl': '64px',
+        '3xl': '96px',
+      },
+      borderRadius: {
+        'sm': '8px',
+        'md': '12px',
+        'lg': '16px',
+        'xl': '24px',
+        'full': '9999px',
       },
       boxShadow: {
-        'soft': '0 1px 3px rgba(0, 0, 0, 0.05)',
-        'medium': '0 4px 6px rgba(0, 0, 0, 0.07)',
-        'strong': '0 10px 15px rgba(0, 0, 0, 0.1)',
+        'card': '0 2px 8px rgba(0, 0, 0, 0.04)',
+        'card-hover': '0 4px 16px rgba(0, 0, 0, 0.08)',
+        'dropdown': '0 4px 24px rgba(0, 0, 0, 0.12)',
       },
       transitionDuration: {
-        DEFAULT: '150ms',
-      }
+        'fast': '150ms',
+        'normal': '200ms',
+        'slow': '300ms',
+      },
+      height: {
+        'nav': '64px',
+        'input': '48px',
+        'button': '48px',
+        'button-sm': '36px',
+      },
+      maxWidth: {
+        'content': '1280px',
+      },
     },
   },
   plugins: [],
 }
-

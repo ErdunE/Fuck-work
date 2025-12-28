@@ -1,12 +1,49 @@
 import { useEffect, useState } from 'react'
 import { CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import ProtectedPage from '../components/ProtectedPage'
 import api from '../services/api'
 import type { ApplyTask } from '../types'
 
-export default function Applications() {
+// Applications 预览内容
+function ApplicationsPreview() {
+  return (
+    <div className="page-container">
+      <h1 className="text-page-title text-text-primary mb-sm">Applications</h1>
+      <p className="text-body text-text-secondary mb-lg">Track your job applications</p>
+
+      {/* 假的状态 Tab */}
+      <div className="flex gap-sm mb-lg">
+        {['All', 'Applied', 'Interview', 'Offer', 'Rejected'].map((tab) => (
+          <div key={tab} className="px-sm py-xs bg-bg-tertiary rounded-full">
+            <span className="text-body-small text-text-secondary">{tab}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* 假的应用列表 */}
+      <div className="space-y-sm">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="card p-md">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <div className="h-5 bg-bg-tertiary rounded w-1/2 mb-sm" />
+                <div className="h-4 bg-bg-tertiary rounded w-1/3" />
+              </div>
+              <div className="h-6 w-20 bg-bg-tertiary rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Applications 实际内容
+function ApplicationsContent() {
   const [tasks, setTasks] = useState<ApplyTask[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [filter, setFilter] = useState<string>('all')
 
   useEffect(() => {
     loadTasks()
@@ -18,9 +55,10 @@ export default function Applications() {
     try {
       const data = await api.getApplyTasks()
       setTasks(data.tasks)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to load tasks:', error)
-      setMessage(error.response?.data?.detail || 'Failed to load applications')
+      const err = error as { response?: { data?: { detail?: string } } }
+      setMessage(err.response?.data?.detail || 'Failed to load applications')
     } finally {
       setLoading(false)
     }
@@ -30,15 +68,15 @@ export default function Applications() {
     switch (status.toLowerCase()) {
       case 'completed':
       case 'submitted':
-        return 'bg-success-50 text-success-700 border-success-200'
+        return 'bg-accent-green/10 text-accent-green'
       case 'in_progress':
       case 'pending':
-        return 'bg-primary-50 text-primary-700 border-primary-200'
+        return 'bg-accent-blue/10 text-accent-blue'
       case 'failed':
       case 'blocked':
-        return 'bg-danger-50 text-danger-700 border-danger-200'
+        return 'bg-accent-red/10 text-accent-red'
       default:
-        return 'bg-slate-50 text-slate-700 border-slate-200'
+        return 'bg-bg-tertiary text-text-secondary'
     }
   }
 
@@ -58,64 +96,93 @@ export default function Applications() {
     }
   }
 
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'pending', label: 'Pending' },
+    { key: 'in_progress', label: 'In Progress' },
+    { key: 'completed', label: 'Completed' },
+    { key: 'failed', label: 'Failed' },
+  ]
+
+  const filteredTasks = tasks.filter((task) => {
+    if (filter === 'all') return true
+    return task.status?.toLowerCase() === filter
+  })
+
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Applications</h1>
-        <p className="mt-1 text-sm text-slate-600">Track your job applications</p>
-      </div>
+    <div className="page-container">
+      <h1 className="text-page-title text-text-primary mb-sm">Applications</h1>
+      <p className="text-body text-text-secondary mb-lg">Track your job applications</p>
 
       {/* Message */}
       {message && (
-        <div className="mb-6 p-4 rounded-lg text-sm bg-danger-50 text-danger-700 border border-danger-200">
+        <div className="mb-lg p-md rounded-lg text-body-small bg-accent-red/10 text-accent-red border border-accent-red/20">
           {message}
         </div>
       )}
 
-      {/* Timeline */}
+      {/* 状态 Tab */}
+      <div className="flex gap-sm mb-lg flex-wrap">
+        {filters.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={`px-sm py-xs rounded-full text-body-small transition-colors ${
+              filter === f.key
+                ? 'bg-accent-blue text-white'
+                : 'bg-bg-tertiary text-text-secondary hover:bg-border-default'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 应用列表 */}
       {loading ? (
-        <div className="bg-white rounded-lg shadow-soft p-12 text-center border border-slate-200">
-          <div className="animate-pulse">
-            <div className="h-4 bg-slate-200 rounded w-1/4 mx-auto mb-4"></div>
-            <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto"></div>
+        <div className="card p-xl text-center">
+          <div className="animate-pulse space-y-sm">
+            <div className="h-4 bg-bg-tertiary rounded w-1/4 mx-auto" />
+            <div className="h-4 bg-bg-tertiary rounded w-1/2 mx-auto" />
           </div>
-          <p className="mt-4 text-sm text-slate-500">Loading applications...</p>
+          <p className="text-body-small text-text-tertiary mt-md">Loading applications...</p>
         </div>
-      ) : tasks.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-soft p-12 text-center border border-slate-200">
-          <p className="text-sm text-slate-600">
-            No applications yet. Visit the Jobs page to start applying.
+      ) : filteredTasks.length === 0 ? (
+        <div className="card p-xl text-center">
+          <p className="text-body text-text-secondary">
+            {filter === 'all'
+              ? 'No applications yet. Visit the Jobs page to start applying.'
+              : `No ${filter.replace('_', ' ')} applications.`}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {tasks.map((task) => {
+        <div className="space-y-sm">
+          {filteredTasks.map((task) => {
             const StatusIcon = getStatusIcon(task.status)
             return (
               <div
                 key={task.id}
-                className="bg-white rounded-lg shadow-soft border border-slate-200 p-4 hover:shadow-medium transition"
+                className="card p-md hover:shadow-card-hover transition-shadow"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-base font-semibold text-slate-900">
+                    <div className="flex items-center gap-sm mb-xs">
+                      <h3 className="text-card-title text-text-primary">
                         {task.task_metadata?.title || 'Job Application'}
                       </h3>
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-medium ${getStatusColor(task.status)}`}>
+                      <span className={`inline-flex items-center gap-xs px-sm py-xs rounded-full text-label ${getStatusColor(task.status)}`}>
                         <StatusIcon className="w-4 h-4" />
                         {task.status.replace('_', ' ')}
                       </span>
                     </div>
-                    
+
                     {task.task_metadata?.company && (
-                      <p className="text-sm text-slate-600 mb-2">
+                      <p className="text-body-small text-text-secondary mb-xs">
                         {task.task_metadata.company}
                       </p>
                     )}
-                    
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
+
+                    <div className="flex items-center gap-md text-label text-text-tertiary">
                       {task.current_stage && (
                         <span>Stage: {task.current_stage}</span>
                       )}
@@ -123,20 +190,20 @@ export default function Applications() {
                         <span>Created: {new Date(task.created_at).toLocaleDateString()}</span>
                       )}
                     </div>
-                    
+
                     {task.blocked_reason && (
-                      <p className="mt-2 text-sm text-danger-600">
+                      <p className="mt-xs text-body-small text-accent-red">
                         {task.blocked_reason}
                       </p>
                     )}
                   </div>
-                  
+
                   {task.task_metadata?.url && (
                     <a
                       href={task.task_metadata.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="ml-4 text-sm text-primary-600 hover:text-primary-700 transition"
+                      className="ml-md text-body-small text-accent-blue hover:text-accent-blue-hover transition-colors"
                     >
                       View →
                     </a>
@@ -151,3 +218,14 @@ export default function Applications() {
   )
 }
 
+export default function Applications() {
+  return (
+    <ProtectedPage
+      preview={<ApplicationsPreview />}
+      promptTitle="Sign in to track Applications"
+      promptDescription="Keep track of all your job applications, interviews, and offers in one place."
+    >
+      <ApplicationsContent />
+    </ProtectedPage>
+  )
+}

@@ -3,13 +3,63 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 antialiased;
+    @apply bg-bg-primary text-text-primary;
   }
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+@layer components {
+  /* 主要按钮 */
+  .btn-primary {
+    @apply h-button px-md bg-accent-blue text-white font-medium rounded-md
+           transition-colors duration-fast
+           hover:bg-accent-blue-hover
+           focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* 次要按钮 */
+  .btn-secondary {
+    @apply h-button px-md bg-transparent text-text-primary font-medium rounded-md
+           border border-border-default
+           transition-colors duration-fast
+           hover:bg-bg-tertiary
+           focus:outline-none focus:ring-2 focus:ring-accent-blue focus:ring-offset-2
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* 文字按钮 */
+  .btn-text {
+    @apply text-accent-blue font-medium
+           transition-colors duration-fast
+           hover:text-accent-blue-hover
+           focus:outline-none focus:underline;
+  }
+
+  /* 输入框 */
+  .input {
+    @apply h-input w-full px-sm bg-bg-primary text-text-primary rounded-md
+           border border-border-default
+           transition-all duration-fast
+           placeholder:text-text-tertiary
+           focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20;
+  }
+
+  /* 卡片 */
+  .card {
+    @apply bg-bg-primary rounded-lg border border-border-light shadow-card
+           transition-shadow duration-normal
+           hover:shadow-card-hover;
+  }
+
+  /* 页面容器 */
+  .page-container {
+    @apply max-w-content mx-auto px-2xl py-xl;
   }
 }
