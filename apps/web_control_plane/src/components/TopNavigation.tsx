@@ -26,9 +26,10 @@ export default function TopNavigation() {
     <nav className="h-nav bg-bg-primary border-b border-border-light sticky top-0 z-50">
       <div className="max-w-content mx-auto px-2xl h-full flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-xs">
-          <span className="text-[24px]">🚀</span>
-          <span className="text-card-title text-text-primary">FuckWork</span>
+        <Link to="/" className="flex items-center">
+          <span className="text-[24px] font-semibold tracking-tight text-text-primary">
+            FuckWork
+          </span>
         </Link>
 
         {/* Navigation Links - 所有用户都能看到 */}

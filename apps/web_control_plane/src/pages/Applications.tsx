@@ -1,35 +1,368 @@
-import { useEffect, useState } from 'react'
-import { CheckCircleIcon, ClockIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import ProtectedPage from '../components/ProtectedPage'
 import api from '../services/api'
 import type { ApplyTask } from '../types'
+import {
+  MagnifyingGlassIcon,
+  ChevronDownIcon,
+  BuildingOfficeIcon,
+  MapPinIcon,
+  CalendarIcon,
+  ArrowTopRightOnSquareIcon,
+  ArchiveBoxIcon,
+  BriefcaseIcon,
+  CheckIcon,
+} from '@heroicons/react/24/outline'
 
-// Applications 预览内容
+// 状态配置
+const STATUS_CONFIG = {
+  applied: {
+    label: 'Applied',
+    color: 'text-accent-blue',
+    bgColor: 'bg-accent-blue/10',
+    dotColor: 'bg-accent-blue',
+  },
+  pending: {
+    label: 'Pending',
+    color: 'text-accent-blue',
+    bgColor: 'bg-accent-blue/10',
+    dotColor: 'bg-accent-blue',
+  },
+  in_progress: {
+    label: 'In Progress',
+    color: 'text-accent-orange',
+    bgColor: 'bg-accent-orange/10',
+    dotColor: 'bg-accent-orange',
+  },
+  interview: {
+    label: 'Interview',
+    color: 'text-accent-green',
+    bgColor: 'bg-accent-green/10',
+    dotColor: 'bg-accent-green',
+  },
+  completed: {
+    label: 'Completed',
+    color: 'text-accent-green',
+    bgColor: 'bg-accent-green/10',
+    dotColor: 'bg-accent-green',
+  },
+  offer: {
+    label: 'Offer',
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-100',
+    dotColor: 'bg-purple-600',
+  },
+  rejected: {
+    label: 'Rejected',
+    color: 'text-accent-red',
+    bgColor: 'bg-accent-red/10',
+    dotColor: 'bg-accent-red',
+  },
+  failed: {
+    label: 'Failed',
+    color: 'text-accent-red',
+    bgColor: 'bg-accent-red/10',
+    dotColor: 'bg-accent-red',
+  },
+  blocked: {
+    label: 'Blocked',
+    color: 'text-accent-red',
+    bgColor: 'bg-accent-red/10',
+    dotColor: 'bg-accent-red',
+  },
+  hidden: {
+    label: 'Hidden',
+    color: 'text-text-secondary',
+    bgColor: 'bg-bg-tertiary',
+    dotColor: 'bg-text-tertiary',
+  },
+} as const
+
+type StatusKey = keyof typeof STATUS_CONFIG
+
+// 筛选 Tab 配置
+const FILTER_TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'applied', label: 'Applied' },
+  { key: 'interview', label: 'Interview' },
+  { key: 'offer', label: 'Offer' },
+  { key: 'rejected', label: 'Rejected' },
+  { key: 'hidden', label: 'Hidden' },
+] as const
+
+// 排序选项
+const SORT_OPTIONS = [
+  { key: 'newest', label: 'Newest first' },
+  { key: 'oldest', label: 'Oldest first' },
+  { key: 'company-az', label: 'Company A-Z' },
+  { key: 'company-za', label: 'Company Z-A' },
+] as const
+
+type SortKey = (typeof SORT_OPTIONS)[number]['key']
+
+// 格式化日期
+function formatDate(dateString?: string): string {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}
+
+// 获取状态配置
+function getStatusConfig(status?: string) {
+  const key = (status?.toLowerCase() || 'applied') as StatusKey
+  return STATUS_CONFIG[key] || STATUS_CONFIG.applied
+}
+
+// 状态下拉选择组件
+interface StatusSelectProps {
+  currentStatus: string
+  onStatusChange: (newStatus: string) => void
+}
+
+function StatusSelect({ currentStatus, onStatusChange }: StatusSelectProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const config = getStatusConfig(currentStatus)
+
+  const statusOptions = [
+    { key: 'applied', label: 'Applied' },
+    { key: 'interview', label: 'Interview' },
+    { key: 'offer', label: 'Offer' },
+    { key: 'rejected', label: 'Rejected' },
+    { key: 'hidden', label: 'Hidden' },
+  ]
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`flex items-center gap-2 px-sm py-xs rounded-full ${config.bgColor} ${config.color} text-body-small`}
+      >
+        <span className={`w-2 h-2 rounded-full ${config.dotColor}`} />
+        {config.label}
+        <ChevronDownIcon className="w-3 h-3" />
+      </button>
+
+      {isOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute left-0 top-full mt-1 bg-bg-primary rounded-lg shadow-dropdown border border-border-light py-1 z-20 min-w-[140px]">
+            {statusOptions.map((option) => {
+              const optConfig = getStatusConfig(option.key)
+              const isSelected = option.key === currentStatus.toLowerCase()
+              return (
+                <button
+                  key={option.key}
+                  onClick={() => {
+                    onStatusChange(option.key)
+                    setIsOpen(false)
+                  }}
+                  className="w-full px-sm py-xs text-left text-body-small hover:bg-bg-secondary flex items-center gap-2"
+                >
+                  <span className={`w-2 h-2 rounded-full ${optConfig.dotColor}`} />
+                  <span className={optConfig.color}>{option.label}</span>
+                  {isSelected && (
+                    <CheckIcon className="w-4 h-4 ml-auto text-accent-blue" />
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// 排序下拉组件
+interface SortSelectProps {
+  value: SortKey
+  onChange: (value: SortKey) => void
+}
+
+function SortSelect({ value, onChange }: SortSelectProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const currentOption = SORT_OPTIONS.find((opt) => opt.key === value)
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 px-sm py-xs rounded-lg border border-border-default text-body-small text-text-secondary hover:border-border-dark"
+      >
+        Sort: {currentOption?.label}
+        <ChevronDownIcon className="w-4 h-4" />
+      </button>
+
+      {isOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+          />
+          <div className="absolute right-0 top-full mt-1 bg-bg-primary rounded-lg shadow-dropdown border border-border-light py-1 z-20 min-w-[160px]">
+            {SORT_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                onClick={() => {
+                  onChange(option.key)
+                  setIsOpen(false)
+                }}
+                className="w-full px-sm py-xs text-left text-body-small hover:bg-bg-secondary flex items-center justify-between"
+              >
+                {option.label}
+                {option.key === value && (
+                  <CheckIcon className="w-4 h-4 text-accent-blue" />
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// 单个投递记录卡片
+interface ApplicationCardProps {
+  application: ApplyTask
+  onStatusChange: (id: number, newStatus: string) => void
+  onArchive: (id: number) => void
+}
+
+function ApplicationCard({
+  application,
+  onStatusChange,
+  onArchive,
+}: ApplicationCardProps) {
+  const status = application.status || 'applied'
+
+  // 从 task_metadata 获取工作信息
+  const jobTitle = application.task_metadata?.title || 'Unknown Position'
+  const company =
+    application.task_metadata?.company || application.company || 'Unknown Company'
+  const location = application.task_metadata?.location || ''
+  const jobUrl = application.task_metadata?.url || ''
+  const appliedDate = formatDate(application.created_at)
+
+  return (
+    <div className="card p-lg hover:shadow-card-hover transition-shadow">
+      <div className="flex items-start justify-between gap-md">
+        {/* Left: Job Info */}
+        <div className="flex-1 min-w-0">
+          {/* Company & Date */}
+          <div className="flex items-center gap-sm mb-xs">
+            <div className="flex items-center gap-1 text-body-small text-text-secondary">
+              <BuildingOfficeIcon className="w-4 h-4" />
+              <span className="font-medium">{company}</span>
+            </div>
+            {appliedDate && (
+              <div className="flex items-center gap-1 text-label text-text-tertiary">
+                <CalendarIcon className="w-3.5 h-3.5" />
+                {appliedDate}
+              </div>
+            )}
+          </div>
+
+          {/* Job Title */}
+          <h3 className="text-card-title text-text-primary mb-xs truncate">
+            {jobTitle}
+          </h3>
+
+          {/* Location */}
+          {location && (
+            <div className="flex items-center gap-1 text-body-small text-text-secondary">
+              <MapPinIcon className="w-4 h-4" />
+              {location}
+            </div>
+          )}
+        </div>
+
+        {/* Right: Status & Actions */}
+        <div className="flex flex-col items-end gap-sm">
+          {/* Status Dropdown */}
+          <StatusSelect
+            currentStatus={status}
+            onStatusChange={(newStatus) => onStatusChange(application.id, newStatus)}
+          />
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-sm">
+            {jobUrl && (
+              <a
+                href={jobUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-body-small text-accent-blue hover:underline"
+              >
+                View Job
+                <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
+              </a>
+            )}
+            <button
+              onClick={() => onArchive(application.id)}
+              className="flex items-center gap-1 text-body-small text-text-secondary hover:text-text-primary"
+            >
+              <ArchiveBoxIcon className="w-4 h-4" />
+              Archive
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Applications 预览内容（未登录时显示）
 function ApplicationsPreview() {
   return (
     <div className="page-container">
-      <h1 className="text-page-title text-text-primary mb-sm">Applications</h1>
-      <p className="text-body text-text-secondary mb-lg">Track your job applications</p>
+      <h1 className="text-page-title text-text-primary mb-xs">Applications</h1>
+      <p className="text-body text-text-secondary mb-lg">
+        Track your job applications
+      </p>
 
-      {/* 假的状态 Tab */}
-      <div className="flex gap-sm mb-lg">
-        {['All', 'Applied', 'Interview', 'Offer', 'Rejected'].map((tab) => (
-          <div key={tab} className="px-sm py-xs bg-bg-tertiary rounded-full">
-            <span className="text-body-small text-text-secondary">{tab}</span>
+      {/* Filter Tabs Placeholder */}
+      <div className="flex gap-sm mb-lg flex-wrap">
+        {FILTER_TABS.map((tab, index) => (
+          <div
+            key={tab.key}
+            className={`px-md py-xs rounded-full ${
+              index === 0 ? 'bg-bg-tertiary' : 'bg-border-light'
+            }`}
+          >
+            <span className="text-body-small text-text-secondary">{tab.label}</span>
           </div>
         ))}
       </div>
 
-      {/* 假的应用列表 */}
-      <div className="space-y-sm">
+      {/* Search & Sort Placeholder */}
+      <div className="flex items-center justify-between gap-md mb-lg">
+        <div className="flex-1 max-w-md h-10 bg-bg-tertiary rounded-xl" />
+        <div className="h-10 w-32 bg-bg-tertiary rounded-lg" />
+      </div>
+
+      {/* Cards Placeholder */}
+      <div className="space-y-md">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="card p-md">
-            <div className="flex items-center justify-between">
+          <div key={i} className="card p-lg">
+            <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="h-5 bg-bg-tertiary rounded w-1/2 mb-sm" />
-                <div className="h-4 bg-bg-tertiary rounded w-1/3" />
+                <div className="h-4 bg-bg-tertiary rounded w-1/3 mb-sm" />
+                <div className="h-5 bg-bg-tertiary rounded w-2/3 mb-sm" />
+                <div className="h-4 bg-bg-tertiary rounded w-1/4" />
               </div>
-              <div className="h-6 w-20 bg-bg-tertiary rounded-full" />
+              <div className="flex flex-col items-end gap-sm">
+                <div className="h-7 w-24 bg-bg-tertiary rounded-full" />
+                <div className="h-4 w-20 bg-bg-tertiary rounded" />
+              </div>
             </div>
           </div>
         ))}
@@ -40,184 +373,246 @@ function ApplicationsPreview() {
 
 // Applications 实际内容
 function ApplicationsContent() {
-  const [tasks, setTasks] = useState<ApplyTask[]>([])
-  const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
-  const [filter, setFilter] = useState<string>('all')
+  const [applications, setApplications] = useState<ApplyTask[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [activeFilter, setActiveFilter] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<SortKey>('newest')
 
+  // 加载投递记录
   useEffect(() => {
-    loadTasks()
+    const fetchApplications = async () => {
+      try {
+        const response = await api.getApplyTasks()
+        setApplications(response.tasks || [])
+      } catch (error) {
+        console.error('Failed to fetch applications:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    fetchApplications()
   }, [])
 
-  const loadTasks = async () => {
-    setLoading(true)
-    setMessage('')
+  // 统计各状态数量
+  const statusCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: applications.length }
+    applications.forEach((app) => {
+      const status = (app.status || 'applied').toLowerCase()
+      // 映射状态到筛选 Tab
+      let filterKey = status
+      if (['pending', 'in_progress', 'completed'].includes(status)) {
+        filterKey = 'applied'
+      }
+      if (['failed', 'blocked'].includes(status)) {
+        filterKey = 'rejected'
+      }
+      counts[filterKey] = (counts[filterKey] || 0) + 1
+    })
+    return counts
+  }, [applications])
+
+  // 筛选和排序
+  const filteredApplications = useMemo(() => {
+    let result = [...applications]
+
+    // 按状态筛选
+    if (activeFilter !== 'all') {
+      result = result.filter((app) => {
+        const status = (app.status || 'applied').toLowerCase()
+        if (activeFilter === 'applied') {
+          return ['applied', 'pending', 'in_progress', 'completed'].includes(status)
+        }
+        if (activeFilter === 'rejected') {
+          return ['rejected', 'failed', 'blocked'].includes(status)
+        }
+        return status === activeFilter
+      })
+    }
+
+    // 搜索
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      result = result.filter((app) => {
+        const title = (app.task_metadata?.title || '').toLowerCase()
+        const company = (
+          app.task_metadata?.company ||
+          app.company ||
+          ''
+        ).toLowerCase()
+        return title.includes(query) || company.includes(query)
+      })
+    }
+
+    // 排序
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return (
+            new Date(b.created_at || 0).getTime() -
+            new Date(a.created_at || 0).getTime()
+          )
+        case 'oldest':
+          return (
+            new Date(a.created_at || 0).getTime() -
+            new Date(b.created_at || 0).getTime()
+          )
+        case 'company-az': {
+          const companyA = (
+            a.task_metadata?.company ||
+            a.company ||
+            ''
+          ).toLowerCase()
+          const companyB = (
+            b.task_metadata?.company ||
+            b.company ||
+            ''
+          ).toLowerCase()
+          return companyA.localeCompare(companyB)
+        }
+        case 'company-za': {
+          const companyA = (
+            a.task_metadata?.company ||
+            a.company ||
+            ''
+          ).toLowerCase()
+          const companyB = (
+            b.task_metadata?.company ||
+            b.company ||
+            ''
+          ).toLowerCase()
+          return companyB.localeCompare(companyA)
+        }
+        default:
+          return 0
+      }
+    })
+
+    return result
+  }, [applications, activeFilter, searchQuery, sortBy])
+
+  // 处理状态变更
+  const handleStatusChange = async (id: number, newStatus: string) => {
     try {
-      const data = await api.getApplyTasks()
-      setTasks(data.tasks)
-    } catch (error: unknown) {
-      console.error('Failed to load tasks:', error)
-      const err = error as { response?: { data?: { detail?: string } } }
-      setMessage(err.response?.data?.detail || 'Failed to load applications')
-    } finally {
-      setLoading(false)
+      // TODO: 调用 API 更新状态
+      // await api.updateApplyTaskStatus(id, newStatus)
+
+      // 本地更新
+      setApplications((prev) =>
+        prev.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
+      )
+    } catch (error) {
+      console.error('Failed to update status:', error)
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-      case 'submitted':
-        return 'bg-accent-green/10 text-accent-green'
-      case 'in_progress':
-      case 'pending':
-        return 'bg-accent-blue/10 text-accent-blue'
-      case 'failed':
-      case 'blocked':
-        return 'bg-accent-red/10 text-accent-red'
-      default:
-        return 'bg-bg-tertiary text-text-secondary'
+  // 处理归档
+  const handleArchive = async (id: number) => {
+    try {
+      // TODO: 调用 API 归档
+      // await api.archiveApplyTask(id)
+
+      // 本地更新为 hidden
+      setApplications((prev) =>
+        prev.map((app) => (app.id === id ? { ...app, status: 'hidden' } : app))
+      )
+    } catch (error) {
+      console.error('Failed to archive:', error)
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'completed':
-      case 'submitted':
-        return CheckCircleIcon
-      case 'in_progress':
-      case 'pending':
-        return ClockIcon
-      case 'failed':
-      case 'blocked':
-        return ExclamationTriangleIcon
-      default:
-        return ClockIcon
-    }
+  if (isLoading) {
+    return <ApplicationsPreview />
   }
-
-  const filters = [
-    { key: 'all', label: 'All' },
-    { key: 'pending', label: 'Pending' },
-    { key: 'in_progress', label: 'In Progress' },
-    { key: 'completed', label: 'Completed' },
-    { key: 'failed', label: 'Failed' },
-  ]
-
-  const filteredTasks = tasks.filter((task) => {
-    if (filter === 'all') return true
-    return task.status?.toLowerCase() === filter
-  })
 
   return (
     <div className="page-container">
-      <h1 className="text-page-title text-text-primary mb-sm">Applications</h1>
-      <p className="text-body text-text-secondary mb-lg">Track your job applications</p>
+      {/* Header */}
+      <h1 className="text-page-title text-text-primary mb-xs">Applications</h1>
+      <p className="text-body text-text-secondary mb-lg">
+        Track your job applications
+      </p>
 
-      {/* Message */}
-      {message && (
-        <div className="mb-lg p-md rounded-lg text-body-small bg-accent-red/10 text-accent-red border border-accent-red/20">
-          {message}
-        </div>
-      )}
-
-      {/* 状态 Tab */}
+      {/* Filter Tabs */}
       <div className="flex gap-sm mb-lg flex-wrap">
-        {filters.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={`px-sm py-xs rounded-full text-body-small transition-colors ${
-              filter === f.key
-                ? 'bg-accent-blue text-white'
-                : 'bg-bg-tertiary text-text-secondary hover:bg-border-default'
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        {FILTER_TABS.map((tab) => {
+          const count = statusCounts[tab.key] || 0
+          const isActive = activeFilter === tab.key
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveFilter(tab.key)}
+              className={`px-md py-xs rounded-full text-body-small transition-colors ${
+                isActive
+                  ? 'bg-accent-blue text-white'
+                  : 'bg-bg-tertiary text-text-secondary hover:bg-border-default'
+              }`}
+            >
+              {tab.label} ({count})
+            </button>
+          )
+        })}
       </div>
 
-      {/* 应用列表 */}
-      {loading ? (
-        <div className="card p-xl text-center">
-          <div className="animate-pulse space-y-sm">
-            <div className="h-4 bg-bg-tertiary rounded w-1/4 mx-auto" />
-            <div className="h-4 bg-bg-tertiary rounded w-1/2 mx-auto" />
-          </div>
-          <p className="text-body-small text-text-tertiary mt-md">Loading applications...</p>
+      {/* Search & Sort */}
+      <div className="flex items-center justify-between gap-md mb-lg">
+        {/* Search */}
+        <div className="flex-1 max-w-md relative">
+          <MagnifyingGlassIcon className="w-5 h-5 absolute left-sm top-1/2 -translate-y-1/2 text-text-tertiary" />
+          <input
+            type="text"
+            placeholder="Search by company or title..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="input pl-10"
+          />
         </div>
-      ) : filteredTasks.length === 0 ? (
-        <div className="card p-xl text-center">
-          <p className="text-body text-text-secondary">
-            {filter === 'all'
-              ? 'No applications yet. Visit the Jobs page to start applying.'
-              : `No ${filter.replace('_', ' ')} applications.`}
-          </p>
+
+        {/* Sort */}
+        <SortSelect value={sortBy} onChange={setSortBy} />
+      </div>
+
+      {/* Applications List */}
+      {filteredApplications.length > 0 ? (
+        <div className="space-y-md">
+          {filteredApplications.map((application) => (
+            <ApplicationCard
+              key={application.id}
+              application={application}
+              onStatusChange={handleStatusChange}
+              onArchive={handleArchive}
+            />
+          ))}
         </div>
       ) : (
-        <div className="space-y-sm">
-          {filteredTasks.map((task) => {
-            const StatusIcon = getStatusIcon(task.status)
-            return (
-              <div
-                key={task.id}
-                className="card p-md hover:shadow-card-hover transition-shadow"
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-sm mb-xs">
-                      <h3 className="text-card-title text-text-primary">
-                        {task.task_metadata?.title || 'Job Application'}
-                      </h3>
-                      <span className={`inline-flex items-center gap-xs px-sm py-xs rounded-full text-label ${getStatusColor(task.status)}`}>
-                        <StatusIcon className="w-4 h-4" />
-                        {task.status.replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    {task.task_metadata?.company && (
-                      <p className="text-body-small text-text-secondary mb-xs">
-                        {task.task_metadata.company}
-                      </p>
-                    )}
-
-                    <div className="flex items-center gap-md text-label text-text-tertiary">
-                      {task.current_stage && (
-                        <span>Stage: {task.current_stage}</span>
-                      )}
-                      {task.created_at && (
-                        <span>Created: {new Date(task.created_at).toLocaleDateString()}</span>
-                      )}
-                    </div>
-
-                    {task.blocked_reason && (
-                      <p className="mt-xs text-body-small text-accent-red">
-                        {task.blocked_reason}
-                      </p>
-                    )}
-                  </div>
-
-                  {task.task_metadata?.url && (
-                    <a
-                      href={task.task_metadata.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="ml-md text-body-small text-accent-blue hover:text-accent-blue-hover transition-colors"
-                    >
-                      View →
-                    </a>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+        <div className="card p-xl text-center">
+          <BriefcaseIcon className="w-12 h-12 text-text-tertiary mx-auto mb-md" />
+          <h3 className="text-card-title text-text-primary mb-sm">
+            {searchQuery
+              ? 'No matching applications'
+              : activeFilter === 'all'
+                ? 'No applications yet'
+                : `No ${activeFilter} applications`}
+          </h3>
+          <p className="text-body text-text-secondary mb-lg">
+            {searchQuery
+              ? 'Try a different search term'
+              : activeFilter === 'all'
+                ? 'Start applying to jobs to track them here'
+                : 'Applications will appear here when their status changes'}
+          </p>
+          {activeFilter === 'all' && !searchQuery && (
+            <Link to="/jobs" className="btn-primary">
+              Browse Jobs
+            </Link>
+          )}
         </div>
       )}
     </div>
   )
 }
 
+// 导出 Applications 页面
 export default function Applications() {
   return (
     <ProtectedPage

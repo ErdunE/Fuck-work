@@ -14,6 +14,7 @@ import Applications from './pages/Applications'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 import Pricing from './pages/Pricing'
+import Onboarding from './pages/Onboarding'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           {/* 公开页面（无导航） */}
           <Route path="/login" element={<Login />} />
           <Route path="/callback" element={<Callback />} />
+          <Route path="/onboarding" element={<Onboarding />} />
 
           {/* 所有页面使用 PublicLayout（有导航） */}
           <Route element={<PublicLayout />}>

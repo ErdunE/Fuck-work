@@ -36,9 +36,10 @@ export default function Login() {
     <div className="min-h-screen bg-bg-primary flex flex-col">
       {/* 顶部 Logo */}
       <div className="h-nav flex items-center px-2xl">
-        <div className="flex items-center gap-xs">
-          <span className="text-[24px]">🚀</span>
-          <span className="text-card-title text-text-primary">FuckWork</span>
+        <div className="flex items-center">
+          <span className="text-[24px] font-semibold tracking-tight text-text-primary">
+            FuckWork
+          </span>
         </div>
       </div>
 
