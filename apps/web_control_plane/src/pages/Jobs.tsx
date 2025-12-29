@@ -1,197 +1,305 @@
 import { useEffect, useState } from 'react'
+import {
+  MagnifyingGlassIcon,
+  AdjustmentsHorizontalIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
 import api from '../services/api'
 import type { Job } from '../types'
-import FilterPanel, { type JobFilters } from '../components/FilterPanel'
-import SearchBar from '../components/SearchBar'
-import SortDropdown from '../components/SortDropdown'
 import JobCard from '../components/JobCard'
+import JobDetailPanel from '../components/JobDetailPanel'
+import FilterDialog, { type FilterState } from '../components/FilterDialog'
 import Pagination from '../components/Pagination'
+
+const defaultFilters: FilterState = {
+  jobLevels: [],
+  workModes: [],
+  salaryMin: null,
+  salaryMax: null,
+  salaryDisclosed: false,
+  postedWithin: null,
+}
 
 export default function Jobs() {
   // State
   const [jobs, setJobs] = useState<Job[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
-  
-  // Filter & Search
-  const [filters, setFilters] = useState<JobFilters>({})
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+
+  // Search & Filter
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortBy, setSortBy] = useState('newest')
-  
+  const [filters, setFilters] = useState<FilterState>(defaultFilters)
+  const [isFilterDialogOpen, setIsFilterDialogOpen] = useState(false)
+
   // Pagination
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(20)
-  
-  // UI State
-  const [creatingTask, setCreatingTask] = useState<string | null>(null)
+  const itemsPerPage = 20
 
-  // Load jobs whenever filters, search, sort, or page changes
+  // Load jobs
   useEffect(() => {
     loadJobs()
-  }, [filters, searchQuery, sortBy, currentPage])
+  }, [currentPage])
 
-  const loadJobsWithFilters = async (currentFilters: JobFilters) => {
+  const loadJobs = async () => {
     setLoading(true)
-    setMessage('')
     try {
-      // Combine filters with search
-      const searchFilters = { ...currentFilters }
+      // Build search filters from FilterState
+      const searchFilters: Record<string, unknown> = {}
 
-      console.log('🚀 loadJobs called')  
-      console.log('🚀 Current filters:', currentFilters)  
-      console.log('🚀 Search filters:', searchFilters)  
-      
-      // If there's a search query, add it as keywords
       if (searchQuery.trim()) {
         searchFilters.keywords_in_description = [searchQuery.trim()]
       }
-      
+
+      if (filters.jobLevels.length > 0) {
+        searchFilters.job_levels = filters.jobLevels
+      }
+
+      if (filters.workModes.length > 0) {
+        searchFilters.work_modes = filters.workModes
+      }
+
+      if (filters.salaryMin !== null) {
+        searchFilters.salary_min = filters.salaryMin
+      }
+
+      if (filters.salaryMax !== null) {
+        searchFilters.salary_max = filters.salaryMax
+      }
+
+      if (filters.salaryDisclosed) {
+        searchFilters.salary_disclosed = true
+      }
+
+      if (filters.postedWithin) {
+        searchFilters.posted_within = filters.postedWithin
+      }
+
       const offset = (currentPage - 1) * itemsPerPage
-      const response = await api.searchJobs(searchFilters, itemsPerPage, offset, sortBy)
-      
+      const response = await api.searchJobs(searchFilters, itemsPerPage, offset, 'newest')
+
       setJobs(response.jobs)
       setTotal(response.total)
-    } catch (error: any) {
+
+      // Select first job if none selected
+      if (response.jobs.length > 0 && !selectedJob) {
+        setSelectedJob(response.jobs[0])
+      }
+    } catch (error) {
       console.error('Failed to load jobs:', error)
-      setMessage(error.response?.data?.detail || 'Failed to load jobs')
     } finally {
       setLoading(false)
     }
   }
 
-  const loadJobs = () => loadJobsWithFilters(filters)
-
-  const handleFilterChange = (newFilters: JobFilters) => {
-    console.log('🔍 Filter changed:', newFilters)
-    console.log('🔍 Old filters:', filters)
-    setFilters(newFilters)
-    setCurrentPage(1) // Reset to first page when filters change
-    
-    // Load jobs immediately with new filters, bypassing async state update
-    loadJobsWithFilters(newFilters)
-  }
-
-  const handleClearFilters = () => {
-    setFilters({})
-    setSearchQuery('')
-    setCurrentPage(1)
-  }
-
   const handleSearch = () => {
-    setCurrentPage(1) // Reset to first page when searching
+    setCurrentPage(1)
     loadJobs()
   }
 
-  const handleSortChange = (newSort: string) => {
-    setSortBy(newSort)
-    setCurrentPage(1) // Reset to first page when sorting changes
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch()
+    }
+  }
+
+  const handleApplyFilters = (newFilters: FilterState) => {
+    setFilters(newFilters)
+    setCurrentPage(1)
+    // Trigger reload after state update
+    setTimeout(() => loadJobs(), 0)
+  }
+
+  const handleRemoveFilter = (type: string, value?: string) => {
+    const newFilters = { ...filters }
+
+    switch (type) {
+      case 'jobLevel':
+        newFilters.jobLevels = filters.jobLevels.filter((l) => l !== value)
+        break
+      case 'workMode':
+        newFilters.workModes = filters.workModes.filter((m) => m !== value)
+        break
+      case 'salary':
+        newFilters.salaryMin = null
+        newFilters.salaryMax = null
+        newFilters.salaryDisclosed = false
+        break
+      case 'postedWithin':
+        newFilters.postedWithin = null
+        break
+    }
+
+    setFilters(newFilters)
+    setCurrentPage(1)
+    setTimeout(() => loadJobs(), 0)
   }
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
+    setSelectedJob(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleStartApply = async (job_id: string) => {
-    setCreatingTask(job_id)
-    setMessage('')
-    try {
-      const result = await api.createApplyTask(job_id)
-      setMessage(result.message || 'Task created successfully')
-      await loadJobs()
-    } catch (error: any) {
-      setMessage(error.response?.data?.detail || 'Failed to create task')
-    } finally {
-      setCreatingTask(null)
+  const handleApply = (job: Job) => {
+    if (job.url) {
+      window.open(job.url, '_blank', 'noopener,noreferrer')
+    }
+  }
+
+  const handleHide = (job: Job) => {
+    // Remove from local list for now
+    setJobs((prev) => prev.filter((j) => j.id !== job.id))
+    if (selectedJob?.id === job.id) {
+      setSelectedJob(null)
     }
   }
 
   const totalPages = Math.ceil(total / itemsPerPage)
-  const hasActiveFilters = Object.keys(filters).length > 0 || searchQuery.trim() !== ''
+
+  // Build active filter tags
+  const activeFilterTags: { type: string; label: string; value?: string }[] = []
+
+  filters.jobLevels.forEach((level) => {
+    activeFilterTags.push({ type: 'jobLevel', label: level, value: level })
+  })
+
+  filters.workModes.forEach((mode) => {
+    activeFilterTags.push({ type: 'workMode', label: mode, value: mode })
+  })
+
+  if (filters.salaryMin !== null || filters.salaryMax !== null || filters.salaryDisclosed) {
+    let salaryLabel = 'Salary: '
+    if (filters.salaryMin && filters.salaryMax) {
+      salaryLabel += `$${filters.salaryMin.toLocaleString()} - $${filters.salaryMax.toLocaleString()}`
+    } else if (filters.salaryMin) {
+      salaryLabel += `>$${filters.salaryMin.toLocaleString()}`
+    } else if (filters.salaryMax) {
+      salaryLabel += `<$${filters.salaryMax.toLocaleString()}`
+    }
+    if (filters.salaryDisclosed) {
+      salaryLabel += salaryLabel === 'Salary: ' ? 'Disclosed only' : ' (Disclosed)'
+    }
+    activeFilterTags.push({ type: 'salary', label: salaryLabel })
+  }
+
+  if (filters.postedWithin) {
+    const labels: Record<string, string> = {
+      '24h': 'Past 24 hours',
+      '7d': 'Past week',
+      '30d': 'Past month',
+    }
+    activeFilterTags.push({ type: 'postedWithin', label: labels[filters.postedWithin] || filters.postedWithin })
+  }
 
   return (
-    <div className="max-w-7xl mx-auto p-6">
+    <div className="page-container">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Jobs</h1>
-        <p className="mt-1 text-sm text-slate-600">Discover verified opportunities</p>
+      <div className="mb-lg">
+        <h1 className="text-page-title text-text-primary">Jobs</h1>
+        <p className="text-body text-text-secondary mt-xs">
+          Discover verified opportunities
+        </p>
       </div>
 
-      {/* Message */}
-      {message && (
-        <div className={`mb-6 p-4 rounded-lg text-sm ${
-          message.toLowerCase().includes('success') || message.toLowerCase().includes('created')
-            ? 'bg-success-50 text-success-700 border border-success-200'
-            : 'bg-danger-50 text-danger-700 border border-danger-200'
-        }`}>
-          {message}
+      {/* Search Bar + Filter Button */}
+      <div className="flex gap-sm mb-md">
+        <div className="flex-1 relative">
+          <MagnifyingGlassIcon className="absolute left-sm top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Search jobs by title, company, or keyword..."
+            className="input pl-xl"
+          />
+        </div>
+        <button
+          onClick={() => setIsFilterDialogOpen(true)}
+          className="btn-secondary flex items-center gap-xs"
+        >
+          <AdjustmentsHorizontalIcon className="w-5 h-5" />
+          Filters
+          {activeFilterTags.length > 0 && (
+            <span className="ml-xs w-5 h-5 rounded-full bg-accent-blue text-white text-label flex items-center justify-center">
+              {activeFilterTags.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Active Filter Tags */}
+      {activeFilterTags.length > 0 && (
+        <div className="flex flex-wrap gap-xs mb-md">
+          {activeFilterTags.map((tag, index) => (
+            <span
+              key={`${tag.type}-${tag.value || index}`}
+              className="inline-flex items-center gap-xs px-sm py-xs bg-bg-tertiary text-text-secondary text-body-small rounded-full"
+            >
+              {tag.label}
+              <button
+                onClick={() => handleRemoveFilter(tag.type, tag.value)}
+                className="hover:text-text-primary"
+              >
+                <XMarkIcon className="w-4 h-4" />
+              </button>
+            </span>
+          ))}
         </div>
       )}
 
-      <div className="flex gap-6">
-        {/* FilterPanel: 280px */}
-        <div className="flex-shrink-0">
-          <FilterPanel
-            filters={filters}
-            onChange={handleFilterChange}
-            onClear={handleClearFilters}
-          />
-        </div>
-        
-        {/* Main Content */}
-        <div className="flex-1 min-w-0">
-          {/* Search + Sort Bar */}
-          <div className="flex gap-4 mb-6">
-            <SearchBar
-              value={searchQuery}
-              onChange={setSearchQuery}
-              onSearch={handleSearch}
-              placeholder="Search by keyword..."
-            />
-            <SortDropdown value={sortBy} onChange={handleSortChange} />
-          </div>
+      {/* Results count */}
+      <p className="text-body-small text-text-secondary mb-md">
+        {loading ? 'Loading...' : `${total} jobs found`}
+      </p>
 
-          {/* Results Summary */}
-          <div className="mb-4">
-            <p className="text-sm text-slate-600">
-              {loading ? 'Loading...' : `${total} jobs found`}
-            </p>
-          </div>
-
-          {/* Job List */}
+      {/* Main Content - Split View */}
+      <div className="flex gap-lg" style={{ height: 'calc(100vh - 320px)', minHeight: '500px' }}>
+        {/* Left Panel - Job List */}
+        <div className="w-[400px] flex-shrink-0 overflow-y-auto">
           {loading ? (
-            <div className="bg-white rounded-lg shadow-soft p-12 text-center border border-slate-200">
-              <div className="animate-pulse">
-                <div className="h-4 bg-slate-200 rounded w-1/4 mx-auto mb-4"></div>
-                <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto"></div>
+            <div className="card p-lg text-center">
+              <div className="animate-pulse space-y-sm">
+                <div className="h-4 bg-bg-tertiary rounded w-3/4 mx-auto" />
+                <div className="h-4 bg-bg-tertiary rounded w-1/2 mx-auto" />
               </div>
-              <p className="mt-4 text-sm text-slate-500">Loading jobs...</p>
+              <p className="text-body-small text-text-tertiary mt-md">Loading jobs...</p>
             </div>
           ) : jobs.length === 0 ? (
-            <div className="bg-white rounded-lg shadow-soft p-12 text-center border border-slate-200">
-              <p className="text-sm text-slate-600">
-                {hasActiveFilters
-                  ? 'No jobs found matching your filters. Try adjusting your criteria.'
+            <div className="card p-lg text-center">
+              <p className="text-body text-text-secondary">
+                {activeFilterTags.length > 0
+                  ? 'No jobs found matching your filters.'
                   : 'No jobs available yet.'}
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-sm">
               {jobs.map((job) => (
-                <JobCard
+                <div
                   key={job.id}
-                  job={job}
-                  onApply={handleStartApply}
-                  applying={creatingTask === job.job_id}
-                />
+                  onClick={() => setSelectedJob(job)}
+                  className={`cursor-pointer transition-all duration-fast ${
+                    selectedJob?.id === job.id
+                      ? 'ring-2 ring-accent-blue rounded-lg'
+                      : ''
+                  }`}
+                >
+                  <JobCard
+                    job={job}
+                    onApply={() => handleApply(job)}
+                    applying={false}
+                    compact
+                  />
+                </div>
               ))}
             </div>
           )}
 
           {/* Pagination */}
           {!loading && totalPages > 1 && (
-            <div className="mt-6">
+            <div className="mt-lg">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
@@ -202,8 +310,24 @@ export default function Jobs() {
             </div>
           )}
         </div>
+
+        {/* Right Panel - Job Detail */}
+        <div className="flex-1 min-w-0">
+          <JobDetailPanel
+            job={selectedJob}
+            onApply={handleApply}
+            onHide={handleHide}
+          />
+        </div>
       </div>
+
+      {/* Filter Dialog */}
+      <FilterDialog
+        isOpen={isFilterDialogOpen}
+        onClose={() => setIsFilterDialogOpen(false)}
+        filters={filters}
+        onApply={handleApplyFilters}
+      />
     </div>
   )
 }
-

@@ -7,75 +7,103 @@ interface Props {
   job: Job
   onApply: (jobId: string) => void
   applying?: boolean
+  compact?: boolean
 }
 
-export default function JobCard({ job, onApply, applying }: Props) {
-  return (
-    <div className="relative bg-white rounded-lg shadow-soft border border-slate-200 p-6 hover:shadow-medium transition-shadow">
-      {/* Score badge floats OUTSIDE on LEFT */}
-      {job.authenticity_score !== null && job.authenticity_score !== undefined && (
-        <ScoreBadge 
-          score={job.authenticity_score} 
-          className="absolute -left-6 top-6" 
-        />
-      )}
-      
-      <div className="space-y-4">
-        {/* Title */}
-        <h3 className="text-lg font-semibold text-slate-900 pr-8">
-          {job.title}
-        </h3>
-        
-        {/* Company & Location */}
-        <div className="flex items-center gap-4 text-sm text-slate-600">
-          <div className="flex items-center gap-1">
-            <BuildingOfficeIcon className="w-4 h-4" />
-            <span>{job.company_name}</span>
+export default function JobCard({ job, onApply, applying, compact = false }: Props) {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return null
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  }
+
+  if (compact) {
+    return (
+      <div className="card p-md hover:shadow-card-hover transition-shadow">
+        <div className="flex items-start gap-sm">
+          {job.authenticity_score !== null && job.authenticity_score !== undefined && (
+            <ScoreBadge score={job.authenticity_score} size="sm" />
+          )}
+          <div className="flex-1 min-w-0">
+            <h3 className="text-card-title text-text-primary truncate">{job.title}</h3>
+            <p className="text-body-small text-text-secondary truncate">
+              {job.company_name}
+              {job.location && ` · ${job.location}`}
+            </p>
+            <div className="flex items-center gap-xs mt-xs">
+              {job.decision_summary && (
+                <DecisionBadge decision={job.decision_summary.decision} />
+              )}
+              <span className="text-label text-text-tertiary bg-bg-tertiary px-xs py-[2px] rounded">
+                {job.platform}
+              </span>
+            </div>
           </div>
-          {job.location && (
-            <div className="flex items-center gap-1">
-              <MapPinIcon className="w-4 h-4" />
-              <span>{job.location}</span>
-            </div>
-          )}
-          {job.posted_date && (
-            <div className="flex items-center gap-1">
-              <CalendarIcon className="w-4 h-4" />
-              <span>{new Date(job.posted_date).toLocaleDateString()}</span>
-            </div>
-          )}
         </div>
-        
-        {/* Tags row */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {job.decision_summary && (
-            <DecisionBadge decision={job.decision_summary.decision} />
-          )}
-          <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">
-            {job.platform}
-          </span>
-        </div>
-        
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-          <a
-            href={job.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-sm text-primary-600 hover:text-primary-700 transition"
-          >
-            View Posting →
-          </a>
-          <button
-            onClick={() => onApply(job.job_id)}
-            disabled={applying}
-            className="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 transition"
-          >
-            {applying ? 'Applying...' : 'Apply'}
-          </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card p-lg hover:shadow-card-hover transition-shadow">
+      <div className="flex items-start gap-md">
+        {job.authenticity_score !== null && job.authenticity_score !== undefined && (
+          <ScoreBadge score={job.authenticity_score} />
+        )}
+        <div className="flex-1 min-w-0">
+          {/* Title */}
+          <h3 className="text-card-title text-text-primary mb-xs">{job.title}</h3>
+
+          {/* Company & Location */}
+          <div className="flex items-center gap-md text-body-small text-text-secondary mb-sm">
+            <div className="flex items-center gap-xs">
+              <BuildingOfficeIcon className="w-4 h-4" />
+              <span>{job.company_name}</span>
+            </div>
+            {job.location && (
+              <div className="flex items-center gap-xs">
+                <MapPinIcon className="w-4 h-4" />
+                <span>{job.location}</span>
+              </div>
+            )}
+            {job.posted_date && (
+              <div className="flex items-center gap-xs">
+                <CalendarIcon className="w-4 h-4" />
+                <span>{formatDate(job.posted_date)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Tags row */}
+          <div className="flex items-center gap-xs flex-wrap mb-md">
+            {job.decision_summary && (
+              <DecisionBadge decision={job.decision_summary.decision} />
+            )}
+            <span className="text-label text-text-tertiary bg-bg-tertiary px-sm py-xs rounded">
+              {job.platform}
+            </span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center justify-between pt-sm border-t border-border-light">
+            <a
+              href={job.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-body-small text-accent-blue hover:text-accent-blue-hover transition-colors"
+            >
+              View Posting →
+            </a>
+            <button
+              onClick={() => onApply(job.job_id)}
+              disabled={applying}
+              className="btn-primary px-md py-xs h-auto text-body-small"
+            >
+              {applying ? 'Applying...' : 'Apply'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-

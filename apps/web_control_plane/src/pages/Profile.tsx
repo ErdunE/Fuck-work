@@ -1,225 +1,155 @@
-import { useState, useEffect } from 'react'
-import { UserIcon, BriefcaseIcon, AcademicCapIcon, CogIcon } from '@heroicons/react/24/outline'
-import api from '../services/api'
-import type { Profile as ProfileType, AutomationPreferences } from '../types'
+import { useState } from 'react'
+import ProtectedPage from '../components/ProtectedPage'
+import {
+  UserIcon,
+  DocumentTextIcon,
+  BriefcaseIcon,
+  AcademicCapIcon,
+  WrenchScrewdriverIcon,
+  TrophyIcon,
+  AdjustmentsHorizontalIcon,
+} from '@heroicons/react/24/outline'
 
-type TabType = 'personal' | 'experience' | 'education' | 'automation'
+// Import tab components
+import PersonalInfoTab from '../components/Profile/PersonalInfoTab'
+import ResumeTab from '../components/Profile/ResumeTab'
+import ExperienceTab from '../components/Profile/ExperienceTab'
+import EducationTab from '../components/Profile/EducationTab'
+import SkillsTab from '../components/Profile/SkillsTab'
+import AchievementsTab from '../components/Profile/AchievementsTab'
+import PreferencesTab from '../components/Profile/PreferencesTab'
 
-export default function Profile() {
-  const [activeTab, setActiveTab] = useState<TabType>('personal')
-  const [profile, setProfile] = useState<ProfileType | null>(null)
-  const [preferences, setPreferences] = useState<AutomationPreferences | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [message, setMessage] = useState('')
+// Tab configuration
+const TABS = [
+  { key: 'personal', label: 'Personal Info', icon: UserIcon },
+  { key: 'resume', label: 'Resume', icon: DocumentTextIcon },
+  { key: 'experience', label: 'Experience', icon: BriefcaseIcon },
+  { key: 'education', label: 'Education', icon: AcademicCapIcon },
+  { key: 'skills', label: 'Skills', icon: WrenchScrewdriverIcon },
+  { key: 'achievements', label: 'Achievements', icon: TrophyIcon },
+  { key: 'preferences', label: 'Preferences', icon: AdjustmentsHorizontalIcon },
+] as const
 
-  useEffect(() => {
-    loadData()
-  }, [])
+type TabKey = (typeof TABS)[number]['key']
 
-  const loadData = async () => {
-    setLoading(true)
-    setMessage('')
-    try {
-      const [profileData, prefsData] = await Promise.all([
-        api.getProfile(),
-        api.getAutomationPreferences()
-      ])
-      setProfile(profileData)
-      setPreferences(prefsData)
-    } catch (error: any) {
-      console.error('Failed to load profile:', error)
-      setMessage(error.response?.data?.detail || 'Failed to load profile data')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const tabs = [
-    { id: 'personal' as TabType, label: 'Personal Info', icon: UserIcon },
-    { id: 'experience' as TabType, label: 'Experience', icon: BriefcaseIcon },
-    { id: 'education' as TabType, label: 'Education', icon: AcademicCapIcon },
-    { id: 'automation' as TabType, label: 'Automation', icon: CogIcon },
-  ]
-
+// Preview component for unauthenticated users
+function ProfilePreview() {
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Profile</h1>
-        <p className="mt-1 text-sm text-slate-600">Manage your information and settings</p>
-      </div>
+    <div className="page-container">
+      <h1 className="text-page-title text-text-primary mb-xs">Profile</h1>
+      <p className="text-body text-text-secondary mb-lg">
+        Manage your personal information
+      </p>
 
-      {/* Message */}
-      {message && (
-        <div className="mb-6 p-4 rounded-lg text-sm bg-danger-50 text-danger-700 border border-danger-200">
-          {message}
-        </div>
-      )}
-
-      <div className="flex gap-6">
-        {/* Sidebar: w-60 = 240px */}
-        <div className="w-60 flex-shrink-0">
-          <nav className="space-y-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition ${
-                    activeTab === tab.id
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-slate-700 hover:bg-slate-100'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  {tab.label}
-                </button>
-              )
-            })}
-          </nav>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 bg-white rounded-lg shadow-soft border border-slate-200 p-6">
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-pulse">
-                <div className="h-4 bg-slate-200 rounded w-1/4 mx-auto mb-4"></div>
-                <div className="h-4 bg-slate-200 rounded w-1/2 mx-auto"></div>
+      <div className="flex gap-lg">
+        {/* Sidebar */}
+        <div className="w-56 flex-shrink-0">
+          <div className="space-y-xs">
+            {TABS.map((tab, index) => (
+              <div
+                key={tab.key}
+                className={`flex items-center gap-sm px-md py-sm rounded-lg ${
+                  index === 0 ? 'bg-bg-tertiary' : ''
+                }`}
+              >
+                <div className="w-5 h-5 bg-bg-tertiary rounded" />
+                <div className="h-4 bg-bg-tertiary rounded w-24" />
               </div>
-              <p className="mt-4 text-sm text-slate-500">Loading...</p>
+            ))}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1">
+          <div className="card p-xl">
+            <div className="h-6 bg-bg-tertiary rounded w-1/3 mb-lg" />
+            <div className="grid grid-cols-2 gap-lg">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i}>
+                  <div className="h-4 bg-bg-tertiary rounded w-1/3 mb-sm" />
+                  <div className="h-10 bg-bg-tertiary rounded" />
+                </div>
+              ))}
             </div>
-          ) : (
-            <>
-              {activeTab === 'personal' && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Personal Information</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                      <input
-                        type="text"
-                        value={profile?.full_name || ''}
-                        readOnly
-                        className="block w-full rounded-lg border-slate-300 bg-slate-50 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                      <input
-                        type="email"
-                        value={profile?.primary_email || ''}
-                        readOnly
-                        className="block w-full rounded-lg border-slate-300 bg-slate-50 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Phone</label>
-                      <input
-                        type="tel"
-                        value={profile?.phone || ''}
-                        readOnly
-                        className="block w-full rounded-lg border-slate-300 bg-slate-50 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">Location</label>
-                      <input
-                        type="text"
-                        value={profile ? `${profile.city || ''}, ${profile.state || ''}, ${profile.country || ''}`.replace(/, ,/g, ',').replace(/^, |, $/g, '') : ''}
-                        readOnly
-                        className="block w-full rounded-lg border-slate-300 bg-slate-50 text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'experience' && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Work Experience</h2>
-                  {profile?.experience && profile.experience.length > 0 ? (
-                    <div className="space-y-4">
-                      {profile.experience.map((exp) => (
-                        <div key={exp.id} className="border-l-2 border-primary-500 pl-4">
-                          <h3 className="font-medium text-slate-900">{exp.job_title}</h3>
-                          <p className="text-sm text-slate-600">{exp.company_name}</p>
-                          <p className="text-xs text-slate-500 mt-1">
-                            {exp.start_date} - {exp.is_current ? 'Present' : exp.end_date}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-600">No experience added yet.</p>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'education' && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Education</h2>
-                  {profile?.education && profile.education.length > 0 ? (
-                    <div className="space-y-4">
-                      {profile.education.map((edu) => (
-                        <div key={edu.id} className="border-l-2 border-primary-500 pl-4">
-                          <h3 className="font-medium text-slate-900">{edu.school_name}</h3>
-                          <p className="text-sm text-slate-600">
-                            {edu.degree} {edu.major && `in ${edu.major}`}
-                          </p>
-                          <p className="text-xs text-slate-500 mt-1">
-                            {edu.start_date} - {edu.end_date}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-slate-600">No education added yet.</p>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'automation' && (
-                <div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-4">Automation Settings</h2>
-                  {preferences && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-                        <div>
-                          <p className="font-medium text-slate-900">Auto-fill after login</p>
-                          <p className="text-sm text-slate-600">Automatically fill forms after detecting login</p>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          preferences.auto_fill_after_login
-                            ? 'bg-success-50 text-success-700'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}>
-                          {preferences.auto_fill_after_login ? 'Enabled' : 'Disabled'}
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between p-4 border border-slate-200 rounded-lg">
-                        <div>
-                          <p className="font-medium text-slate-900">Require review before submit</p>
-                          <p className="text-sm text-slate-600">Show confirmation before submitting applications</p>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          preferences.require_review_before_submit
-                            ? 'bg-success-50 text-success-700'
-                            : 'bg-slate-100 text-slate-700'
-                        }`}>
-                          {preferences.require_review_before_submit ? 'Enabled' : 'Disabled'}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
-          )}
+          </div>
         </div>
       </div>
     </div>
   )
 }
 
+// Main Profile component
+function ProfileContent() {
+  const [activeTab, setActiveTab] = useState<TabKey>('personal')
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'personal':
+        return <PersonalInfoTab />
+      case 'resume':
+        return <ResumeTab />
+      case 'experience':
+        return <ExperienceTab />
+      case 'education':
+        return <EducationTab />
+      case 'skills':
+        return <SkillsTab />
+      case 'achievements':
+        return <AchievementsTab />
+      case 'preferences':
+        return <PreferencesTab />
+      default:
+        return null
+    }
+  }
+
+  return (
+    <div className="page-container">
+      <h1 className="text-page-title text-text-primary mb-xs">Profile</h1>
+      <p className="text-body text-text-secondary mb-lg">
+        Manage your personal information
+      </p>
+
+      <div className="flex gap-lg">
+        {/* Sidebar Navigation */}
+        <div className="w-56 flex-shrink-0">
+          <nav className="space-y-xs sticky top-24">
+            {TABS.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.key
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`w-full flex items-center gap-sm px-md py-sm rounded-lg text-left transition-colors ${
+                    isActive
+                      ? 'bg-accent-blue text-white'
+                      : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span className="text-body-small font-medium">{tab.label}</span>
+                </button>
+              )
+            })}
+          </nav>
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 min-w-0">{renderTabContent()}</div>
+      </div>
+    </div>
+  )
+}
+
+export default function Profile() {
+  return (
+    <ProtectedPage
+      preview={<ProfilePreview />}
+      promptTitle="Sign in to manage your Profile"
+      promptDescription="Complete your profile to get better job matches and streamline your applications."
+    >
+      <ProfileContent />
+    </ProtectedPage>
+  )
+}
