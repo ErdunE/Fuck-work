@@ -345,14 +345,14 @@ export default function SkillsTab() {
 
       {/* Skill Input */}
       <div className="mb-md">
-        <div className="input flex items-center gap-sm p-sm">
+        <div className="min-h-[48px] px-sm border border-border-default rounded-md flex items-center gap-sm bg-bg-primary transition-colors focus-within:border-accent-blue">
           <input
             type="text"
             value={skillInput}
             onChange={(e) => setSkillInput(e.target.value)}
             onKeyDown={handleSkillKeyDown}
             placeholder="Type a skill and press Enter..."
-            className="flex-1 border-0 p-0 focus:ring-0 text-body-small bg-transparent"
+            className="flex-1 h-[32px] border-0 p-0 focus:ring-0 focus:outline-none text-body-small bg-transparent placeholder:text-text-tertiary"
           />
           {skillInput && (
             <button

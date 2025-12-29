@@ -454,11 +454,11 @@ function TagInput({
 
   return (
     <div className="relative">
-      <div className="input p-sm min-h-[48px] flex flex-wrap gap-sm">
+      <div className="min-h-[48px] px-sm py-xs border border-border-default rounded-md flex flex-wrap items-center gap-sm bg-bg-primary transition-colors focus-within:border-accent-blue">
         {value.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 px-sm py-xs bg-accent-blue/10 text-accent-blue rounded-full text-label"
+            className="inline-flex items-center gap-1 px-sm py-1 bg-accent-blue/10 text-accent-blue rounded-full text-body-small leading-none"
           >
             {tag}
             <button type="button" onClick={() => removeTag(tag)} className="hover:bg-accent-blue/20 rounded-full p-0.5">
@@ -484,7 +484,7 @@ function TagInput({
           onFocus={() => inputValue && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder={value.length === 0 ? placeholder : ''}
-          className="flex-1 min-w-[150px] border-0 p-0 focus:ring-0 text-body-small bg-transparent"
+          className="flex-1 min-w-[150px] h-[30px] border-0 p-0 focus:ring-0 focus:outline-none text-body-small bg-transparent placeholder:text-text-tertiary"
         />
       </div>
       {showSuggestions && filteredSuggestions.length > 0 && (

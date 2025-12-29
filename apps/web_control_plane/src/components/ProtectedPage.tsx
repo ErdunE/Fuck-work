@@ -47,7 +47,7 @@ export default function ProtectedPage({
         </div>
       )}
 
-      {/* 登录提示覆盖层 */}
+      {/* 登录提示覆盖层 - fixed 定位，始终相对于视口居中 */}
       <AuthPromptOverlay
         title={promptTitle}
         description={promptDescription}
