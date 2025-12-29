@@ -257,7 +257,7 @@ export default function Jobs() {
       {/* Main Content - Split View */}
       <div className="flex gap-lg" style={{ height: 'calc(100vh - 320px)', minHeight: '500px' }}>
         {/* Left Panel - Job List */}
-        <div className="w-[400px] flex-shrink-0 overflow-y-auto">
+        <div className="w-[400px] flex-shrink-0 overflow-y-auto p-xs -m-xs">
           {loading ? (
             <div className="card p-lg text-center">
               <div className="animate-pulse space-y-sm">
