@@ -18,28 +18,46 @@ export default function JobCard({ job, onApply, applying, compact = false }: Pro
   }
 
   if (compact) {
-    return (
-      <div className="card p-md hover:shadow-card-hover transition-shadow">
-        <div className="flex items-start gap-sm">
-          {job.authenticity_score !== null && job.authenticity_score !== undefined && (
-            <ScoreBadge score={job.authenticity_score} size="sm" />
-          )}
-          <div className="flex-1 min-w-0">
-            <h3 className="text-card-title text-text-primary truncate">{job.title}</h3>
-            <p className="text-body-small text-text-secondary truncate">
-              {job.company_name}
-              {job.location && ` · ${job.location}`}
-            </p>
-            <div className="flex items-center gap-xs mt-xs">
-              {job.decision_summary && (
-                <DecisionBadge decision={job.decision_summary.decision} />
-              )}
-              <span className="text-label text-text-tertiary bg-bg-tertiary px-xs py-[2px] rounded">
-                {job.platform}
-              </span>
-            </div>
+    const isHighScore = job.authenticity_score !== null &&
+                        job.authenticity_score !== undefined &&
+                        job.authenticity_score >= 90
+
+    const cardContent = (
+      <div className="flex items-start gap-sm">
+        {job.authenticity_score !== null && job.authenticity_score !== undefined && (
+          <ScoreBadge score={job.authenticity_score} size="sm" />
+        )}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-card-title text-text-primary truncate">{job.title}</h3>
+          <p className="text-body-small text-text-secondary truncate">
+            {job.company_name}
+            {job.location && ` · ${job.location}`}
+          </p>
+          <div className="flex items-center gap-xs mt-xs">
+            {job.decision_summary && (
+              <DecisionBadge decision={job.decision_summary.decision} />
+            )}
+            <span className="text-label text-text-tertiary bg-bg-tertiary px-xs py-[2px] rounded">
+              {job.platform}
+            </span>
           </div>
         </div>
+      </div>
+    )
+
+    if (isHighScore) {
+      return (
+        <div className="ai-glow-border">
+          <div className="card p-md">
+            {cardContent}
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div className="card p-md hover:shadow-card-hover transition-shadow">
+        {cardContent}
       </div>
     )
   }

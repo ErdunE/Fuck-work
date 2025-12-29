@@ -65,3 +65,84 @@
     @apply max-w-content mx-auto px-2xl py-xl;
   }
 }
+
+/* ============================================================================
+   Apple Intelligence Style Animated Border
+   ============================================================================ */
+
+@property --gradient-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes gradient-rotate {
+  0% {
+    --gradient-angle: 0deg;
+  }
+  100% {
+    --gradient-angle: 360deg;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.ai-glow-border {
+  position: relative;
+  border-radius: 12px;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--gradient-angle),
+    #ff6b6b,
+    #feca57,
+    #48dbfb,
+    #ff9ff3,
+    #54a0ff,
+    #5f27cd,
+    #00d2d3,
+    #1dd1a1,
+    #feca57,
+    #ff6b6b
+  );
+  animation: gradient-rotate 3s linear infinite;
+}
+
+.ai-glow-border::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 16px;
+  background: conic-gradient(
+    from var(--gradient-angle),
+    #ff6b6b,
+    #feca57,
+    #48dbfb,
+    #ff9ff3,
+    #54a0ff,
+    #5f27cd,
+    #00d2d3,
+    #1dd1a1,
+    #feca57,
+    #ff6b6b
+  );
+  filter: blur(16px);
+  opacity: 0.6;
+  z-index: -1;
+  animation:
+    gradient-rotate 3s linear infinite,
+    glow-pulse 2s ease-in-out infinite;
+}
+
+.ai-glow-border > .card {
+  border: none !important;
+  box-shadow: none !important;
+  background: #FFFFFF;
+  border-radius: 10px;
+}
