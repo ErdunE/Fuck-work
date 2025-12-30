@@ -1,9 +1,8 @@
 """
-Experience CRUD endpoints for Phase 5.2.
-Manages user work experience history.
+Experience CRUD endpoints - Experience 页面
+Phase 7.0 - 匹配前端字段
 """
 
-from datetime import date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,51 +15,74 @@ from src.fuckwork.database import User, UserExperience, get_db
 router = APIRouter(prefix="/api/users/me/experience", tags=["profile", "experience"])
 
 
-# Request/Response Models
+# =============================================================================
+# Request/Response Models - 匹配前端字段
+# =============================================================================
 
 
 class ExperienceRequest(BaseModel):
-    """Experience entry request."""
+    """Experience 请求"""
 
-    company_name: str
     job_title: str
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    is_current: bool = False
-    responsibilities: Optional[str] = None
+    company_name: str
+    employment_type: Optional[str] = (
+        None  # Full-time, Part-time, Contract, Internship, Freelance, Temporary
+    )
+    location_type: Optional[str] = None  # On-site, Remote, Hybrid
+    location: Optional[str] = None  # "San Francisco, CA"
+    start_month: Optional[str] = None  # "January", "February", etc.
+    start_year: Optional[int] = None
+    end_month: Optional[str] = None
+    end_year: Optional[int] = None
+    is_current: bool = False  # "I currently work here"
+    description: Optional[str] = None  # Bullet points supported
+    skills_used: Optional[List[str]] = None
 
 
 class ExperienceResponse(BaseModel):
-    """Experience entry response."""
+    """Experience 响应"""
 
     id: int
-    company_name: str
     job_title: str
-    start_date: Optional[date]
-    end_date: Optional[date]
-    is_current: bool
-    responsibilities: Optional[str]
+    company_name: str
+    employment_type: Optional[str] = None
+    location_type: Optional[str] = None
+    location: Optional[str] = None
+    start_month: Optional[str] = None
+    start_year: Optional[int] = None
+    end_month: Optional[str] = None
+    end_year: Optional[int] = None
+    is_current: bool = False
+    description: Optional[str] = None
+    skills_used: Optional[List[str]] = None
 
     class Config:
         from_attributes = True
 
 
 class ExperienceListResponse(BaseModel):
-    """Experience list response."""
+    """Experience 列表响应"""
 
     experience: List[ExperienceResponse]
     total: int
 
 
+# =============================================================================
 # Endpoints
+# =============================================================================
 
 
 @router.get("", response_model=ExperienceListResponse)
 def list_experience(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get all experience entries for current user."""
-    experience = db.query(UserExperience).filter(UserExperience.user_id == current_user.id).all()
+    """获取当前用户的所有工作经历"""
+    experience = (
+        db.query(UserExperience)
+        .filter(UserExperience.user_id == current_user.id)
+        .order_by(UserExperience.start_year.desc().nullslast(), UserExperience.id.desc())
+        .all()
+    )
     return ExperienceListResponse(
-        experience=[ExperienceResponse.from_orm(e) for e in experience],
+        experience=[ExperienceResponse.model_validate(e) for e in experience],
         total=len(experience),
     )
 
@@ -71,31 +93,36 @@ def create_experience(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Add new experience entry."""
+    """添加新的工作经历"""
     experience = UserExperience(
         user_id=current_user.id,
-        company_name=request.company_name,
         job_title=request.job_title,
-        start_date=request.start_date,
-        end_date=request.end_date,
+        company_name=request.company_name,
+        employment_type=request.employment_type,
+        location_type=request.location_type,
+        location=request.location,
+        start_month=request.start_month,
+        start_year=request.start_year,
+        end_month=request.end_month,
+        end_year=request.end_year,
         is_current=request.is_current,
-        responsibilities=request.responsibilities,
+        description=request.description,
+        skills_used=request.skills_used,
     )
     db.add(experience)
     db.commit()
     db.refresh(experience)
 
-    return ExperienceResponse.from_orm(experience)
+    return ExperienceResponse.model_validate(experience)
 
 
-@router.put("/{experience_id}", response_model=ExperienceResponse)
-def update_experience(
+@router.get("/{experience_id}", response_model=ExperienceResponse)
+def get_experience(
     experience_id: int,
-    request: ExperienceRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update experience entry."""
+    """获取指定的工作经历"""
     experience = (
         db.query(UserExperience)
         .filter(
@@ -110,15 +137,40 @@ def update_experience(
             status_code=status.HTTP_404_NOT_FOUND, detail="Experience entry not found"
         )
 
-    # Update fields
-    update_data = request.dict(exclude_unset=True)
+    return ExperienceResponse.model_validate(experience)
+
+
+@router.put("/{experience_id}", response_model=ExperienceResponse)
+def update_experience(
+    experience_id: int,
+    request: ExperienceRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """更新工作经历"""
+    experience = (
+        db.query(UserExperience)
+        .filter(
+            UserExperience.id == experience_id,
+            UserExperience.user_id == current_user.id,
+        )
+        .first()
+    )
+
+    if not experience:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Experience entry not found"
+        )
+
+    # 更新字段
+    update_data = request.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(experience, field, value)
 
     db.commit()
     db.refresh(experience)
 
-    return ExperienceResponse.from_orm(experience)
+    return ExperienceResponse.model_validate(experience)
 
 
 @router.delete("/{experience_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -127,7 +179,7 @@ def delete_experience(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Delete experience entry."""
+    """删除工作经历"""
     experience = (
         db.query(UserExperience)
         .filter(

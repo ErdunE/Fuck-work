@@ -1,16 +1,15 @@
 """
-SQLAlchemy ORM models for FuckWork Phase 2A.
-
-Minimal schema with 4-field collection_metadata.
+SQLAlchemy ORM models for FuckWork.
+Phase 7.0 - Clean Profile Models matching frontend exactly.
 """
 
 from datetime import datetime
 
 from sqlalchemy import (
+    ARRAY,
     TIMESTAMP,
     Boolean,
     Column,
-    Date,
     Float,
     ForeignKey,
     Index,
@@ -25,198 +24,151 @@ from sqlalchemy.orm import relationship
 Base = declarative_base()
 
 
-class Job(Base):
-    """
-    Job posting model.
-
-    Contains basic job information plus Phase 1 authenticity scoring results
-    and Phase 2A minimal collection metadata.
-    """
-
-    __tablename__ = "jobs"
-
-    # Primary key
-    id = Column(Integer, primary_key=True)
-    job_id = Column(String(255), unique=True, nullable=False, index=True)
-
-    # Basic info (required)
-    title = Column(String(500), nullable=False)
-    company_name = Column(String(255), nullable=False, index=True)
-    location = Column(String(255))
-    url = Column(Text, unique=True, nullable=False)
-    platform = Column(String(50), nullable=False, index=True)
-    jd_text = Column(Text, nullable=False)
-    posted_date = Column(TIMESTAMP, index=True)
-
-    # Phase 1 scoring results
-    authenticity_score = Column(Float, index=True)
-    authenticity_level = Column(String(20))  # likely_real, uncertain, likely_fake
-    confidence = Column(String(20))  # Low, Medium, High
-    red_flags = Column(JSONB)
-    positive_signals = Column(JSONB)
-
-    # Phase 2A: Minimal collection metadata (4 fields only)
-    # {
-    #   "platform": "LinkedIn",
-    #   "collection_method": "jobspy_batch",
-    #   "poster_expected": true,
-    #   "poster_present": false
-    # }
-    collection_metadata = Column(JSONB)
-
-    # Poster/company/platform data (JSONB for flexibility)
-    poster_info = Column(JSONB)
-    company_info = Column(JSONB)
-    platform_metadata = Column(JSONB)
-    derived_signals = Column(JSONB)
-
-    # Timestamps
-    created_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)
-    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
-    expires_at = Column(TIMESTAMP)
-
-    def __repr__(self):
-        return f"<Job(id={self.id}, job_id='{self.job_id}', company='{self.company_name}', title='{self.title[:50]}...')>"
-
-    def to_dict(self):
-        """Convert model to dictionary for JSON serialization"""
-        return {
-            "id": self.id,
-            "job_id": self.job_id,
-            "title": self.title,
-            "company_name": self.company_name,
-            "location": self.location,
-            "url": self.url,
-            "platform": self.platform,
-            "jd_text": self.jd_text,
-            "posted_date": self.posted_date.isoformat() if self.posted_date else None,
-            "authenticity_score": self.authenticity_score,
-            "authenticity_level": self.authenticity_level,
-            "confidence": self.confidence,
-            "red_flags": self.red_flags,
-            "positive_signals": self.positive_signals,
-            "collection_metadata": self.collection_metadata,
-            "poster_info": self.poster_info,
-            "company_info": self.company_info,
-            "platform_metadata": self.platform_metadata,
-            "derived_signals": self.derived_signals,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
-        }
-
-
-# Phase 3.3: User Profile & Knowledge Foundation
+# =============================================================================
+# User & Profile Models
+# =============================================================================
 
 
 class User(Base):
-    """
-    User account - Phase 5.0: JWT authentication enabled.
-    Phase 5.3.2: Added token_version for secure token revocation.
-    """
+    """用户账户 - 认证信息"""
 
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    password_hash = Column(String(255))  # Phase 5.0: nullable for stub auth
-    cognito_sub = Column(String(255), unique=True, index=True)  # Cognito user UUID
-    token_version = Column(
-        Integer, nullable=False, default=1, index=True
-    )  # Phase 5.3.2: Token revocation
-    last_login_at = Column(TIMESTAMP)  # Phase 5.0: track last login
-    is_active = Column(Boolean, default=True)  # Phase 5.0: soft deletion
+    password_hash = Column(String(255))
+    cognito_sub = Column(String(255), unique=True, index=True)
+    token_version = Column(Integer, nullable=False, default=1, index=True)
+    last_login_at = Column(TIMESTAMP)
+    is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     profile = relationship(
-        "UserProfile",
-        back_populates="user",
-        uselist=False,
-        cascade="all, delete-orphan",
+        "UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
-    education = relationship("UserEducation", back_populates="user", cascade="all, delete-orphan")
+    resumes = relationship("UserResume", back_populates="user", cascade="all, delete-orphan")
     experience = relationship("UserExperience", back_populates="user", cascade="all, delete-orphan")
-    projects = relationship("UserProject", back_populates="user", cascade="all, delete-orphan")
+    education = relationship("UserEducation", back_populates="user", cascade="all, delete-orphan")
     skills = relationship("UserSkill", back_populates="user", cascade="all, delete-orphan")
-    knowledge_entries = relationship(
-        "UserKnowledgeEntry", back_populates="user", cascade="all, delete-orphan"
+    languages = relationship("UserLanguage", back_populates="user", cascade="all, delete-orphan")
+    projects = relationship("UserProject", back_populates="user", cascade="all, delete-orphan")
+    certifications = relationship(
+        "UserCertification", back_populates="user", cascade="all, delete-orphan"
     )
-    apply_tasks = relationship("ApplyTask", back_populates="user", cascade="all, delete-orphan")
-    automation_preferences = relationship(
-        "AutomationPreference",
-        back_populates="user",
-        uselist=False,
-        cascade="all, delete-orphan",
-    )  # Phase 5.0
-    automation_events = relationship(
-        "AutomationEvent", back_populates="user", cascade="all, delete-orphan"
-    )  # Phase 5.0
+    awards = relationship("UserAward", back_populates="user", cascade="all, delete-orphan")
+    publications = relationship(
+        "UserPublication", back_populates="user", cascade="all, delete-orphan"
+    )
+    volunteering = relationship(
+        "UserVolunteering", back_populates="user", cascade="all, delete-orphan"
+    )
+    job_preferences = relationship(
+        "UserJobPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"
 
 
 class UserProfile(Base):
-    """
-    User core profile - Phase 5.0: authoritative source for autofill operations.
-    """
+    """用户档案 - Personal Info 页面"""
 
     __tablename__ = "user_profiles"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
-    version = Column(Integer, default=1)  # Phase 5.0: for future schema migrations
 
-    # Personal info
+    # Basic Information
     first_name = Column(String(255))
     last_name = Column(String(255))
-    full_name = Column(String(255))  # Phase 5.0: convenience field
-    phone = Column(String(50))
+    preferred_name = Column(String(255))
+    email = Column(String(255))
 
-    # Contact info - Phase 5.0
-    primary_email = Column(String(255))
-    secondary_email = Column(String(255))
+    # Contact
+    phone_country_code = Column(String(10))
+    phone_number = Column(String(30))
 
     # Location
-    city = Column(String(255))
-    state = Column(String(100))
     country = Column(String(100))
-    postal_code = Column(String(20))  # Phase 5.0
+    state = Column(String(100))
+    city = Column(String(255))
+    street_address = Column(String(255))
+    apartment = Column(String(100))
+    postal_code = Column(String(20))
 
-    # Resume & Documents - Phase 5.0
-    resume_url = Column(String(1024))  # S3/cloud storage URL
-    resume_filename = Column(String(255))
-    resume_uploaded_at = Column(TIMESTAMP)
-
-    # Professional - Phase 5.0
+    # Online Presence
     linkedin_url = Column(String(512))
-    portfolio_url = Column(String(512))
     github_url = Column(String(512))
+    website_url = Column(String(512))
+    other_urls = Column(JSONB)  # [{"label": "Twitter", "url": "..."}]
 
-    # Work authorization (existing)
-    work_authorization = Column(String(100))
-    visa_status = Column(String(100))
-
-    # Phase 5.2: Compliance / Preferences
-    willing_to_relocate = Column(Boolean)
-    government_employment_history = Column(Boolean)
-
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # About
+    professional_summary = Column(Text)
 
     # Relationship
     user = relationship("User", back_populates="profile")
 
     def __repr__(self):
-        return f"<UserProfile(user_id={self.user_id}, name='{self.first_name} {self.last_name}')>"
+        return f"<UserProfile(user_id={self.user_id})>"
+
+
+class UserResume(Base):
+    """简历和 Cover Letter - Resume 页面"""
+
+    __tablename__ = "user_resumes"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    file_name = Column(String(255), nullable=False)
+    file_url = Column(String(1024), nullable=False)
+    file_type = Column(String(50))
+    file_size = Column(Integer)
+    is_default = Column(Boolean, default=False)
+    is_cover_letter = Column(Boolean, default=False)
+    uploaded_at = Column(TIMESTAMP, default=datetime.utcnow)
+
+    # Relationship
+    user = relationship("User", back_populates="resumes")
+
+    def __repr__(self):
+        return f"<UserResume(id={self.id}, file='{self.file_name}')>"
+
+
+class UserExperience(Base):
+    """工作经历 - Experience 页面"""
+
+    __tablename__ = "user_experience"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    job_title = Column(String(255), nullable=False)
+    company_name = Column(String(255), nullable=False)
+    employment_type = Column(String(50))
+    location_type = Column(String(50))
+    location = Column(String(255))
+
+    start_month = Column(String(20))
+    start_year = Column(Integer)
+    end_month = Column(String(20))
+    end_year = Column(Integer)
+    is_current = Column(Boolean, default=False)
+
+    description = Column(Text)
+    skills_used = Column(ARRAY(Text))
+
+    # Relationship
+    user = relationship("User", back_populates="experience")
+
+    def __repr__(self):
+        return f"<UserExperience(id={self.id}, company='{self.company_name}')>"
 
 
 class UserEducation(Base):
-    """
-    Education history - structured for ATS.
-    """
+    """教育经历 - Education 页面"""
 
     __tablename__ = "user_education"
 
@@ -225,75 +177,29 @@ class UserEducation(Base):
 
     school_name = Column(String(255), nullable=False)
     degree = Column(String(100))
-    major = Column(String(100))
-    start_date = Column(Date)
-    end_date = Column(Date)
-    gpa = Column(Float)
+    field_of_study = Column(String(255))
+    location = Column(String(255))
 
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    start_month = Column(String(20))
+    start_year = Column(Integer)
+    end_month = Column(String(20))
+    end_year = Column(Integer)
+    is_current = Column(Boolean, default=False)
+
+    gpa = Column(String(20))
+    honors = Column(String(255))
+    coursework = Column(Text)
+    activities = Column(Text)
 
     # Relationship
     user = relationship("User", back_populates="education")
 
     def __repr__(self):
-        return f"<UserEducation(id={self.id}, school='{self.school_name}', degree='{self.degree}')>"
-
-
-class UserExperience(Base):
-    """
-    Work experience - structured for ATS.
-    """
-
-    __tablename__ = "user_experience"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-
-    company_name = Column(String(255), nullable=False)
-    job_title = Column(String(255), nullable=False)
-    start_date = Column(Date)
-    end_date = Column(Date)
-    is_current = Column(Boolean, default=False)
-
-    responsibilities = Column(Text)
-
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-
-    # Relationship
-    user = relationship("User", back_populates="experience")
-
-    def __repr__(self):
-        return f"<UserExperience(id={self.id}, company='{self.company_name}', title='{self.job_title}')>"
-
-
-class UserProject(Base):
-    """
-    Projects - structured for ATS autofill.
-    """
-
-    __tablename__ = "user_projects"
-
-    id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-
-    project_name = Column(String(255), nullable=False)
-    role = Column(String(100))
-    description = Column(Text)
-    tech_stack = Column(Text)
-
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-
-    # Relationship
-    user = relationship("User", back_populates="projects")
-
-    def __repr__(self):
-        return f"<UserProject(id={self.id}, name='{self.project_name}')>"
+        return f"<UserEducation(id={self.id}, school='{self.school_name}')>"
 
 
 class UserSkill(Base):
-    """
-    Skills - normalized but simple.
-    """
+    """技能 - Skills 页面"""
 
     __tablename__ = "user_skills"
 
@@ -301,9 +207,6 @@ class UserSkill(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
     skill_name = Column(String(100), nullable=False)
-    skill_category = Column(String(50))
-
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
 
     # Relationship
     user = relationship("User", back_populates="skills")
@@ -312,329 +215,237 @@ class UserSkill(Base):
         return f"<UserSkill(id={self.id}, skill='{self.skill_name}')>"
 
 
-class UserKnowledgeEntry(Base):
-    """
-    Unstructured knowledge base - for future AI reasoning.
-    NOT used for autofill.
-    """
+class UserLanguage(Base):
+    """语言 - Skills 页面"""
 
-    __tablename__ = "user_knowledge_entries"
+    __tablename__ = "user_languages"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
 
-    entry_type = Column(String(50), nullable=False)
-    content = Column(Text, nullable=False)
-
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    language_name = Column(String(100), nullable=False)
+    proficiency = Column(String(50))
 
     # Relationship
-    user = relationship("User", back_populates="knowledge_entries")
+    user = relationship("User", back_populates="languages")
 
     def __repr__(self):
-        return f"<UserKnowledgeEntry(id={self.id}, type='{self.entry_type}')>"
+        return f"<UserLanguage(id={self.id}, language='{self.language_name}')>"
 
 
-# Phase 3.5: Apply Orchestration + Status Tracking
+class UserProject(Base):
+    """项目 - Achievements 页面"""
 
-
-class ApplyTask(Base):
-    """
-    Apply task - represents a job application attempt.
-    Tracks status through lifecycle: queued -> in_progress -> needs_user -> success/failed
-    """
-
-    __tablename__ = "apply_tasks"
+    __tablename__ = "user_projects"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    job_id = Column(String(255), nullable=False, index=True)
 
-    # Status management
-    status = Column(String(20), nullable=False, default="queued", index=True)
-    # Status values: queued | in_progress | needs_user | success | failed | canceled
-
-    priority = Column(Integer, default=0)
-    attempt_count = Column(Integer, default=0)
-    last_error = Column(Text)
-    task_metadata = Column(JSONB)
-
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    user = relationship("User", back_populates="apply_tasks")
-    events = relationship("ApplyEvent", back_populates="task", cascade="all, delete-orphan")
-
-    # Composite index for queue ordering
-    __table_args__ = (
-        Index("idx_apply_tasks_queue_order", "user_id", "status", "priority", "created_at"),
-    )
-
-    def __repr__(self):
-        return f"<ApplyTask(id={self.id}, job_id='{self.job_id}', status='{self.status}')>"
-
-
-class ApplyEvent(Base):
-    """
-    Apply event - audit log for status transitions.
-    Tracks every state change with reason and debug details.
-    """
-
-    __tablename__ = "apply_events"
-
-    id = Column(Integer, primary_key=True)
-    task_id = Column(Integer, ForeignKey("apply_tasks.id"), nullable=False, index=True)
-
-    from_status = Column(String(20), nullable=False)
-    to_status = Column(String(20), nullable=False)
-    reason = Column(String(500))
-    details = Column(JSONB)
-
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
+    project_name = Column(String(255), nullable=False)
+    role = Column(String(100))
+    start_month = Column(String(20))
+    start_year = Column(Integer)
+    end_month = Column(String(20))
+    end_year = Column(Integer)
+    is_ongoing = Column(Boolean, default=False)
+    project_url = Column(String(512))
+    repo_url = Column(String(512))
+    description = Column(Text)
+    technologies = Column(ARRAY(Text))
 
     # Relationship
-    task = relationship("ApplyTask", back_populates="events")
+    user = relationship("User", back_populates="projects")
 
     def __repr__(self):
-        return f"<ApplyEvent(id={self.id}, task_id={self.task_id}, {self.from_status} -> {self.to_status})>"
+        return f"<UserProject(id={self.id}, name='{self.project_name}')>"
 
 
-# Phase 5.0: Web Control Plane Models
+class UserCertification(Base):
+    """证书 - Achievements 页面"""
+
+    __tablename__ = "user_certifications"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    name = Column(String(255), nullable=False)
+    issuing_organization = Column(String(255))
+    issue_month = Column(String(20))
+    issue_year = Column(Integer)
+    expiration_month = Column(String(20))
+    expiration_year = Column(Integer)
+    no_expiration = Column(Boolean, default=False)
+    credential_id = Column(String(255))
+    credential_url = Column(String(512))
+
+    # Relationship
+    user = relationship("User", back_populates="certifications")
+
+    def __repr__(self):
+        return f"<UserCertification(id={self.id}, name='{self.name}')>"
 
 
-class AutomationPreference(Base):
-    """
-    Automation preferences - Phase 5.0: System of record for automation behavior.
-    Directly corresponds to Phase 4.3 extension preferences.
-    Backend is source of truth, extension polls and caches locally.
-    """
+class UserAward(Base):
+    """奖项 - Achievements 页面"""
 
-    __tablename__ = "automation_preferences"
+    __tablename__ = "user_awards"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    title = Column(String(255), nullable=False)
+    issuer = Column(String(255))
+    received_month = Column(String(20))
+    received_year = Column(Integer)
+    description = Column(Text)
+
+    # Relationship
+    user = relationship("User", back_populates="awards")
+
+    def __repr__(self):
+        return f"<UserAward(id={self.id}, title='{self.title}')>"
+
+
+class UserPublication(Base):
+    """发表 - Achievements 页面"""
+
+    __tablename__ = "user_publications"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    title = Column(String(255), nullable=False)
+    publisher = Column(String(255))
+    publication_month = Column(String(20))
+    publication_year = Column(Integer)
+    url = Column(String(512))
+    authors = Column(Text)
+    description = Column(Text)
+
+    # Relationship
+    user = relationship("User", back_populates="publications")
+
+    def __repr__(self):
+        return f"<UserPublication(id={self.id}, title='{self.title}')>"
+
+
+class UserVolunteering(Base):
+    """志愿者经历 - Achievements 页面"""
+
+    __tablename__ = "user_volunteering"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+
+    organization = Column(String(255), nullable=False)
+    role = Column(String(255))
+    cause = Column(String(255))
+    start_month = Column(String(20))
+    start_year = Column(Integer)
+    end_month = Column(String(20))
+    end_year = Column(Integer)
+    is_current = Column(Boolean, default=False)
+    description = Column(Text)
+
+    # Relationship
+    user = relationship("User", back_populates="volunteering")
+
+    def __repr__(self):
+        return f"<UserVolunteering(id={self.id}, org='{self.organization}')>"
+
+
+class UserJobPreferences(Base):
+    """求职偏好 - Preferences 页面"""
+
+    __tablename__ = "user_job_preferences"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, unique=True, index=True)
-    version = Column(Integer, default=1)  # Schema version for future migrations
 
-    # Global Automation Settings (maps to extension Phase 4.3)
-    auto_fill_after_login = Column(Boolean, default=True)
-    auto_submit_when_ready = Column(Boolean, default=False)
-    require_review_before_submit = Column(Boolean, default=True)  # Safety gate
+    # Job Preferences
+    desired_titles = Column(ARRAY(Text))
+    desired_industries = Column(ARRAY(Text))
+    desired_company_sizes = Column(ARRAY(Text))
 
-    # Future Expansion Hooks (JSONB for flexibility)
-    per_ats_overrides = Column(JSONB, default={})  # {"greenhouse": {"auto_fill": false}}
-    field_autofill_rules = Column(JSONB, default={})  # Custom field mappings
-    submit_review_timeout_ms = Column(Integer, default=0)  # 0 = explicit confirm
+    # Compensation
+    min_salary = Column(Integer)
+    max_salary = Column(Integer)
+    salary_currency = Column(String(10), default="USD")
+    salary_period = Column(String(20), default="yearly")
+    salary_negotiable = Column(Boolean, default=True)
 
-    # Sync Metadata
-    last_synced_at = Column(TIMESTAMP)
-    sync_source = Column(String(50))  # 'web', 'extension', 'api'
+    # Location & Work Mode
+    preferred_locations = Column(ARRAY(Text))
+    work_modes = Column(ARRAY(Text))
+    willing_to_relocate = Column(String(50))  # "yes", "no", "for_the_right_opportunity"
+    relocation_locations = Column(ARRAY(Text))
 
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Employment Details
+    employment_types = Column(ARRAY(Text))
+    available_start_date = Column(String(50))  # "immediately", "2_weeks", etc.
+    travel_percentage = Column(String(50))  # "no_travel", "up_to_25", etc.
+
+    # Work Authorization
+    work_auth_countries = Column(ARRAY(Text))
+    requires_sponsorship = Column(String(50))  # "yes", "no", "not_applicable"
+
+    # Application Questions
+    age_over_18 = Column(Boolean)
+    has_drivers_license = Column(Boolean)
+    has_reliable_transportation = Column(Boolean)
+    background_check_consent = Column(Boolean)
+    drug_test_consent = Column(Boolean)
+
+    # EEO
+    eeo_gender = Column(String(50))
+    eeo_sexual_orientation = Column(String(50))
+    eeo_veteran_status = Column(String(50))
+    eeo_disability_status = Column(String(50))
+    eeo_race_ethnicity = Column(ARRAY(Text))
 
     # Relationship
-    user = relationship("User", back_populates="automation_preferences")
+    user = relationship("User", back_populates="job_preferences")
 
     def __repr__(self):
-        return f"<AutomationPreference(user_id={self.user_id}, auto_fill={self.auto_fill_after_login}, auto_submit={self.auto_submit_when_ready})>"
+        return f"<UserJobPreferences(user_id={self.user_id})>"
 
 
-class AutomationEvent(Base):
-    """
-    Automation event - Phase 5.0: Audit log for automation decisions and actions.
-    Developer-grade debugging to replace browser console.
-    Immutable audit log (INSERT only, no UPDATE/DELETE).
-    """
+# =============================================================================
+# Jobs Model (保留)
+# =============================================================================
 
-    __tablename__ = "automation_events"
+
+class Job(Base):
+    """Job posting model."""
+
+    __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey("users.id"), index=True)  # SET NULL on user delete
-    task_id = Column(Integer, ForeignKey("apply_tasks.id"), index=True)  # SET NULL on task delete
-    session_id = Column(String(255), index=True)  # From apply_session.task_id
+    job_id = Column(String(255), unique=True, nullable=False, index=True)
 
-    # Event Classification
-    event_type = Column(
-        String(100), nullable=False
-    )  # 'autofill_triggered', 'submit_approved', 'detection_result'
-    event_category = Column(String(50))  # 'automation', 'detection', 'user_action'
+    title = Column(String(500), nullable=False)
+    company_name = Column(String(255), nullable=False, index=True)
+    location = Column(String(255))
+    url = Column(Text, unique=True, nullable=False)
+    platform = Column(String(50), nullable=False, index=True)
+    jd_text = Column(Text, nullable=False)
+    posted_date = Column(TIMESTAMP, index=True)
 
-    # Detection Context (from Phase 4.1.4.2)
-    detection_id = Column(String(255), index=True)  # Correlation ID
-    page_url = Column(Text)
-    page_intent = Column(String(50))  # From page_intent_classifier
-    ats_kind = Column(String(100))
-    apply_stage = Column(String(100))
+    authenticity_score = Column(Float, index=True)
+    authenticity_level = Column(String(20))
+    confidence = Column(String(20))
+    red_flags = Column(JSONB)
+    positive_signals = Column(JSONB)
 
-    # Automation Decisions
-    automation_decision = Column(
-        String(100)
-    )  # 'autofill_executed', 'submit_blocked', 'user_canceled'
-    decision_reason = Column(Text)  # Why this decision was made
-
-    # Preferences Snapshot (at time of event)
-    preferences_snapshot = Column(JSONB)  # Record effective preferences
-
-    # Payload
-    event_payload = Column(JSONB)  # Full event data
+    collection_metadata = Column(JSONB)
+    poster_info = Column(JSONB)
+    company_info = Column(JSONB)
+    platform_metadata = Column(JSONB)
+    derived_signals = Column(JSONB)
 
     created_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)
-
-    # Relationships
-    user = relationship("User", back_populates="automation_events")
-    task = relationship("ApplyTask")
-
-    # Composite indexes for fast queries
-    __table_args__ = (Index("idx_automation_events_type_category", "event_type", "event_category"),)
-
-    def __repr__(self):
-        return f"<AutomationEvent(id={self.id}, type='{self.event_type}', decision='{self.automation_decision}')>"
-
-
-# Phase 5.3.0: Observability Console Models
-
-
-class ApplyRun(Base):
-    """
-    Apply Run - Phase 5.3.0 Observability Console.
-
-    Represents one end-to-end application attempt/run with full observability.
-    Each run tracks state through detection → autofill → submit flow.
-    Correlated with observability_events for timeline reconstruction.
-    """
-
-    __tablename__ = "apply_runs"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)  # run_id
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    job_id = Column(String(255), nullable=True)
-    task_id = Column(Integer, nullable=True, index=True)
-
-    # URLs
-    initial_url = Column(Text, nullable=False)
-    current_url = Column(Text, nullable=False)
-
-    # ATS detection results
-    ats_kind = Column(
-        String(100), nullable=True, index=True
-    )  # greenhouse, workday, lever, linkedin_easy_apply, unknown
-    intent = Column(String(100), nullable=True)  # application_form, login_required, unknown
-    stage = Column(
-        String(100), nullable=True
-    )  # analyzing, ready_to_fill, filling, filled, ready_to_submit, manual_review, blocked, completed
-
-    # Run status
-    status = Column(
-        String(50), nullable=False, default="in_progress", index=True
-    )  # in_progress, success, failed, abandoned
-
-    # Autofill metrics
-    fill_rate = Column(Float, nullable=True)
-    fields_attempted = Column(Integer, default=0)
-    fields_filled = Column(Integer, default=0)
-    fields_skipped = Column(Integer, default=0)
-
-    # Error tracking
-    failure_reason = Column(Text, nullable=True)
-
-    # Timestamps
-    created_at = Column(TIMESTAMP, default=datetime.utcnow, index=True)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
-    ended_at = Column(TIMESTAMP, nullable=True)
-
-    # Relationships
-    user = relationship("User", foreign_keys=[user_id])
-    events = relationship("ObservabilityEvent", back_populates="run", cascade="all, delete-orphan")
-
-    # Composite indexes for querying
-    __table_args__ = (
-        Index("idx_apply_runs_user_created", "user_id", "created_at"),
-        Index("idx_apply_runs_status_created", "status", "created_at"),
-    )
+    expires_at = Column(TIMESTAMP)
 
     def __repr__(self):
-        return f"<ApplyRun(id={self.id}, status='{self.status}', ats='{self.ats_kind}')>"
-
-
-class ObservabilityEvent(Base):
-    """
-    Observability Event - Phase 5.3.0 Observability Console.
-
-    Append-only structured event stream for full system observability.
-    Captures events from extension, backend, and web app with structured payloads.
-    Enables timeline reconstruction and debugging of apply runs.
-    """
-
-    __tablename__ = "observability_events"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    run_id = Column(Integer, ForeignKey("apply_runs.id"), nullable=False, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-
-    # Event metadata
-    source = Column(String(20), nullable=False)  # extension, backend, web
-    severity = Column(String(10), nullable=False)  # debug, info, warn, error
-    event_name = Column(String(100), nullable=False, index=True)
-    event_version = Column(Integer, default=1)
-
-    # Event context
-    ts = Column(TIMESTAMP, default=datetime.utcnow, index=True)
-    url = Column(Text, nullable=True)
-
-    # Extensible payload
-    payload = Column(JSONB, default={})
-
-    # Correlation keys
-    dedup_key = Column(String(255), nullable=True)
-    request_id = Column(String(100), nullable=True)
-    detection_id = Column(String(100), nullable=True)
-    page_id = Column(String(100), nullable=True)
-
-    # Relationships
-    run = relationship("ApplyRun", back_populates="events")
-    user = relationship("User", foreign_keys=[user_id])
-
-    # Composite indexes for efficient querying
-    __table_args__ = (
-        Index("idx_observability_events_run_ts", "run_id", "ts"),
-        Index("idx_observability_events_event_ts", "event_name", "ts"),
-        Index(
-            "idx_observability_events_payload", "payload", postgresql_using="gin"
-        ),  # GIN index for JSONB
-    )
-
-    def __repr__(self):
-        return (
-            f"<ObservabilityEvent(id={self.id}, event='{self.event_name}', source='{self.source}')>"
-        )
-
-
-class ActiveApplySession(Base):
-    """
-    Active Apply Session - Phase 5.3.1 Session Bridge.
-
-    One active session per user. Enables extension to deterministically
-    attach to the correct apply run when user opens job from Control Plane.
-
-    TTL: 2 hours default. Expired sessions are automatically cleaned on read.
-    """
-
-    __tablename__ = "active_apply_sessions"
-
-    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
-    task_id = Column(Integer, ForeignKey("apply_tasks.id"), nullable=False, index=True)
-    run_id = Column(Integer, ForeignKey("apply_runs.id"), nullable=False, index=True)
-    job_url = Column(Text, nullable=False)
-    ats_type = Column(String(100), nullable=True)
-    created_at = Column(TIMESTAMP, default=datetime.utcnow)
-    expires_at = Column(TIMESTAMP, nullable=False, index=True)
-    updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    user = relationship("User", foreign_keys=[user_id])
-    task = relationship("ApplyTask", foreign_keys=[task_id])
-    run = relationship("ApplyRun", foreign_keys=[run_id])
-
-    def __repr__(self):
-        return f"<ActiveApplySession(user_id={self.user_id}, run_id={self.run_id}, task_id={self.task_id})>"
+        return f"<Job(id={self.id}, job_id='{self.job_id}')>"
