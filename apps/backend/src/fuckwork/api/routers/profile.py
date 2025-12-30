@@ -1,280 +1,419 @@
 """
-User Profile API endpoints for Phase 5.0 Web Control Plane.
-Authoritative source of truth for autofill operations.
+User Profile API endpoints - Personal Info 页面
+Phase 7.0 - 匹配前端字段
 """
 
-from datetime import date, datetime
+from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from src.fuckwork.api.auth import get_current_user
 from src.fuckwork.database import (
     User,
+    UserProfile,
     UserEducation,
     UserExperience,
-    UserProfile,
-    UserProject,
     UserSkill,
+    UserLanguage,
+    UserProject,
+    UserCertification,
+    UserAward,
+    UserPublication,
+    UserVolunteering,
+    UserResume,
     get_db,
 )
 
 router = APIRouter(prefix="/api/users/me", tags=["profile"])
 
 
-# Request/Response Models
+# =============================================================================
+# Pydantic Models - 匹配前端字段
+# =============================================================================
 
-
-# Phase 5.2: Nested collection models
-class EducationItem(BaseModel):
-    """Education entry."""
-
-    id: int
-    school_name: str
-    degree: Optional[str] = None
-    major: Optional[str] = None
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    gpa: Optional[float] = None
-
-    class Config:
-        from_attributes = True
-
-
-class ExperienceItem(BaseModel):
-    """Work experience entry."""
-
-    id: int
-    company_name: str
-    job_title: str
-    start_date: Optional[date] = None
-    end_date: Optional[date] = None
-    is_current: bool = False
-    responsibilities: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
-class ProjectItem(BaseModel):
-    """Project entry."""
-
-    id: int
-    project_name: str
-    role: Optional[str] = None
-    description: Optional[str] = None
-    tech_stack: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-
-class SkillItem(BaseModel):
-    """Skill entry."""
-
-    id: int
-    skill_name: str
-    skill_category: Optional[str] = None
-
-    class Config:
-        from_attributes = True
+class OtherUrl(BaseModel):
+    """其他链接"""
+    label: str
+    url: str
 
 
 class ProfileResponse(BaseModel):
-    """User profile response."""
-
+    """Profile 响应 - Personal Info 页面"""
     id: int
     user_id: int
-    version: int
 
-    # Personal Information
+    # Basic Information
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    full_name: Optional[str] = None
+    preferred_name: Optional[str] = None
+    email: Optional[str] = None
 
-    # Contact Information
-    primary_email: Optional[str] = None
-    secondary_email: Optional[str] = None
-    phone: Optional[str] = None
-
-    # Resume & Documents
-    resume_url: Optional[str] = None
-    resume_filename: Optional[str] = None
-    resume_uploaded_at: Optional[datetime] = None
+    # Contact
+    phone_country_code: Optional[str] = None
+    phone_number: Optional[str] = None
 
     # Location
-    city: Optional[str] = None
-    state: Optional[str] = None
     country: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    street_address: Optional[str] = None
+    apartment: Optional[str] = None
     postal_code: Optional[str] = None
 
-    # Professional
+    # Online Presence
     linkedin_url: Optional[str] = None
-    portfolio_url: Optional[str] = None
     github_url: Optional[str] = None
+    website_url: Optional[str] = None
+    other_urls: Optional[List[OtherUrl]] = None
 
-    # Work Authorization
-    work_authorization: Optional[str] = None
-    visa_status: Optional[str] = None
-
-    # Phase 5.2: ATS-complete collections
-    education: List[EducationItem] = []
-    experience: List[ExperienceItem] = []
-    projects: List[ProjectItem] = []
-    skills: List[SkillItem] = []
-
-    # Phase 5.2: Compliance preferences
-    willing_to_relocate: Optional[bool] = None
-    government_employment_history: Optional[bool] = None
-
-    # Metadata
-    updated_at: datetime
+    # About
+    professional_summary: Optional[str] = None
 
     class Config:
         from_attributes = True
 
 
 class ProfileUpdateRequest(BaseModel):
-    """User profile update request (all fields optional for partial updates)."""
-
+    """Profile 更新请求"""
+    # Basic Information
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    full_name: Optional[str] = None
-    primary_email: Optional[EmailStr] = None
-    secondary_email: Optional[EmailStr] = None
-    phone: Optional[str] = None
-    resume_url: Optional[str] = None
-    resume_filename: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
+    preferred_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+    # Contact
+    phone_country_code: Optional[str] = None
+    phone_number: Optional[str] = None
+
+    # Location
     country: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    street_address: Optional[str] = None
+    apartment: Optional[str] = None
+    postal_code: Optional[str] = None
+
+    # Online Presence
+    linkedin_url: Optional[str] = None
+    github_url: Optional[str] = None
+    website_url: Optional[str] = None
+    other_urls: Optional[List[OtherUrl]] = None
+
+    # About
+    professional_summary: Optional[str] = None
+
+
+# =============================================================================
+# 子集合的响应模型（用于完整 Profile 响应）
+# =============================================================================
+
+class EducationItem(BaseModel):
+    id: int
+    school_name: str
+    degree: Optional[str] = None
+    field_of_study: Optional[str] = None
+    location: Optional[str] = None
+    start_month: Optional[str] = None
+    start_year: Optional[int] = None
+    end_month: Optional[str] = None
+    end_year: Optional[int] = None
+    is_current: bool = False
+    gpa: Optional[str] = None
+    honors: Optional[str] = None
+    coursework: Optional[str] = None
+    activities: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ExperienceItem(BaseModel):
+    id: int
+    job_title: str
+    company_name: str
+    employment_type: Optional[str] = None
+    location_type: Optional[str] = None
+    location: Optional[str] = None
+    start_month: Optional[str] = None
+    start_year: Optional[int] = None
+    end_month: Optional[str] = None
+    end_year: Optional[int] = None
+    is_current: bool = False
+    description: Optional[str] = None
+    skills_used: Optional[List[str]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SkillItem(BaseModel):
+    id: int
+    skill_name: str
+
+    class Config:
+        from_attributes = True
+
+
+class LanguageItem(BaseModel):
+    id: int
+    language_name: str
+    proficiency: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ProjectItem(BaseModel):
+    id: int
+    project_name: str
+    role: Optional[str] = None
+    start_month: Optional[str] = None
+    start_year: Optional[int] = None
+    end_month: Optional[str] = None
+    end_year: Optional[int] = None
+    is_ongoing: bool = False
+    project_url: Optional[str] = None
+    repo_url: Optional[str] = None
+    description: Optional[str] = None
+    technologies: Optional[List[str]] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CertificationItem(BaseModel):
+    id: int
+    name: str
+    issuing_organization: Optional[str] = None
+    issue_month: Optional[str] = None
+    issue_year: Optional[int] = None
+    expiration_month: Optional[str] = None
+    expiration_year: Optional[int] = None
+    no_expiration: bool = False
+    credential_id: Optional[str] = None
+    credential_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AwardItem(BaseModel):
+    id: int
+    title: str
+    issuer: Optional[str] = None
+    received_month: Optional[str] = None
+    received_year: Optional[int] = None
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PublicationItem(BaseModel):
+    id: int
+    title: str
+    publisher: Optional[str] = None
+    publication_month: Optional[str] = None
+    publication_year: Optional[int] = None
+    url: Optional[str] = None
+    authors: Optional[str] = None
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class VolunteeringItem(BaseModel):
+    id: int
+    organization: str
+    role: Optional[str] = None
+    cause: Optional[str] = None
+    start_month: Optional[str] = None
+    start_year: Optional[int] = None
+    end_month: Optional[str] = None
+    end_year: Optional[int] = None
+    is_current: bool = False
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ResumeItem(BaseModel):
+    id: int
+    file_name: str
+    file_url: str
+    file_type: Optional[str] = None
+    file_size: Optional[int] = None
+    is_default: bool = False
+    is_cover_letter: bool = False
+    uploaded_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class FullProfileResponse(BaseModel):
+    """完整 Profile 响应 - 包含所有子集合"""
+    # Profile 基本信息
+    id: int
+    user_id: int
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    preferred_name: Optional[str] = None
+    email: Optional[str] = None
+    phone_country_code: Optional[str] = None
+    phone_number: Optional[str] = None
+    country: Optional[str] = None
+    state: Optional[str] = None
+    city: Optional[str] = None
+    street_address: Optional[str] = None
+    apartment: Optional[str] = None
     postal_code: Optional[str] = None
     linkedin_url: Optional[str] = None
-    portfolio_url: Optional[str] = None
     github_url: Optional[str] = None
-    work_authorization: Optional[str] = None
-    visa_status: Optional[str] = None
-    # Phase 5.2: Compliance fields
-    willing_to_relocate: Optional[bool] = None
-    government_employment_history: Optional[bool] = None
+    website_url: Optional[str] = None
+    other_urls: Optional[List[OtherUrl]] = None
+    professional_summary: Optional[str] = None
+
+    # Collections
+    education: List[EducationItem] = []
+    experience: List[ExperienceItem] = []
+    skills: List[SkillItem] = []
+    languages: List[LanguageItem] = []
+    projects: List[ProjectItem] = []
+    certifications: List[CertificationItem] = []
+    awards: List[AwardItem] = []
+    publications: List[PublicationItem] = []
+    volunteering: List[VolunteeringItem] = []
+    resumes: List[ResumeItem] = []
+
+    class Config:
+        from_attributes = True
 
 
-class ProfileUpdateResponse(BaseModel):
-    """Profile update response."""
-
-    id: int
-    updated_at: datetime
-    message: str
-
-
+# =============================================================================
 # Endpoints
+# =============================================================================
 
 
-@router.get("/profile", response_model=ProfileResponse)
-def get_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.get("/profile", response_model=FullProfileResponse)
+def get_profile(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Get current user's profile.
-
-    Phase 5.2: Now includes education, experience, projects, skills collections.
-    Authoritative source for autofill operations.
-    Extension fetches this to fill application forms.
+    获取当前用户的完整 Profile（包含所有子集合）
     """
     profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
 
     if not profile:
-        # Create empty profile if it doesn't exist
-        profile = UserProfile(user_id=current_user.id)
+        # 如果没有 profile，创建一个空的
+        profile = UserProfile(
+            user_id=current_user.id,
+            email=current_user.email  # 从 users 表继承 email
+        )
         db.add(profile)
         db.commit()
         db.refresh(profile)
 
-    # Phase 5.2: Fetch related collections (SQLAlchemy relationships handle joins)
+    # 获取所有子集合
     education = db.query(UserEducation).filter(UserEducation.user_id == current_user.id).all()
     experience = db.query(UserExperience).filter(UserExperience.user_id == current_user.id).all()
-    projects = db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
     skills = db.query(UserSkill).filter(UserSkill.user_id == current_user.id).all()
+    languages = db.query(UserLanguage).filter(UserLanguage.user_id == current_user.id).all()
+    projects = db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
+    certifications = db.query(UserCertification).filter(UserCertification.user_id == current_user.id).all()
+    awards = db.query(UserAward).filter(UserAward.user_id == current_user.id).all()
+    publications = db.query(UserPublication).filter(UserPublication.user_id == current_user.id).all()
+    volunteering = db.query(UserVolunteering).filter(UserVolunteering.user_id == current_user.id).all()
+    resumes = db.query(UserResume).filter(UserResume.user_id == current_user.id).all()
 
-    # Build response with collections
-    return ProfileResponse(
+    # 构建响应
+    return FullProfileResponse(
         id=profile.id,
         user_id=profile.user_id,
-        version=profile.version,
         first_name=profile.first_name,
         last_name=profile.last_name,
-        full_name=profile.full_name,
-        primary_email=profile.primary_email,
-        secondary_email=profile.secondary_email,
-        phone=profile.phone,
-        resume_url=profile.resume_url,
-        resume_filename=profile.resume_filename,
-        resume_uploaded_at=profile.resume_uploaded_at,
-        city=profile.city,
-        state=profile.state,
+        preferred_name=profile.preferred_name,
+        email=profile.email,
+        phone_country_code=profile.phone_country_code,
+        phone_number=profile.phone_number,
         country=profile.country,
+        state=profile.state,
+        city=profile.city,
+        street_address=profile.street_address,
+        apartment=profile.apartment,
         postal_code=profile.postal_code,
         linkedin_url=profile.linkedin_url,
-        portfolio_url=profile.portfolio_url,
         github_url=profile.github_url,
-        work_authorization=profile.work_authorization,
-        visa_status=profile.visa_status,
-        willing_to_relocate=(
-            profile.willing_to_relocate if hasattr(profile, "willing_to_relocate") else None
-        ),
-        government_employment_history=(
-            profile.government_employment_history
-            if hasattr(profile, "government_employment_history")
-            else None
-        ),
-        updated_at=profile.updated_at,
-        education=[EducationItem.from_orm(e) for e in education],
-        experience=[ExperienceItem.from_orm(e) for e in experience],
-        projects=[ProjectItem.from_orm(p) for p in projects],
-        skills=[SkillItem.from_orm(s) for s in skills],
+        website_url=profile.website_url,
+        other_urls=profile.other_urls,
+        professional_summary=profile.professional_summary,
+        education=[EducationItem.model_validate(e) for e in education],
+        experience=[ExperienceItem.model_validate(e) for e in experience],
+        skills=[SkillItem.model_validate(s) for s in skills],
+        languages=[LanguageItem.model_validate(l) for l in languages],
+        projects=[ProjectItem.model_validate(p) for p in projects],
+        certifications=[CertificationItem.model_validate(c) for c in certifications],
+        awards=[AwardItem.model_validate(a) for a in awards],
+        publications=[PublicationItem.model_validate(p) for p in publications],
+        volunteering=[VolunteeringItem.model_validate(v) for v in volunteering],
+        resumes=[ResumeItem.model_validate(r) for r in resumes],
     )
 
 
-@router.put("/profile", response_model=ProfileUpdateResponse)
+@router.put("/profile", response_model=ProfileResponse)
 def update_profile(
     request: ProfileUpdateRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     """
-    Update current user's profile.
-
-    Supports partial updates - only provided fields are updated.
-    Timestamps updated automatically.
+    更新当前用户的 Profile（Personal Info）
+    支持部分更新 - 只更新提供的字段
     """
     profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
 
     if not profile:
-        # Create profile if it doesn't exist
-        profile = UserProfile(user_id=current_user.id)
+        # 创建新 profile
+        profile = UserProfile(
+            user_id=current_user.id,
+            email=current_user.email
+        )
         db.add(profile)
 
-    # Update only provided fields
-    update_data = request.dict(exclude_unset=True)
+    # 更新提供的字段
+    update_data = request.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(profile, field, value)
-
-    # Auto-update full_name if first/last provided
-    if "first_name" in update_data or "last_name" in update_data:
-        if profile.first_name and profile.last_name:
-            profile.full_name = f"{profile.first_name} {profile.last_name}"
-
-    # Track resume upload time
-    if "resume_url" in update_data and update_data["resume_url"]:
-        profile.resume_uploaded_at = datetime.utcnow()
-
-    profile.updated_at = datetime.utcnow()
 
     db.commit()
     db.refresh(profile)
 
-    return ProfileUpdateResponse(
-        id=profile.id,
-        updated_at=profile.updated_at,
-        message="Profile updated successfully",
-    )
+    return ProfileResponse.model_validate(profile)
+
+
+@router.get("/profile/personal-info", response_model=ProfileResponse)
+def get_personal_info(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    获取 Personal Info 页面数据（不包含子集合）
+    """
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+
+    if not profile:
+        profile = UserProfile(
+            user_id=current_user.id,
+            email=current_user.email
+        )
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
+
+    return ProfileResponse.model_validate(profile)

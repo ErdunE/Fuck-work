@@ -1,9 +1,9 @@
 """
-Skills CRUD endpoints for Phase 5.2.
-Manages user skills.
+Skills CRUD endpoints - Skills 页面
+Phase 7.0 - 简化版，只需要 skill_name
 """
 
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -15,42 +15,57 @@ from src.fuckwork.database import User, UserSkill, get_db
 router = APIRouter(prefix="/api/users/me/skills", tags=["profile", "skills"])
 
 
-# Request/Response Models
+# =============================================================================
+# Request/Response Models - 简化版
+# =============================================================================
 
 
 class SkillRequest(BaseModel):
-    """Skill entry request."""
-
+    """Skill 请求 - 只需要技能名"""
     skill_name: str
-    skill_category: Optional[str] = None
 
 
 class SkillResponse(BaseModel):
-    """Skill entry response."""
-
+    """Skill 响应"""
     id: int
     skill_name: str
-    skill_category: Optional[str]
 
     class Config:
         from_attributes = True
 
 
 class SkillListResponse(BaseModel):
-    """Skill list response."""
-
+    """Skill 列表响应"""
     skills: List[SkillResponse]
     total: int
 
 
+class BulkSkillRequest(BaseModel):
+    """批量技能请求"""
+    skills: List[str]  # 直接传技能名列表，如 ["Python", "React", "SQL"]
+
+
+# =============================================================================
 # Endpoints
+# =============================================================================
 
 
 @router.get("", response_model=SkillListResponse)
-def list_skills(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get all skill entries for current user."""
-    skills = db.query(UserSkill).filter(UserSkill.user_id == current_user.id).all()
-    return SkillListResponse(skills=[SkillResponse.from_orm(s) for s in skills], total=len(skills))
+def list_skills(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """获取当前用户的所有技能"""
+    skills = (
+        db.query(UserSkill)
+        .filter(UserSkill.user_id == current_user.id)
+        .order_by(UserSkill.id)
+        .all()
+    )
+    return SkillListResponse(
+        skills=[SkillResponse.model_validate(s) for s in skills],
+        total=len(skills),
+    )
 
 
 @router.post("", response_model=SkillResponse, status_code=status.HTTP_201_CREATED)
@@ -59,45 +74,69 @@ def create_skill(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Add new skill entry."""
+    """添加新技能"""
+    # 检查重复
+    existing = (
+        db.query(UserSkill)
+        .filter(
+            UserSkill.user_id == current_user.id,
+            UserSkill.skill_name == request.skill_name,
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Skill '{request.skill_name}' already exists",
+        )
+
     skill = UserSkill(
         user_id=current_user.id,
         skill_name=request.skill_name,
-        skill_category=request.skill_category,
     )
     db.add(skill)
     db.commit()
     db.refresh(skill)
 
-    return SkillResponse.from_orm(skill)
+    return SkillResponse.model_validate(skill)
 
 
-@router.put("/{skill_id}", response_model=SkillResponse)
-def update_skill(
-    skill_id: int,
-    request: SkillRequest,
+@router.post("/bulk", response_model=SkillListResponse)
+def bulk_update_skills(
+    request: BulkSkillRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Update skill entry."""
-    skill = (
-        db.query(UserSkill)
-        .filter(UserSkill.id == skill_id, UserSkill.user_id == current_user.id)
-        .first()
-    )
+    """
+    批量更新技能 - 替换所有现有技能
+    前端可以直接传 ["Python", "React", "SQL"]
+    """
+    # 删除所有现有技能
+    db.query(UserSkill).filter(UserSkill.user_id == current_user.id).delete()
 
-    if not skill:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill entry not found")
-
-    # Update fields
-    update_data = request.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        setattr(skill, field, value)
+    # 添加新技能（去重）
+    new_skills = []
+    seen = set()
+    for skill_name in request.skills:
+        if skill_name not in seen:
+            seen.add(skill_name)
+            skill = UserSkill(
+                user_id=current_user.id,
+                skill_name=skill_name,
+            )
+            db.add(skill)
+            new_skills.append(skill)
 
     db.commit()
-    db.refresh(skill)
 
-    return SkillResponse.from_orm(skill)
+    # 刷新获取 ID
+    for skill in new_skills:
+        db.refresh(skill)
+
+    return SkillListResponse(
+        skills=[SkillResponse.model_validate(s) for s in new_skills],
+        total=len(new_skills),
+    )
 
 
 @router.delete("/{skill_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -106,15 +145,49 @@ def delete_skill(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Delete skill entry."""
+    """删除技能"""
     skill = (
         db.query(UserSkill)
-        .filter(UserSkill.id == skill_id, UserSkill.user_id == current_user.id)
+        .filter(
+            UserSkill.id == skill_id,
+            UserSkill.user_id == current_user.id
+        )
         .first()
     )
 
     if not skill:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill entry not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Skill not found"
+        )
+
+    db.delete(skill)
+    db.commit()
+
+    return None
+
+
+@router.delete("/by-name/{skill_name}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_skill_by_name(
+    skill_name: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """按名称删除技能（前端可能更方便用这个）"""
+    skill = (
+        db.query(UserSkill)
+        .filter(
+            UserSkill.skill_name == skill_name,
+            UserSkill.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if not skill:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Skill '{skill_name}' not found"
+        )
 
     db.delete(skill)
     db.commit()
