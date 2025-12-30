@@ -1,223 +1,434 @@
-// Personal Info
-export interface PersonalInfo {
-  first_name: string
-  last_name: string
-  preferred_name?: string
-  email: string
-  phone: string
-  phone_country_code: string
-  address_line1?: string
-  address_line2?: string
-  city: string
-  state: string
-  zip_code?: string
-  country: string
-  linkedin_url?: string
-  github_url?: string
-  portfolio_url?: string
-  other_url?: string
-  professional_summary?: string
+// =============================================================================
+// Profile Types - Phase 7.0
+// Matches backend API exactly
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Personal Info / Profile
+// -----------------------------------------------------------------------------
+
+export interface OtherUrl {
+  label: string
+  url: string
 }
 
-// Resume
-export interface ResumeFile {
-  id: string
-  name: string
+export interface ProfilePersonalInfo {
+  id: number
+  user_id: number
+  first_name: string | null
+  last_name: string | null
+  preferred_name: string | null
+  email: string | null
+  phone_country_code: string | null
+  phone_number: string | null
+  country: string | null
+  state: string | null
+  city: string | null
+  street_address: string | null
+  apartment: string | null
+  postal_code: string | null
+  linkedin_url: string | null
+  github_url: string | null
+  website_url: string | null
+  other_urls: OtherUrl[] | null
+  professional_summary: string | null
+}
+
+// -----------------------------------------------------------------------------
+// Resume & Cover Letter
+// -----------------------------------------------------------------------------
+
+export interface Resume {
+  id: number
+  file_name: string
   file_url: string
+  file_type: string
+  file_size: number
   is_default: boolean
+  is_cover_letter: boolean
   uploaded_at: string
 }
 
-export interface CoverLetterTemplate {
-  id: string
-  name: string
+export interface ResumeListResponse {
+  resumes: Resume[]
+  cover_letters: Resume[]
+  total: number
+}
+
+export interface PresignedUrlRequest {
+  file_name: string
+  file_type: string
+  is_cover_letter: boolean
+}
+
+export interface PresignedUrlResponse {
+  upload_url: string
   file_url: string
-  uploaded_at: string
+  file_key: string
+  expires_in: number
 }
 
+// -----------------------------------------------------------------------------
 // Experience
-export interface WorkExperience {
-  id: string
+// -----------------------------------------------------------------------------
+
+export interface Experience {
+  id: number
   job_title: string
   company_name: string
-  employment_type:
-    | 'full-time'
-    | 'part-time'
-    | 'contract'
-    | 'internship'
-    | 'freelance'
-  location?: string
-  location_type?: 'on-site' | 'remote' | 'hybrid'
-  start_date: string // YYYY-MM format
-  end_date?: string
+  employment_type: string | null  // "Full-time", "Part-time", "Contract", etc.
+  location_type: string | null    // "On-site", "Remote", "Hybrid"
+  location: string | null
+  start_month: string | null      // "January", "February", etc.
+  start_year: number | null
+  end_month: string | null
+  end_year: number | null
   is_current: boolean
-  description?: string
-  skills_used?: string[]
+  description: string | null
+  skills_used: string[] | null
 }
 
+export interface ExperienceListResponse {
+  experience: Experience[]
+  total: number
+}
+
+// -----------------------------------------------------------------------------
 // Education
-export interface EducationEntry {
-  id: string
+// -----------------------------------------------------------------------------
+
+export interface Education {
+  id: number
   school_name: string
-  degree:
-    | 'high-school'
-    | 'associate'
-    | 'bachelor'
-    | 'master'
-    | 'mba'
-    | 'phd'
-    | 'other'
-  field_of_study: string
-  location?: string
-  start_date?: string
-  end_date?: string
+  degree: string | null
+  field_of_study: string | null
+  location: string | null
+  start_month: string | null
+  start_year: number | null
+  end_month: string | null
+  end_year: number | null
   is_current: boolean
-  gpa?: string
-  honors?: string
-  relevant_coursework?: string
-  activities?: string
+  gpa: string | null              // VARCHAR, e.g., "3.9/4.0"
+  honors: string | null
+  coursework: string | null
+  activities: string | null
 }
 
+export interface EducationListResponse {
+  education: Education[]
+  total: number
+}
+
+// -----------------------------------------------------------------------------
 // Skills
-export interface LanguageProficiency {
-  id: string
-  language: string
-  proficiency: 'native' | 'fluent' | 'professional' | 'conversational' | 'basic'
+// -----------------------------------------------------------------------------
+
+export interface Skill {
+  id: number
+  skill_name: string
 }
 
-export interface Skills {
-  programming_languages: string[]
-  frameworks: string[]
-  databases: string[]
-  cloud_devops: string[]
-  tools: string[]
-  other_technical: string[]
-  soft_skills: string[]
-  languages: LanguageProficiency[]
+export interface SkillListResponse {
+  skills: Skill[]
+  total: number
 }
 
-// Achievements - Projects
+export interface BulkSkillsRequest {
+  skills: string[]
+}
+
+// -----------------------------------------------------------------------------
+// Languages
+// -----------------------------------------------------------------------------
+
+export interface Language {
+  id: number
+  language_name: string
+  proficiency: string | null  // "Native", "Fluent", "Professional", "Conversational", "Basic"
+}
+
+export interface LanguageListResponse {
+  languages: Language[]
+  total: number
+}
+
+// -----------------------------------------------------------------------------
+// Projects
+// -----------------------------------------------------------------------------
+
 export interface Project {
-  id: string
-  name: string
-  role?: string
-  start_date?: string
-  end_date?: string
+  id: number
+  project_name: string
+  role: string | null
+  start_month: string | null
+  start_year: number | null
+  end_month: string | null
+  end_year: number | null
   is_ongoing: boolean
-  project_url?: string
-  repository_url?: string
-  description?: string
-  technologies: string[]
+  project_url: string | null
+  repo_url: string | null
+  description: string | null
+  technologies: string[] | null
 }
 
-// Achievements - Certifications
+export interface ProjectListResponse {
+  projects: Project[]
+  total: number
+}
+
+// -----------------------------------------------------------------------------
+// Certifications
+// -----------------------------------------------------------------------------
+
 export interface Certification {
-  id: string
+  id: number
   name: string
-  issuing_organization: string
-  issue_date?: string
-  expiration_date?: string
+  issuing_organization: string | null
+  issue_month: string | null
+  issue_year: number | null
+  expiration_month: string | null
+  expiration_year: number | null
   no_expiration: boolean
-  credential_id?: string
-  credential_url?: string
+  credential_id: string | null
+  credential_url: string | null
 }
 
-// Achievements - Awards
+export interface CertificationListResponse {
+  certifications: Certification[]
+  total: number
+}
+
+// -----------------------------------------------------------------------------
+// Awards
+// -----------------------------------------------------------------------------
+
 export interface Award {
-  id: string
-  name: string
-  issuing_organization?: string
-  date_received?: string
-  description?: string
-}
-
-// Achievements - Publications
-export interface Publication {
-  id: string
+  id: number
   title: string
-  publisher?: string
-  publication_date?: string
-  url?: string
-  description?: string
-  authors?: string
+  issuer: string | null
+  received_month: string | null
+  received_year: number | null
+  description: string | null
 }
 
-// Achievements - Volunteering
+export interface AwardListResponse {
+  awards: Award[]
+  total: number
+}
+
+// -----------------------------------------------------------------------------
+// Publications
+// -----------------------------------------------------------------------------
+
+export interface Publication {
+  id: number
+  title: string
+  publisher: string | null
+  publication_month: string | null
+  publication_year: number | null
+  url: string | null
+  authors: string | null
+  description: string | null
+}
+
+export interface PublicationListResponse {
+  publications: Publication[]
+  total: number
+}
+
+// -----------------------------------------------------------------------------
+// Volunteering
+// -----------------------------------------------------------------------------
+
 export interface Volunteering {
-  id: string
+  id: number
   organization: string
-  role: string
-  cause?: string
-  start_date?: string
-  end_date?: string
+  role: string | null
+  cause: string | null
+  start_month: string | null
+  start_year: number | null
+  end_month: string | null
+  end_year: number | null
   is_current: boolean
-  description?: string
+  description: string | null
 }
 
-// Preferences
+export interface VolunteeringListResponse {
+  volunteering: Volunteering[]
+  total: number
+}
+
+// -----------------------------------------------------------------------------
+// Job Preferences
+// -----------------------------------------------------------------------------
+
 export interface JobPreferences {
-  // Job preferences
-  desired_job_titles: string[]
-  desired_industries: string[]
-  desired_company_sizes: string[]
-
-  // Salary
-  salary_min?: number
-  salary_max?: number
+  id: number
+  user_id: number
+  
+  // Job Preferences
+  desired_titles: string[] | null
+  desired_industries: string[] | null
+  desired_company_sizes: string[] | null
+  
+  // Compensation
+  min_salary: number | null
+  max_salary: number | null
   salary_currency: string
-  salary_period: 'yearly' | 'monthly' | 'hourly'
+  salary_period: string              // "yearly", "monthly", "hourly"
   salary_negotiable: boolean
-
-  // Location
-  preferred_locations: string[]
-  work_mode_preference: string[]
-  willing_to_relocate: 'yes' | 'no' | 'for-right-opportunity'
-  relocation_locations: string[]
-
-  // Employment
-  employment_types: string[]
-  available_start_date:
-    | 'immediately'
-    | '2-weeks'
-    | '1-month'
-    | '2-months'
-    | '3-months-plus'
-  willing_to_travel: 'no' | '25' | '50' | '75' | '100'
-
+  
+  // Location & Work Mode
+  preferred_locations: string[] | null
+  work_modes: string[] | null        // ["Remote", "Hybrid", "On-site"]
+  willing_to_relocate: string | null // "yes", "no", "for_the_right_opportunity"
+  relocation_locations: string[] | null
+  
+  // Employment Details
+  employment_types: string[] | null  // ["Full-time", "Part-time", "Contract"]
+  available_start_date: string | null // "immediately", "2_weeks", "1_month", etc.
+  travel_percentage: string | null   // "no_travel", "up_to_25", "up_to_50", etc.
+  
   // Work Authorization
-  authorized_us: boolean
-  require_sponsorship: 'yes' | 'no' | 'not-applicable'
-  work_authorization_status?: string
-  authorized_other_countries: string[]
-
-  // ATS Common Questions
-  is_18_or_older: boolean
-  has_drivers_license: boolean
-  has_reliable_transportation: boolean
-  willing_background_check: boolean
-  willing_drug_test: boolean
-
-  // EEO (optional, prefer not to say available)
-  veteran_status?: 'veteran' | 'not-veteran' | 'prefer-not-to-say'
-  disability_status?: 'yes' | 'no' | 'prefer-not-to-say'
-  gender?: 'male' | 'female' | 'non-binary' | 'prefer-not-to-say'
-  race_ethnicity?: string[]
+  work_auth_countries: string[] | null
+  requires_sponsorship: string | null // "yes", "no", "not_applicable"
+  
+  // Application Questions
+  age_over_18: boolean | null
+  has_drivers_license: boolean | null
+  has_reliable_transportation: boolean | null
+  background_check_consent: boolean | null
+  drug_test_consent: boolean | null
+  
+  // EEO
+  eeo_gender: string | null
+  eeo_sexual_orientation: string | null
+  eeo_veteran_status: string | null
+  eeo_disability_status: string | null
+  eeo_race_ethnicity: string[] | null
 }
 
-// Complete Profile
-export interface UserProfile {
-  personal_info: PersonalInfo
-  resumes: ResumeFile[]
-  cover_letters: CoverLetterTemplate[]
-  experiences: WorkExperience[]
-  education: EducationEntry[]
-  skills: Skills
+// -----------------------------------------------------------------------------
+// Full Profile Response (GET /api/users/me/profile)
+// -----------------------------------------------------------------------------
+
+export interface FullProfile extends ProfilePersonalInfo {
+  education: Education[]
+  experience: Experience[]
+  skills: Skill[]
+  languages: Language[]
   projects: Project[]
   certifications: Certification[]
   awards: Award[]
   publications: Publication[]
   volunteering: Volunteering[]
-  preferences: JobPreferences
-  onboarding_completed: boolean
-  profile_completion_percentage: number
+  resumes: Resume[]
 }
+
+// -----------------------------------------------------------------------------
+// Form Data Types (for components)
+// -----------------------------------------------------------------------------
+
+export type ExperienceFormData = Omit<Experience, 'id'>
+export type EducationFormData = Omit<Education, 'id'>
+export type ProjectFormData = Omit<Project, 'id'>
+export type CertificationFormData = Omit<Certification, 'id'>
+export type AwardFormData = Omit<Award, 'id'>
+export type PublicationFormData = Omit<Publication, 'id'>
+export type VolunteeringFormData = Omit<Volunteering, 'id'>
+export type LanguageFormData = Omit<Language, 'id'>
+
+// -----------------------------------------------------------------------------
+// Constants
+// -----------------------------------------------------------------------------
+
+export const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+] as const
+
+export const EMPLOYMENT_TYPES = [
+  'Full-time', 'Part-time', 'Contract', 'Internship', 'Freelance', 'Temporary'
+] as const
+
+export const LOCATION_TYPES = [
+  'On-site', 'Remote', 'Hybrid'
+] as const
+
+export const LANGUAGE_PROFICIENCIES = [
+  'Native', 'Fluent', 'Professional', 'Conversational', 'Basic'
+] as const
+
+export const DEGREE_TYPES = [
+  'High School Diploma',
+  'Associate Degree',
+  'Bachelor\'s Degree',
+  'Master\'s Degree',
+  'MBA',
+  'Doctorate (PhD)',
+  'Professional Degree (JD, MD)',
+  'Certificate',
+  'Other'
+] as const
+
+export const COMPANY_SIZES = [
+  { value: 'Startup', label: 'Startup (1-10)' },
+  { value: 'Small', label: 'Small (11-50)' },
+  { value: 'Mid-size', label: 'Mid-size (51-200)' },
+  { value: 'Large', label: 'Large (201-1000)' },
+  { value: 'Enterprise', label: 'Enterprise (1000+)' },
+] as const
+
+export const WORK_MODES = [
+  'Remote',
+  'Hybrid',
+  'On-site'
+] as const
+
+export const AVAILABLE_START_DATES = [
+  { value: 'immediately', label: 'Immediately' },
+  { value: '2_weeks', label: '2 Weeks Notice' },
+  { value: '1_month', label: '1 Month Notice' },
+  { value: '2_months', label: '2 Months Notice' },
+  { value: '3_months_plus', label: '3+ Months' }
+] as const
+
+export const TRAVEL_PERCENTAGES = [
+  { value: 'no_travel', label: 'No Travel' },
+  { value: 'up_to_25', label: 'Up to 25%' },
+  { value: 'up_to_50', label: 'Up to 50%' },
+  { value: 'up_to_75', label: 'Up to 75%' },
+  { value: 'up_to_100', label: '100% (Full Travel)' }
+] as const
+
+export const WILLING_TO_RELOCATE_OPTIONS = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+  { value: 'for_the_right_opportunity', label: 'For the Right Opportunity' }
+] as const
+
+export const REQUIRES_SPONSORSHIP_OPTIONS = [
+  { value: 'yes', label: 'Yes' },
+  { value: 'no', label: 'No' },
+  { value: 'not_applicable', label: 'Not Applicable' }
+] as const
+
+export const VOLUNTEERING_CAUSES = [
+  'Animal Welfare',
+  'Arts & Culture',
+  'Children & Youth',
+  'Civil Rights',
+  'Disaster Relief',
+  'Education',
+  'Environment',
+  'Health',
+  'Homeless & Housing',
+  'Human Rights',
+  'Hunger',
+  'Politics',
+  'Poverty',
+  'Science & Technology',
+  'Senior Care',
+  'Veterans',
+  'Other'
+] as const

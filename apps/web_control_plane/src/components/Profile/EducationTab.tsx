@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   PlusIcon,
   PencilIcon,
@@ -8,81 +8,41 @@ import {
   CalendarIcon,
   LightBulbIcon,
 } from '@heroicons/react/24/outline'
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface Education {
-  id: string
-  school_name: string
-  degree: string
-  field_of_study: string
-  location: string
-  start_month: string
-  start_year: string
-  end_month: string
-  end_year: string
-  is_current: boolean
-  gpa: string
-  honors: string
-  relevant_coursework: string
-  activities: string
-}
+import profileApi from '../../services/profileApi'
+import type { Education, EducationFormData } from '../../types/profile'
+import { MONTHS, DEGREE_TYPES } from '../../types/profile'
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const DEGREES = [
-  { value: 'high-school', label: 'High School Diploma' },
-  { value: 'associate', label: "Associate's Degree" },
-  { value: 'bachelor', label: "Bachelor's Degree" },
-  { value: 'master', label: "Master's Degree" },
-  { value: 'mba', label: 'MBA' },
-  { value: 'phd', label: 'PhD / Doctorate' },
-  { value: 'certificate', label: 'Certificate / Bootcamp' },
-  { value: 'other', label: 'Other' },
-]
+const MONTH_OPTIONS = MONTHS.map((m) => ({ value: m, label: m }))
 
-const MONTHS = [
-  { value: '01', label: 'January' },
-  { value: '02', label: 'February' },
-  { value: '03', label: 'March' },
-  { value: '04', label: 'April' },
-  { value: '05', label: 'May' },
-  { value: '06', label: 'June' },
-  { value: '07', label: 'July' },
-  { value: '08', label: 'August' },
-  { value: '09', label: 'September' },
-  { value: '10', label: 'October' },
-  { value: '11', label: 'November' },
-  { value: '12', label: 'December' },
-]
+const DEGREE_OPTIONS = DEGREE_TYPES.map((d) => ({ value: d, label: d }))
 
 const YEARS = Array.from({ length: 60 }, (_, i) => {
   const year = new Date().getFullYear() + 5 - i // Future years for expected graduation
-  return { value: year.toString(), label: year.toString() }
+  return { value: year, label: year.toString() }
 })
 
 // ============================================================================
 // Empty Education Template
 // ============================================================================
 
-const emptyEducation: Omit<Education, 'id'> = {
+const emptyEducation: EducationFormData = {
   school_name: '',
-  degree: 'bachelor',
+  degree: "Bachelor's Degree",
   field_of_study: '',
-  location: '',
-  start_month: '',
-  start_year: '',
-  end_month: '',
-  end_year: '',
+  location: null,
+  start_month: null,
+  start_year: null,
+  end_month: null,
+  end_year: null,
   is_current: false,
-  gpa: '',
-  honors: '',
-  relevant_coursework: '',
-  activities: '',
+  gpa: null,
+  honors: null,
+  coursework: null,
+  activities: null,
 }
 
 // ============================================================================
@@ -110,27 +70,25 @@ interface EducationCardProps {
   education: Education
   onEdit: () => void
   onDelete: () => void
+  isDeleting?: boolean
 }
 
-function EducationCard({ education, onEdit, onDelete }: EducationCardProps) {
-  const getDegreeLabel = (value: string) => {
-    return DEGREES.find((d) => d.value === value)?.label || value
-  }
-
-  const getMonthLabel = (value: string) => {
-    return MONTHS.find((m) => m.value === value)?.label?.slice(0, 3) || value
-  }
-
+function EducationCard({
+  education,
+  onEdit,
+  onDelete,
+  isDeleting,
+}: EducationCardProps) {
   const formatDateRange = () => {
+    const startMonth = education.start_month?.slice(0, 3) || ''
     const start = education.start_year
-      ? `${getMonthLabel(education.start_month)} ${education.start_year}`
+      ? `${startMonth} ${education.start_year}`
       : ''
     if (education.is_current) {
       return start ? `${start} - Present` : 'Present'
     }
-    const end = education.end_year
-      ? `${getMonthLabel(education.end_month)} ${education.end_year}`
-      : ''
+    const endMonth = education.end_month?.slice(0, 3) || ''
+    const end = education.end_year ? `${endMonth} ${education.end_year}` : ''
     if (start && end) return `${start} - ${end}`
     if (end) return `Expected ${end}`
     return start
@@ -155,7 +113,7 @@ function EducationCard({ education, onEdit, onDelete }: EducationCardProps) {
 
             {/* Degree + Field */}
             <p className="text-body-small text-text-secondary mt-0.5">
-              {getDegreeLabel(education.degree)}
+              {education.degree}
               {education.field_of_study && ` in ${education.field_of_study}`}
             </p>
 
@@ -189,9 +147,9 @@ function EducationCard({ education, onEdit, onDelete }: EducationCardProps) {
             )}
 
             {/* Relevant Coursework */}
-            {education.relevant_coursework && (
+            {education.coursework && (
               <p className="text-body-small text-text-tertiary mt-sm line-clamp-2">
-                Coursework: {education.relevant_coursework}
+                Coursework: {education.coursework}
               </p>
             )}
           </div>
@@ -201,14 +159,16 @@ function EducationCard({ education, onEdit, onDelete }: EducationCardProps) {
         <div className="flex items-center gap-xs flex-shrink-0">
           <button
             onClick={onEdit}
-            className="p-2 text-text-tertiary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
+            disabled={isDeleting}
+            className="p-2 text-text-tertiary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors disabled:opacity-50"
             title="Edit"
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={onDelete}
-            className="p-2 text-text-tertiary hover:text-accent-red hover:bg-accent-red/10 rounded-lg transition-colors"
+            disabled={isDeleting}
+            className="p-2 text-text-tertiary hover:text-accent-red hover:bg-accent-red/10 rounded-lg transition-colors disabled:opacity-50"
             title="Delete"
           >
             <TrashIcon className="w-5 h-5" />
@@ -224,10 +184,11 @@ function EducationCard({ education, onEdit, onDelete }: EducationCardProps) {
 // ============================================================================
 
 interface EducationFormProps {
-  initialData: Omit<Education, 'id'>
-  onSave: (data: Omit<Education, 'id'>) => void
+  initialData: EducationFormData
+  onSave: (data: EducationFormData) => void
   onCancel: () => void
   isEditing: boolean
+  isSaving?: boolean
 }
 
 function EducationForm({
@@ -235,10 +196,14 @@ function EducationForm({
   onSave,
   onCancel,
   isEditing,
+  isSaving,
 }: EducationFormProps) {
-  const [formData, setFormData] = useState(initialData)
+  const [formData, setFormData] = useState<EducationFormData>(initialData)
 
-  const updateField = (field: string, value: string | boolean) => {
+  const updateField = (
+    field: keyof EducationFormData,
+    value: string | number | boolean | null
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -273,15 +238,15 @@ function EducationForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div>
             <label className="block text-body-small text-text-primary mb-xs">
-              Degree <span className="text-accent-red">*</span>
+              Degree
             </label>
             <select
-              value={formData.degree}
-              onChange={(e) => updateField('degree', e.target.value)}
+              value={formData.degree || ''}
+              onChange={(e) => updateField('degree', e.target.value || null)}
               className="input w-full"
-              required
             >
-              {DEGREES.map((degree) => (
+              <option value="">Select degree</option>
+              {DEGREE_OPTIONS.map((degree) => (
                 <option key={degree.value} value={degree.value}>
                   {degree.label}
                 </option>
@@ -290,15 +255,14 @@ function EducationForm({
           </div>
           <div>
             <label className="block text-body-small text-text-primary mb-xs">
-              Field of Study <span className="text-accent-red">*</span>
+              Field of Study
             </label>
             <input
               type="text"
-              value={formData.field_of_study}
-              onChange={(e) => updateField('field_of_study', e.target.value)}
+              value={formData.field_of_study || ''}
+              onChange={(e) => updateField('field_of_study', e.target.value || null)}
               placeholder="Computer Science"
               className="input w-full"
-              required
             />
           </div>
         </div>
@@ -310,8 +274,8 @@ function EducationForm({
           </label>
           <input
             type="text"
-            value={formData.location}
-            onChange={(e) => updateField('location', e.target.value)}
+            value={formData.location || ''}
+            onChange={(e) => updateField('location', e.target.value || null)}
             placeholder="Stanford, CA"
             className="input w-full"
           />
@@ -326,20 +290,25 @@ function EducationForm({
             </label>
             <div className="flex gap-sm">
               <select
-                value={formData.start_month}
-                onChange={(e) => updateField('start_month', e.target.value)}
+                value={formData.start_month || ''}
+                onChange={(e) => updateField('start_month', e.target.value || null)}
                 className="input flex-1"
               >
                 <option value="">Month</option>
-                {MONTHS.map((month) => (
+                {MONTH_OPTIONS.map((month) => (
                   <option key={month.value} value={month.value}>
                     {month.label}
                   </option>
                 ))}
               </select>
               <select
-                value={formData.start_year}
-                onChange={(e) => updateField('start_year', e.target.value)}
+                value={formData.start_year || ''}
+                onChange={(e) =>
+                  updateField(
+                    'start_year',
+                    e.target.value ? parseInt(e.target.value) : null
+                  )
+                }
                 className="input w-28"
               >
                 <option value="">Year</option>
@@ -360,21 +329,26 @@ function EducationForm({
             </label>
             <div className="flex gap-sm">
               <select
-                value={formData.end_month}
-                onChange={(e) => updateField('end_month', e.target.value)}
+                value={formData.end_month || ''}
+                onChange={(e) => updateField('end_month', e.target.value || null)}
                 className="input flex-1"
                 disabled={formData.is_current}
               >
                 <option value="">Month</option>
-                {MONTHS.map((month) => (
+                {MONTH_OPTIONS.map((month) => (
                   <option key={month.value} value={month.value}>
                     {month.label}
                   </option>
                 ))}
               </select>
               <select
-                value={formData.end_year}
-                onChange={(e) => updateField('end_year', e.target.value)}
+                value={formData.end_year || ''}
+                onChange={(e) =>
+                  updateField(
+                    'end_year',
+                    e.target.value ? parseInt(e.target.value) : null
+                  )
+                }
                 className="input w-28"
                 disabled={formData.is_current}
               >
@@ -398,8 +372,8 @@ function EducationForm({
               onChange={(e) => {
                 updateField('is_current', e.target.checked)
                 if (e.target.checked) {
-                  updateField('end_month', '')
-                  updateField('end_year', '')
+                  updateField('end_month', null)
+                  updateField('end_year', null)
                 }
               }}
               className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
@@ -418,8 +392,8 @@ function EducationForm({
             </label>
             <input
               type="text"
-              value={formData.gpa}
-              onChange={(e) => updateField('gpa', e.target.value)}
+              value={formData.gpa || ''}
+              onChange={(e) => updateField('gpa', e.target.value || null)}
               placeholder="3.8/4.0"
               className="input w-full"
             />
@@ -430,8 +404,8 @@ function EducationForm({
             </label>
             <input
               type="text"
-              value={formData.honors}
-              onChange={(e) => updateField('honors', e.target.value)}
+              value={formData.honors || ''}
+              onChange={(e) => updateField('honors', e.target.value || null)}
               placeholder="Cum Laude, Dean's List"
               className="input w-full"
             />
@@ -445,8 +419,8 @@ function EducationForm({
             <span className="text-text-tertiary">(optional)</span>
           </label>
           <textarea
-            value={formData.relevant_coursework}
-            onChange={(e) => updateField('relevant_coursework', e.target.value)}
+            value={formData.coursework || ''}
+            onChange={(e) => updateField('coursework', e.target.value || null)}
             placeholder="Data Structures, Algorithms, Machine Learning, Database Systems..."
             rows={3}
             className="input w-full resize-y min-h-[80px]"
@@ -460,8 +434,8 @@ function EducationForm({
             <span className="text-text-tertiary">(optional)</span>
           </label>
           <textarea
-            value={formData.activities}
-            onChange={(e) => updateField('activities', e.target.value)}
+            value={formData.activities || ''}
+            onChange={(e) => updateField('activities', e.target.value || null)}
             placeholder="Computer Science Club, Hackathon Team, Student Government..."
             rows={3}
             className="input w-full resize-y min-h-[80px]"
@@ -471,11 +445,20 @@ function EducationForm({
 
       {/* Actions */}
       <div className="flex justify-end gap-sm mt-lg pt-lg border-t border-border-light">
-        <button type="button" onClick={onCancel} className="btn-secondary">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSaving}
+          className="btn-secondary"
+        >
           Cancel
         </button>
-        <button type="submit" className="btn-primary">
-          {isEditing ? 'Save Changes' : 'Add Education'}
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="btn-primary disabled:opacity-50"
+        >
+          {isSaving ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Education'}
         </button>
       </div>
     </form>
@@ -514,11 +497,35 @@ function EmptyState({ onAdd }: EmptyStateProps) {
 // ============================================================================
 
 export default function EducationTab() {
+  // State
   const [educations, setEducations] = useState<Education[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Form state
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] =
-    useState<Omit<Education, 'id'>>(emptyEducation)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [formData, setFormData] = useState<EducationFormData>(emptyEducation)
+
+  // Load educations from API
+  const loadEducations = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await profileApi.getEducation()
+      setEducations(response.education || [])
+    } catch (err) {
+      console.error('Failed to load educations:', err)
+      setError('Failed to load education. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadEducations()
+  }, [loadEducations])
 
   const handleAdd = () => {
     setEditingId(null)
@@ -528,7 +535,9 @@ export default function EducationTab() {
 
   const handleEdit = (education: Education) => {
     setEditingId(education.id)
-    setFormData(education)
+    // Convert Education to EducationFormData (remove id)
+    const { id, ...formData } = education
+    setFormData(formData)
     setIsFormOpen(true)
   }
 
@@ -538,29 +547,57 @@ export default function EducationTab() {
     setFormData(emptyEducation)
   }
 
-  const handleSave = (data: Omit<Education, 'id'>) => {
-    if (editingId) {
-      // Update existing
-      setEducations((prev) =>
-        prev.map((edu) =>
-          edu.id === editingId ? { ...data, id: editingId } : edu
-        )
-      )
-    } else {
-      // Add new
-      const newEducation: Education = {
-        ...data,
-        id: Date.now().toString(),
+  const handleSave = async (data: EducationFormData) => {
+    try {
+      setIsSaving(true)
+      setError(null)
+
+      if (editingId) {
+        // Update existing
+        await profileApi.updateEducation(editingId, data)
+      } else {
+        // Create new
+        await profileApi.createEducation(data)
       }
-      setEducations((prev) => [newEducation, ...prev])
+
+      // Reload list
+      await loadEducations()
+      handleCancel()
+    } catch (err) {
+      console.error('Failed to save education:', err)
+      setError('Failed to save education. Please try again.')
+    } finally {
+      setIsSaving(false)
     }
-    handleCancel()
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this education?')) {
-      setEducations((prev) => prev.filter((edu) => edu.id !== id))
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this education?')) {
+      return
     }
+
+    try {
+      setError(null)
+      await profileApi.deleteEducation(id)
+      setEducations((prev) => prev.filter((edu) => edu.id !== id))
+    } catch (err) {
+      console.error('Failed to delete education:', err)
+      setError('Failed to delete education. Please try again.')
+    }
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="card p-xl">
+        <div className="animate-pulse space-y-lg">
+          <div className="h-8 bg-bg-tertiary rounded w-1/3" />
+          <div className="h-4 bg-bg-tertiary rounded w-1/2" />
+          <div className="h-32 bg-bg-tertiary rounded mt-xl" />
+          <div className="h-32 bg-bg-tertiary rounded" />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -584,6 +621,13 @@ export default function EducationTab() {
         )}
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-lg p-md bg-accent-red/10 border border-accent-red/20 rounded-lg">
+          <p className="text-body-small text-accent-red">{error}</p>
+        </div>
+      )}
+
       {/* Form */}
       {isFormOpen && (
         <div className="mb-xl">
@@ -592,6 +636,7 @@ export default function EducationTab() {
             onSave={handleSave}
             onCancel={handleCancel}
             isEditing={!!editingId}
+            isSaving={isSaving}
           />
         </div>
       )}
@@ -605,6 +650,7 @@ export default function EducationTab() {
               education={education}
               onEdit={() => handleEdit(education)}
               onDelete={() => handleDelete(education.id)}
+              isDeleting={isSaving}
             />
           ))}
         </div>

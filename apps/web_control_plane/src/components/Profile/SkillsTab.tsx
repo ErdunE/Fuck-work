@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   XMarkIcon,
   PlusIcon,
@@ -8,16 +8,9 @@ import {
   LightBulbIcon,
   LanguageIcon,
 } from '@heroicons/react/24/outline'
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface Language {
-  id: string
-  language: string
-  proficiency: string
-}
+import profileApi from '../../services/profileApi'
+import type { Skill, Language } from '../../types/profile'
+import { LANGUAGE_PROFICIENCIES } from '../../types/profile'
 
 // ============================================================================
 // Constants
@@ -70,7 +63,7 @@ const POPULAR_SKILLS = [
 const INITIAL_SKILLS_SHOWN = 12
 
 // 语言列表
-const LANGUAGES = [
+const LANGUAGES_LIST = [
   'English',
   'Spanish',
   'Mandarin Chinese',
@@ -105,14 +98,11 @@ const LANGUAGES = [
   'Other',
 ]
 
-// 语言熟练度
-const PROFICIENCY_LEVELS = [
-  { value: 'native', label: 'Native / Bilingual' },
-  { value: 'fluent', label: 'Fluent' },
-  { value: 'professional', label: 'Professional Working' },
-  { value: 'conversational', label: 'Conversational' },
-  { value: 'basic', label: 'Basic' },
-]
+// 语言熟练度 (匹配后端格式)
+const PROFICIENCY_LEVELS = LANGUAGE_PROFICIENCIES.map((p) => ({
+  value: p,
+  label: p,
+}))
 
 // ============================================================================
 // Section Title Component
@@ -155,18 +145,20 @@ function Tip({ children }: TipProps) {
 // ============================================================================
 
 interface SkillTagProps {
-  skill: string
+  skill: Skill
   onRemove: () => void
+  isRemoving?: boolean
 }
 
-function SkillTag({ skill, onRemove }: SkillTagProps) {
+function SkillTag({ skill, onRemove, isRemoving }: SkillTagProps) {
   return (
     <span className="inline-flex items-center gap-1.5 px-md py-xs bg-accent-blue/10 text-accent-blue rounded-full text-body-small">
-      {skill}
+      {skill.skill_name}
       <button
         type="button"
         onClick={onRemove}
-        className="hover:bg-accent-blue/20 rounded-full p-0.5 transition-colors"
+        disabled={isRemoving}
+        className="hover:bg-accent-blue/20 rounded-full p-0.5 transition-colors disabled:opacity-50"
       >
         <XMarkIcon className="w-3.5 h-3.5" />
       </button>
@@ -193,9 +185,10 @@ function QuickAddButton({ skill, onAdd, disabled }: QuickAddButtonProps) {
       className={`
         inline-flex items-center gap-1 px-md py-xs border rounded-full text-body-small
         transition-colors
-        ${disabled
-          ? 'border-border-light text-text-tertiary cursor-not-allowed opacity-50'
-          : 'border-border-default text-text-secondary hover:bg-bg-secondary hover:border-border-default'
+        ${
+          disabled
+            ? 'border-border-light text-text-tertiary cursor-not-allowed opacity-50'
+            : 'border-border-default text-text-secondary hover:bg-bg-secondary hover:border-border-default'
         }
       `}
     >
@@ -212,24 +205,21 @@ function QuickAddButton({ skill, onAdd, disabled }: QuickAddButtonProps) {
 interface LanguageCardProps {
   language: Language
   onDelete: () => void
+  isDeleting?: boolean
 }
 
-function LanguageCard({ language, onDelete }: LanguageCardProps) {
-  const getProficiencyLabel = (value: string) => {
-    return PROFICIENCY_LEVELS.find((p) => p.value === value)?.label || value
-  }
-
-  const getProficiencyColor = (value: string) => {
+function LanguageCard({ language, onDelete, isDeleting }: LanguageCardProps) {
+  const getProficiencyColor = (value: string | null) => {
     switch (value) {
-      case 'native':
+      case 'Native':
         return 'bg-accent-green/10 text-accent-green'
-      case 'fluent':
+      case 'Fluent':
         return 'bg-accent-blue/10 text-accent-blue'
-      case 'professional':
+      case 'Professional':
         return 'bg-accent-purple/10 text-accent-purple'
-      case 'conversational':
+      case 'Conversational':
         return 'bg-accent-yellow/10 text-accent-yellow'
-      case 'basic':
+      case 'Basic':
         return 'bg-bg-tertiary text-text-secondary'
       default:
         return 'bg-bg-tertiary text-text-secondary'
@@ -243,15 +233,22 @@ function LanguageCard({ language, onDelete }: LanguageCardProps) {
           <LanguageIcon className="w-5 h-5 text-text-tertiary" />
         </div>
         <div>
-          <p className="text-body text-text-primary font-medium">{language.language}</p>
-          <span className={`inline-block mt-xs px-sm py-0.5 rounded-full text-label ${getProficiencyColor(language.proficiency)}`}>
-            {getProficiencyLabel(language.proficiency)}
-          </span>
+          <p className="text-body text-text-primary font-medium">
+            {language.language_name}
+          </p>
+          {language.proficiency && (
+            <span
+              className={`inline-block mt-xs px-sm py-0.5 rounded-full text-label ${getProficiencyColor(language.proficiency)}`}
+            >
+              {language.proficiency}
+            </span>
+          )}
         </div>
       </div>
       <button
         onClick={onDelete}
-        className="p-2 text-text-tertiary hover:text-accent-red hover:bg-accent-red/10 rounded-lg transition-colors"
+        disabled={isDeleting}
+        className="p-2 text-text-tertiary hover:text-accent-red hover:bg-accent-red/10 rounded-lg transition-colors disabled:opacity-50"
         title="Remove language"
       >
         <TrashIcon className="w-5 h-5" />
@@ -265,27 +262,80 @@ function LanguageCard({ language, onDelete }: LanguageCardProps) {
 // ============================================================================
 
 export default function SkillsTab() {
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   // Skills state
-  const [skills, setSkills] = useState<string[]>([])
+  const [skills, setSkills] = useState<Skill[]>([])
   const [skillInput, setSkillInput] = useState('')
   const [showAllSkills, setShowAllSkills] = useState(false)
 
   // Languages state
   const [languages, setLanguages] = useState<Language[]>([])
   const [selectedLanguage, setSelectedLanguage] = useState('')
-  const [selectedProficiency, setSelectedProficiency] = useState('professional')
+  const [selectedProficiency, setSelectedProficiency] = useState('Professional')
+
+  // Load data from API
+  const loadData = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const [skillsResponse, languagesResponse] = await Promise.all([
+        profileApi.getSkills(),
+        profileApi.getLanguages(),
+      ])
+
+      setSkills(skillsResponse.skills || [])
+      setLanguages(languagesResponse.languages || [])
+    } catch (err) {
+      console.error('Failed to load data:', err)
+      setError('Failed to load skills and languages. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
   // Skills handlers
-  const addSkill = (skill: string) => {
-    const trimmed = skill.trim()
-    if (trimmed && !skills.includes(trimmed)) {
-      setSkills((prev) => [...prev, trimmed])
+  const addSkill = async (skillName: string) => {
+    const trimmed = skillName.trim()
+    if (!trimmed || skills.find((s) => s.skill_name === trimmed)) {
+      setSkillInput('')
+      return
     }
-    setSkillInput('')
+
+    try {
+      setIsSaving(true)
+      setError(null)
+      const newSkill = await profileApi.createSkill(trimmed)
+      setSkills((prev) => [...prev, newSkill])
+      setSkillInput('')
+    } catch (err) {
+      console.error('Failed to add skill:', err)
+      setError('Failed to add skill. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const removeSkill = (skillToRemove: string) => {
-    setSkills((prev) => prev.filter((s) => s !== skillToRemove))
+  const removeSkill = async (skill: Skill) => {
+    try {
+      setIsSaving(true)
+      setError(null)
+      await profileApi.deleteSkill(skill.id)
+      setSkills((prev) => prev.filter((s) => s.id !== skill.id))
+    } catch (err) {
+      console.error('Failed to remove skill:', err)
+      setError('Failed to remove skill. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -298,33 +348,75 @@ export default function SkillsTab() {
   }
 
   // Languages handlers
-  const addLanguage = () => {
-    if (selectedLanguage && !languages.find((l) => l.language === selectedLanguage)) {
-      const newLanguage: Language = {
-        id: Date.now().toString(),
-        language: selectedLanguage,
+  const addLanguage = async () => {
+    if (!selectedLanguage || languages.find((l) => l.language_name === selectedLanguage)) {
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      setError(null)
+      const newLanguage = await profileApi.createLanguage({
+        language_name: selectedLanguage,
         proficiency: selectedProficiency,
-      }
+      })
       setLanguages((prev) => [...prev, newLanguage])
       setSelectedLanguage('')
-      setSelectedProficiency('professional')
+      setSelectedProficiency('Professional')
+    } catch (err) {
+      console.error('Failed to add language:', err)
+      setError('Failed to add language. Please try again.')
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  const removeLanguage = (id: string) => {
-    setLanguages((prev) => prev.filter((l) => l.id !== id))
+  const removeLanguage = async (language: Language) => {
+    try {
+      setIsSaving(true)
+      setError(null)
+      await profileApi.deleteLanguage(language.id)
+      setLanguages((prev) => prev.filter((l) => l.id !== language.id))
+    } catch (err) {
+      console.error('Failed to remove language:', err)
+      setError('Failed to remove language. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
+  // Get skill names for comparison
+  const skillNames = skills.map((s) => s.skill_name)
+
   // Filter quick add skills (exclude already added)
-  const availableQuickSkills = POPULAR_SKILLS.filter((s) => !skills.includes(s))
+  const availableQuickSkills = POPULAR_SKILLS.filter((s) => !skillNames.includes(s))
   const displayedQuickSkills = showAllSkills
     ? availableQuickSkills
     : availableQuickSkills.slice(0, INITIAL_SKILLS_SHOWN)
 
   // Filter available languages (exclude already added)
-  const availableLanguages = LANGUAGES.filter(
-    (lang) => !languages.find((l) => l.language === lang)
+  const languageNames = languages.map((l) => l.language_name)
+  const availableLanguages = LANGUAGES_LIST.filter(
+    (lang) => !languageNames.includes(lang)
   )
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="card p-xl">
+        <div className="animate-pulse space-y-lg">
+          <div className="h-8 bg-bg-tertiary rounded w-1/3" />
+          <div className="h-4 bg-bg-tertiary rounded w-1/2" />
+          <div className="h-12 bg-bg-tertiary rounded mt-xl" />
+          <div className="flex flex-wrap gap-sm">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-8 w-24 bg-bg-tertiary rounded-full" />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="card p-xl">
@@ -336,11 +428,19 @@ export default function SkillsTab() {
         </p>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-lg p-md bg-accent-red/10 border border-accent-red/20 rounded-lg">
+          <p className="text-body-small text-accent-red">{error}</p>
+        </div>
+      )}
+
       {/* YOUR SKILLS Section */}
       <SectionTitle first>Your Skills</SectionTitle>
 
       <p className="text-body-small text-text-secondary mb-md">
-        Add skills that highlight your professional expertise. Include both technical and soft skills relevant to your career.
+        Add skills that highlight your professional expertise. Include both
+        technical and soft skills relevant to your career.
       </p>
 
       {/* Skill Input */}
@@ -352,15 +452,17 @@ export default function SkillsTab() {
             onChange={(e) => setSkillInput(e.target.value)}
             onKeyDown={handleSkillKeyDown}
             placeholder="Type a skill and press Enter..."
-            className="flex-1 h-[32px] border-0 p-0 focus:ring-0 focus:outline-none text-body-small bg-transparent placeholder:text-text-tertiary"
+            disabled={isSaving}
+            className="flex-1 h-[32px] border-0 p-0 focus:ring-0 focus:outline-none text-body-small bg-transparent placeholder:text-text-tertiary disabled:opacity-50"
           />
           {skillInput && (
             <button
               type="button"
               onClick={() => addSkill(skillInput)}
-              className="btn-primary py-xs px-sm text-label"
+              disabled={isSaving}
+              className="btn-primary py-xs px-sm text-label disabled:opacity-50"
             >
-              Add
+              {isSaving ? '...' : 'Add'}
             </button>
           )}
         </div>
@@ -370,7 +472,12 @@ export default function SkillsTab() {
       {skills.length > 0 && (
         <div className="flex flex-wrap gap-sm mb-lg">
           {skills.map((skill) => (
-            <SkillTag key={skill} skill={skill} onRemove={() => removeSkill(skill)} />
+            <SkillTag
+              key={skill.id}
+              skill={skill}
+              onRemove={() => removeSkill(skill)}
+              isRemoving={isSaving}
+            />
           ))}
         </div>
       )}
@@ -378,13 +485,16 @@ export default function SkillsTab() {
       {/* Quick Add */}
       {availableQuickSkills.length > 0 && (
         <div className="mb-lg">
-          <p className="text-label text-text-tertiary mb-sm">Quick add popular skills:</p>
+          <p className="text-label text-text-tertiary mb-sm">
+            Quick add popular skills:
+          </p>
           <div className="flex flex-wrap gap-sm">
             {displayedQuickSkills.map((skill) => (
               <QuickAddButton
                 key={skill}
                 skill={skill}
                 onAdd={() => addSkill(skill)}
+                disabled={isSaving}
               />
             ))}
           </div>
@@ -403,7 +513,8 @@ export default function SkillsTab() {
               ) : (
                 <>
                   <ChevronDownIcon className="w-4 h-4" />
-                  Show {availableQuickSkills.length - INITIAL_SKILLS_SHOWN} more skills
+                  Show {availableQuickSkills.length - INITIAL_SKILLS_SHOWN} more
+                  skills
                 </>
               )}
             </button>
@@ -425,7 +536,8 @@ export default function SkillsTab() {
             <LanguageCard
               key={language.id}
               language={language}
-              onDelete={() => removeLanguage(language.id)}
+              onDelete={() => removeLanguage(language)}
+              isDeleting={isSaving}
             />
           ))}
         </div>
@@ -436,7 +548,8 @@ export default function SkillsTab() {
         <select
           value={selectedLanguage}
           onChange={(e) => setSelectedLanguage(e.target.value)}
-          className="input flex-1"
+          disabled={isSaving}
+          className="input flex-1 disabled:opacity-50"
         >
           <option value="">Select language...</option>
           {availableLanguages.map((lang) => (
@@ -449,7 +562,8 @@ export default function SkillsTab() {
         <select
           value={selectedProficiency}
           onChange={(e) => setSelectedProficiency(e.target.value)}
-          className="input sm:w-48"
+          disabled={isSaving}
+          className="input sm:w-48 disabled:opacity-50"
         >
           {PROFICIENCY_LEVELS.map((level) => (
             <option key={level.value} value={level.value}>
@@ -461,11 +575,11 @@ export default function SkillsTab() {
         <button
           type="button"
           onClick={addLanguage}
-          disabled={!selectedLanguage}
-          className="btn-secondary flex items-center justify-center gap-1 whitespace-nowrap"
+          disabled={!selectedLanguage || isSaving}
+          className="btn-secondary flex items-center justify-center gap-1 whitespace-nowrap disabled:opacity-50"
         >
           <PlusIcon className="w-4 h-4" />
-          Add
+          {isSaving ? '...' : 'Add'}
         </button>
       </div>
 
@@ -478,17 +592,10 @@ export default function SkillsTab() {
 
       {/* Tip */}
       <Tip>
-        List skills that are most relevant to your target roles. Quality over quantity —
-        focus on skills you can confidently discuss in an interview. For languages, be
-        honest about your proficiency level.
+        List skills that are most relevant to your target roles. Quality over
+        quantity — focus on skills you can confidently discuss in an interview.
+        For languages, be honest about your proficiency level.
       </Tip>
-
-      {/* Save Button */}
-      <div className="flex justify-end mt-xl pt-lg border-t border-border-light">
-        <button type="button" className="btn-primary">
-          Save Changes
-        </button>
-      </div>
     </div>
   )
 }
