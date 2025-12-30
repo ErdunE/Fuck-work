@@ -19,38 +19,40 @@ engine = create_engine(DATABASE_URL, pool_size=5, max_overflow=10, pool_pre_ping
 # Session factory
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
+from datetime import datetime
+
+# Legacy models - 这些表已被删除，但某些旧代码还在引用
+# 创建空的占位类，后续需要清理这些旧代码
+from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import relationship
+
 # Import models (after engine is created)
 from .models import (  # noqa: E402
     Base,
     Job,
     User,
-    UserProfile,
-    UserResume,
-    UserExperience,
-    UserEducation,
-    UserSkill,
-    UserLanguage,
-    UserProject,
-    UserCertification,
     UserAward,
-    UserPublication,
-    UserVolunteering,
+    UserCertification,
+    UserEducation,
+    UserExperience,
     UserJobPreferences,
+    UserLanguage,
+    UserProfile,
+    UserProject,
+    UserPublication,
+    UserResume,
+    UserSkill,
+    UserVolunteering,
 )
-
-# Legacy models - 这些表已被删除，但某些旧代码还在引用
-# 创建空的占位类，后续需要清理这些旧代码
-from sqlalchemy import Column, Integer, ForeignKey, String, Boolean, Text, TIMESTAMP
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import relationship
-from datetime import datetime
 
 
 class AutomationPreference(Base):
     """Legacy - 占位类"""
+
     __tablename__ = "automation_preferences"
-    __table_args__ = {'extend_existing': True}
-    
+    __table_args__ = {"extend_existing": True}
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), unique=True)
     version = Column(Integer, default=1)
@@ -68,9 +70,10 @@ class AutomationPreference(Base):
 
 class AutomationEvent(Base):
     """Legacy - 占位类"""
+
     __tablename__ = "automation_events"
-    __table_args__ = {'extend_existing': True}
-    
+    __table_args__ = {"extend_existing": True}
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     task_id = Column(Integer)
@@ -91,9 +94,10 @@ class AutomationEvent(Base):
 
 class ApplyTask(Base):
     """Legacy - 占位类"""
+
     __tablename__ = "apply_tasks"
-    __table_args__ = {'extend_existing': True}
-    
+    __table_args__ = {"extend_existing": True}
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     job_id = Column(String(255))
@@ -108,9 +112,10 @@ class ApplyTask(Base):
 
 class ApplyRun(Base):
     """Legacy - 占位类"""
+
     __tablename__ = "apply_runs"
-    __table_args__ = {'extend_existing': True}
-    
+    __table_args__ = {"extend_existing": True}
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     job_id = Column(String(255))
@@ -133,9 +138,10 @@ class ApplyRun(Base):
 
 class ObservabilityEvent(Base):
     """Legacy - 占位类"""
+
     __tablename__ = "observability_events"
-    __table_args__ = {'extend_existing': True}
-    
+    __table_args__ = {"extend_existing": True}
+
     id = Column(Integer, primary_key=True)
     run_id = Column(Integer)
     user_id = Column(Integer, ForeignKey("users.id"))
@@ -154,9 +160,10 @@ class ObservabilityEvent(Base):
 
 class ActiveApplySession(Base):
     """Legacy - 占位类"""
+
     __tablename__ = "active_apply_sessions"
-    __table_args__ = {'extend_existing': True}
-    
+    __table_args__ = {"extend_existing": True}
+
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     task_id = Column(Integer)
     run_id = Column(Integer)
@@ -169,9 +176,10 @@ class ActiveApplySession(Base):
 
 class ApplyEvent(Base):
     """Legacy - 占位类"""
+
     __tablename__ = "apply_events"
-    __table_args__ = {'extend_existing': True}
-    
+    __table_args__ = {"extend_existing": True}
+
     id = Column(Integer, primary_key=True)
     task_id = Column(Integer)
     from_status = Column(String(20))
@@ -183,9 +191,10 @@ class ApplyEvent(Base):
 
 class UserKnowledgeEntry(Base):
     """Legacy - 占位类"""
+
     __tablename__ = "user_knowledge_entries"
-    __table_args__ = {'extend_existing': True}
-    
+    __table_args__ = {"extend_existing": True}
+
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     entry_type = Column(String(50))

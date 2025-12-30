@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 
+# Phase 6.0: New profile routers
 from .routers import active_session  # Phase 5.3.1
 from .routers import derived_profile  # Phase 5.2.1
 from .routers import observability  # Phase 5.3.0
@@ -18,24 +19,21 @@ from .routers import (
     apply,
     auth,
     events,
+    job_preferences,
     jobs,
     preferences,
     profile,
+    profile_awards,
+    profile_certifications,
     profile_education,
     profile_experience,
+    profile_languages,
     profile_projects,
+    profile_publications,
+    profile_resumes,
+    profile_volunteering,
     tasks,
     users,
-)
-# Phase 6.0: New profile routers
-from .routers import (
-    profile_resumes,
-    profile_languages,
-    profile_certifications,
-    profile_awards,
-    profile_publications,
-    profile_volunteering,
-    job_preferences,
 )
 
 app = FastAPI(
@@ -114,18 +112,14 @@ app.include_router(profile_projects.router, tags=["profile", "projects"])  # /ap
 app.include_router(profile_skills.router, tags=["profile", "skills"])  # /api/users/me/skills
 
 # Phase 6.0: New profile collection routers
-app.include_router(
-    profile_resumes.router, tags=["profile", "resumes"]
-)  # /api/users/me/resumes
+app.include_router(profile_resumes.router, tags=["profile", "resumes"])  # /api/users/me/resumes
 app.include_router(
     profile_languages.router, tags=["profile", "languages"]
 )  # /api/users/me/languages
 app.include_router(
     profile_certifications.router, tags=["profile", "certifications"]
 )  # /api/users/me/certifications
-app.include_router(
-    profile_awards.router, tags=["profile", "awards"]
-)  # /api/users/me/awards
+app.include_router(profile_awards.router, tags=["profile", "awards"])  # /api/users/me/awards
 app.include_router(
     profile_publications.router, tags=["profile", "publications"]
 )  # /api/users/me/publications

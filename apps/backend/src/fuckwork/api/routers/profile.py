@@ -13,17 +13,17 @@ from sqlalchemy.orm import Session
 from src.fuckwork.api.auth import get_current_user
 from src.fuckwork.database import (
     User,
-    UserProfile,
+    UserAward,
+    UserCertification,
     UserEducation,
     UserExperience,
-    UserSkill,
     UserLanguage,
+    UserProfile,
     UserProject,
-    UserCertification,
-    UserAward,
     UserPublication,
-    UserVolunteering,
     UserResume,
+    UserSkill,
+    UserVolunteering,
     get_db,
 )
 
@@ -34,14 +34,17 @@ router = APIRouter(prefix="/api/users/me", tags=["profile"])
 # Pydantic Models - 匹配前端字段
 # =============================================================================
 
+
 class OtherUrl(BaseModel):
     """其他链接"""
+
     label: str
     url: str
 
 
 class ProfileResponse(BaseModel):
     """Profile 响应 - Personal Info 页面"""
+
     id: int
     user_id: int
 
@@ -78,6 +81,7 @@ class ProfileResponse(BaseModel):
 
 class ProfileUpdateRequest(BaseModel):
     """Profile 更新请求"""
+
     # Basic Information
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -109,6 +113,7 @@ class ProfileUpdateRequest(BaseModel):
 # =============================================================================
 # 子集合的响应模型（用于完整 Profile 响应）
 # =============================================================================
+
 
 class EducationItem(BaseModel):
     id: int
@@ -258,6 +263,7 @@ class ResumeItem(BaseModel):
 
 class FullProfileResponse(BaseModel):
     """完整 Profile 响应 - 包含所有子集合"""
+
     # Profile 基本信息
     id: int
     user_id: int
@@ -301,10 +307,7 @@ class FullProfileResponse(BaseModel):
 
 
 @router.get("/profile", response_model=FullProfileResponse)
-def get_profile(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def get_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """
     获取当前用户的完整 Profile（包含所有子集合）
     """
@@ -313,8 +316,7 @@ def get_profile(
     if not profile:
         # 如果没有 profile，创建一个空的
         profile = UserProfile(
-            user_id=current_user.id,
-            email=current_user.email  # 从 users 表继承 email
+            user_id=current_user.id, email=current_user.email  # 从 users 表继承 email
         )
         db.add(profile)
         db.commit()
@@ -326,10 +328,16 @@ def get_profile(
     skills = db.query(UserSkill).filter(UserSkill.user_id == current_user.id).all()
     languages = db.query(UserLanguage).filter(UserLanguage.user_id == current_user.id).all()
     projects = db.query(UserProject).filter(UserProject.user_id == current_user.id).all()
-    certifications = db.query(UserCertification).filter(UserCertification.user_id == current_user.id).all()
+    certifications = (
+        db.query(UserCertification).filter(UserCertification.user_id == current_user.id).all()
+    )
     awards = db.query(UserAward).filter(UserAward.user_id == current_user.id).all()
-    publications = db.query(UserPublication).filter(UserPublication.user_id == current_user.id).all()
-    volunteering = db.query(UserVolunteering).filter(UserVolunteering.user_id == current_user.id).all()
+    publications = (
+        db.query(UserPublication).filter(UserPublication.user_id == current_user.id).all()
+    )
+    volunteering = (
+        db.query(UserVolunteering).filter(UserVolunteering.user_id == current_user.id).all()
+    )
     resumes = db.query(UserResume).filter(UserResume.user_id == current_user.id).all()
 
     # 构建响应
@@ -380,10 +388,7 @@ def update_profile(
 
     if not profile:
         # 创建新 profile
-        profile = UserProfile(
-            user_id=current_user.id,
-            email=current_user.email
-        )
+        profile = UserProfile(user_id=current_user.id, email=current_user.email)
         db.add(profile)
 
     # 更新提供的字段
@@ -399,8 +404,7 @@ def update_profile(
 
 @router.get("/profile/personal-info", response_model=ProfileResponse)
 def get_personal_info(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """
     获取 Personal Info 页面数据（不包含子集合）
@@ -408,10 +412,7 @@ def get_personal_info(
     profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
 
     if not profile:
-        profile = UserProfile(
-            user_id=current_user.id,
-            email=current_user.email
-        )
+        profile = UserProfile(user_id=current_user.id, email=current_user.email)
         db.add(profile)
         db.commit()
         db.refresh(profile)

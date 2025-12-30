@@ -22,15 +22,17 @@ router = APIRouter(prefix="/api/users/me/awards", tags=["profile", "awards"])
 
 class AwardRequest(BaseModel):
     """Award 请求"""
-    title: str                               # "Employee of the Year"
-    issuer: Optional[str] = None             # "Google"
-    received_month: Optional[str] = None     # "January", etc.
+
+    title: str  # "Employee of the Year"
+    issuer: Optional[str] = None  # "Google"
+    received_month: Optional[str] = None  # "January", etc.
     received_year: Optional[int] = None
     description: Optional[str] = None
 
 
 class AwardResponse(BaseModel):
     """Award 响应"""
+
     id: int
     title: str
     issuer: Optional[str] = None
@@ -44,6 +46,7 @@ class AwardResponse(BaseModel):
 
 class AwardListResponse(BaseModel):
     """Award 列表响应"""
+
     awards: List[AwardResponse]
     total: int
 
@@ -54,10 +57,7 @@ class AwardListResponse(BaseModel):
 
 
 @router.get("", response_model=AwardListResponse)
-def list_awards(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def list_awards(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """获取当前用户的所有奖项"""
     awards = (
         db.query(UserAward)
@@ -110,10 +110,7 @@ def get_award(
     )
 
     if not award:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Award not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Award not found")
 
     return AwardResponse.model_validate(award)
 
@@ -136,10 +133,7 @@ def update_award(
     )
 
     if not award:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Award not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Award not found")
 
     # 更新字段
     update_data = request.model_dump(exclude_unset=True)
@@ -169,10 +163,7 @@ def delete_award(
     )
 
     if not award:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Award not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Award not found")
 
     db.delete(award)
     db.commit()

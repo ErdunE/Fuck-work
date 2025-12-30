@@ -22,21 +22,23 @@ router = APIRouter(prefix="/api/users/me/projects", tags=["profile", "projects"]
 
 class ProjectRequest(BaseModel):
     """Project 请求"""
+
     project_name: str
-    role: Optional[str] = None             # "Lead Developer"
-    start_month: Optional[str] = None      # "January", etc.
+    role: Optional[str] = None  # "Lead Developer"
+    start_month: Optional[str] = None  # "January", etc.
     start_year: Optional[int] = None
     end_month: Optional[str] = None
     end_year: Optional[int] = None
-    is_ongoing: bool = False               # "This project is ongoing"
-    project_url: Optional[str] = None      # "https://myproject.com"
-    repo_url: Optional[str] = None         # "https://github.com/user/repo"
+    is_ongoing: bool = False  # "This project is ongoing"
+    project_url: Optional[str] = None  # "https://myproject.com"
+    repo_url: Optional[str] = None  # "https://github.com/user/repo"
     description: Optional[str] = None
     technologies: Optional[List[str]] = None  # ["React", "Node.js", "PostgreSQL"]
 
 
 class ProjectResponse(BaseModel):
     """Project 响应"""
+
     id: int
     project_name: str
     role: Optional[str] = None
@@ -56,6 +58,7 @@ class ProjectResponse(BaseModel):
 
 class ProjectListResponse(BaseModel):
     """Project 列表响应"""
+
     projects: List[ProjectResponse]
     total: int
 
@@ -66,10 +69,7 @@ class ProjectListResponse(BaseModel):
 
 
 @router.get("", response_model=ProjectListResponse)
-def list_projects(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def list_projects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """获取当前用户的所有项目"""
     projects = (
         db.query(UserProject)
@@ -120,18 +120,12 @@ def get_project(
     """获取指定项目"""
     project = (
         db.query(UserProject)
-        .filter(
-            UserProject.id == project_id,
-            UserProject.user_id == current_user.id
-        )
+        .filter(UserProject.id == project_id, UserProject.user_id == current_user.id)
         .first()
     )
 
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
     return ProjectResponse.model_validate(project)
 
@@ -146,18 +140,12 @@ def update_project(
     """更新项目"""
     project = (
         db.query(UserProject)
-        .filter(
-            UserProject.id == project_id,
-            UserProject.user_id == current_user.id
-        )
+        .filter(UserProject.id == project_id, UserProject.user_id == current_user.id)
         .first()
     )
 
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
     # 更新字段
     update_data = request.model_dump(exclude_unset=True)
@@ -179,18 +167,12 @@ def delete_project(
     """删除项目"""
     project = (
         db.query(UserProject)
-        .filter(
-            UserProject.id == project_id,
-            UserProject.user_id == current_user.id
-        )
+        .filter(UserProject.id == project_id, UserProject.user_id == current_user.id)
         .first()
     )
 
     if not project:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Project not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
     db.delete(project)
     db.commit()

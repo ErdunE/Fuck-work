@@ -22,11 +22,13 @@ router = APIRouter(prefix="/api/users/me/skills", tags=["profile", "skills"])
 
 class SkillRequest(BaseModel):
     """Skill 请求 - 只需要技能名"""
+
     skill_name: str
 
 
 class SkillResponse(BaseModel):
     """Skill 响应"""
+
     id: int
     skill_name: str
 
@@ -36,12 +38,14 @@ class SkillResponse(BaseModel):
 
 class SkillListResponse(BaseModel):
     """Skill 列表响应"""
+
     skills: List[SkillResponse]
     total: int
 
 
 class BulkSkillRequest(BaseModel):
     """批量技能请求"""
+
     skills: List[str]  # 直接传技能名列表，如 ["Python", "React", "SQL"]
 
 
@@ -51,10 +55,7 @@ class BulkSkillRequest(BaseModel):
 
 
 @router.get("", response_model=SkillListResponse)
-def list_skills(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def list_skills(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """获取当前用户的所有技能"""
     skills = (
         db.query(UserSkill)
@@ -148,18 +149,12 @@ def delete_skill(
     """删除技能"""
     skill = (
         db.query(UserSkill)
-        .filter(
-            UserSkill.id == skill_id,
-            UserSkill.user_id == current_user.id
-        )
+        .filter(UserSkill.id == skill_id, UserSkill.user_id == current_user.id)
         .first()
     )
 
     if not skill:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Skill not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Skill not found")
 
     db.delete(skill)
     db.commit()
@@ -176,17 +171,13 @@ def delete_skill_by_name(
     """按名称删除技能（前端可能更方便用这个）"""
     skill = (
         db.query(UserSkill)
-        .filter(
-            UserSkill.skill_name == skill_name,
-            UserSkill.user_id == current_user.id
-        )
+        .filter(UserSkill.skill_name == skill_name, UserSkill.user_id == current_user.id)
         .first()
     )
 
     if not skill:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Skill '{skill_name}' not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Skill '{skill_name}' not found"
         )
 
     db.delete(skill)

@@ -10,12 +10,12 @@ from sqlalchemy import (
     TIMESTAMP,
     Boolean,
     Column,
+    Float,
     ForeignKey,
     Index,
     Integer,
     String,
     Text,
-    Float,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.declarative import declarative_base
@@ -31,6 +31,7 @@ Base = declarative_base()
 
 class User(Base):
     """用户账户 - 认证信息"""
+
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True)
@@ -44,18 +45,28 @@ class User(Base):
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    profile = relationship("UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    profile = relationship(
+        "UserProfile", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
     resumes = relationship("UserResume", back_populates="user", cascade="all, delete-orphan")
     experience = relationship("UserExperience", back_populates="user", cascade="all, delete-orphan")
     education = relationship("UserEducation", back_populates="user", cascade="all, delete-orphan")
     skills = relationship("UserSkill", back_populates="user", cascade="all, delete-orphan")
     languages = relationship("UserLanguage", back_populates="user", cascade="all, delete-orphan")
     projects = relationship("UserProject", back_populates="user", cascade="all, delete-orphan")
-    certifications = relationship("UserCertification", back_populates="user", cascade="all, delete-orphan")
+    certifications = relationship(
+        "UserCertification", back_populates="user", cascade="all, delete-orphan"
+    )
     awards = relationship("UserAward", back_populates="user", cascade="all, delete-orphan")
-    publications = relationship("UserPublication", back_populates="user", cascade="all, delete-orphan")
-    volunteering = relationship("UserVolunteering", back_populates="user", cascade="all, delete-orphan")
-    job_preferences = relationship("UserJobPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    publications = relationship(
+        "UserPublication", back_populates="user", cascade="all, delete-orphan"
+    )
+    volunteering = relationship(
+        "UserVolunteering", back_populates="user", cascade="all, delete-orphan"
+    )
+    job_preferences = relationship(
+        "UserJobPreferences", back_populates="user", uselist=False, cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}')>"
@@ -63,6 +74,7 @@ class User(Base):
 
 class UserProfile(Base):
     """用户档案 - Personal Info 页面"""
+
     __tablename__ = "user_profiles"
 
     id = Column(Integer, primary_key=True)
@@ -104,6 +116,7 @@ class UserProfile(Base):
 
 class UserResume(Base):
     """简历和 Cover Letter - Resume 页面"""
+
     __tablename__ = "user_resumes"
 
     id = Column(Integer, primary_key=True)
@@ -126,6 +139,7 @@ class UserResume(Base):
 
 class UserExperience(Base):
     """工作经历 - Experience 页面"""
+
     __tablename__ = "user_experience"
 
     id = Column(Integer, primary_key=True)
@@ -155,6 +169,7 @@ class UserExperience(Base):
 
 class UserEducation(Base):
     """教育经历 - Education 页面"""
+
     __tablename__ = "user_education"
 
     id = Column(Integer, primary_key=True)
@@ -185,6 +200,7 @@ class UserEducation(Base):
 
 class UserSkill(Base):
     """技能 - Skills 页面"""
+
     __tablename__ = "user_skills"
 
     id = Column(Integer, primary_key=True)
@@ -201,6 +217,7 @@ class UserSkill(Base):
 
 class UserLanguage(Base):
     """语言 - Skills 页面"""
+
     __tablename__ = "user_languages"
 
     id = Column(Integer, primary_key=True)
@@ -218,6 +235,7 @@ class UserLanguage(Base):
 
 class UserProject(Base):
     """项目 - Achievements 页面"""
+
     __tablename__ = "user_projects"
 
     id = Column(Integer, primary_key=True)
@@ -244,6 +262,7 @@ class UserProject(Base):
 
 class UserCertification(Base):
     """证书 - Achievements 页面"""
+
     __tablename__ = "user_certifications"
 
     id = Column(Integer, primary_key=True)
@@ -268,6 +287,7 @@ class UserCertification(Base):
 
 class UserAward(Base):
     """奖项 - Achievements 页面"""
+
     __tablename__ = "user_awards"
 
     id = Column(Integer, primary_key=True)
@@ -288,6 +308,7 @@ class UserAward(Base):
 
 class UserPublication(Base):
     """发表 - Achievements 页面"""
+
     __tablename__ = "user_publications"
 
     id = Column(Integer, primary_key=True)
@@ -310,6 +331,7 @@ class UserPublication(Base):
 
 class UserVolunteering(Base):
     """志愿者经历 - Achievements 页面"""
+
     __tablename__ = "user_volunteering"
 
     id = Column(Integer, primary_key=True)
@@ -334,6 +356,7 @@ class UserVolunteering(Base):
 
 class UserJobPreferences(Base):
     """求职偏好 - Preferences 页面"""
+
     __tablename__ = "user_job_preferences"
 
     id = Column(Integer, primary_key=True)
@@ -360,7 +383,7 @@ class UserJobPreferences(Base):
     # Employment Details
     employment_types = Column(ARRAY(Text))
     available_start_date = Column(String(50))  # "immediately", "2_weeks", etc.
-    travel_percentage = Column(String(50))     # "no_travel", "up_to_25", etc.
+    travel_percentage = Column(String(50))  # "no_travel", "up_to_25", etc.
 
     # Work Authorization
     work_auth_countries = Column(ARRAY(Text))
@@ -394,6 +417,7 @@ class UserJobPreferences(Base):
 
 class Job(Base):
     """Job posting model."""
+
     __tablename__ = "jobs"
 
     id = Column(Integer, primary_key=True)

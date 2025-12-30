@@ -22,22 +22,26 @@ router = APIRouter(prefix="/api/users/me/experience", tags=["profile", "experien
 
 class ExperienceRequest(BaseModel):
     """Experience 请求"""
+
     job_title: str
     company_name: str
-    employment_type: Optional[str] = None  # Full-time, Part-time, Contract, Internship, Freelance, Temporary
-    location_type: Optional[str] = None    # On-site, Remote, Hybrid
-    location: Optional[str] = None         # "San Francisco, CA"
-    start_month: Optional[str] = None      # "January", "February", etc.
+    employment_type: Optional[str] = (
+        None  # Full-time, Part-time, Contract, Internship, Freelance, Temporary
+    )
+    location_type: Optional[str] = None  # On-site, Remote, Hybrid
+    location: Optional[str] = None  # "San Francisco, CA"
+    start_month: Optional[str] = None  # "January", "February", etc.
     start_year: Optional[int] = None
     end_month: Optional[str] = None
     end_year: Optional[int] = None
-    is_current: bool = False               # "I currently work here"
-    description: Optional[str] = None      # Bullet points supported
+    is_current: bool = False  # "I currently work here"
+    description: Optional[str] = None  # Bullet points supported
     skills_used: Optional[List[str]] = None
 
 
 class ExperienceResponse(BaseModel):
     """Experience 响应"""
+
     id: int
     job_title: str
     company_name: str
@@ -58,6 +62,7 @@ class ExperienceResponse(BaseModel):
 
 class ExperienceListResponse(BaseModel):
     """Experience 列表响应"""
+
     experience: List[ExperienceResponse]
     total: int
 
@@ -68,10 +73,7 @@ class ExperienceListResponse(BaseModel):
 
 
 @router.get("", response_model=ExperienceListResponse)
-def list_experience(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def list_experience(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """获取当前用户的所有工作经历"""
     experience = (
         db.query(UserExperience)
@@ -132,8 +134,7 @@ def get_experience(
 
     if not experience:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Experience entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Experience entry not found"
         )
 
     return ExperienceResponse.model_validate(experience)
@@ -158,8 +159,7 @@ def update_experience(
 
     if not experience:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Experience entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Experience entry not found"
         )
 
     # 更新字段
@@ -191,8 +191,7 @@ def delete_experience(
 
     if not experience:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Experience entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Experience entry not found"
         )
 
     db.delete(experience)

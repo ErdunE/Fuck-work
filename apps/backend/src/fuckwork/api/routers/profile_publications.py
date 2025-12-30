@@ -22,17 +22,19 @@ router = APIRouter(prefix="/api/users/me/publications", tags=["profile", "public
 
 class PublicationRequest(BaseModel):
     """Publication 请求"""
-    title: str                                  # "Machine Learning in Healthcare"
-    publisher: Optional[str] = None             # "Nature Medicine"
-    publication_month: Optional[str] = None     # "January", etc.
+
+    title: str  # "Machine Learning in Healthcare"
+    publisher: Optional[str] = None  # "Nature Medicine"
+    publication_month: Optional[str] = None  # "January", etc.
     publication_year: Optional[int] = None
-    url: Optional[str] = None                   # "https://doi.org/..."
-    authors: Optional[str] = None               # "John Doe, Jane Smith, et al."
-    description: Optional[str] = None           # Brief description or abstract
+    url: Optional[str] = None  # "https://doi.org/..."
+    authors: Optional[str] = None  # "John Doe, Jane Smith, et al."
+    description: Optional[str] = None  # Brief description or abstract
 
 
 class PublicationResponse(BaseModel):
     """Publication 响应"""
+
     id: int
     title: str
     publisher: Optional[str] = None
@@ -48,6 +50,7 @@ class PublicationResponse(BaseModel):
 
 class PublicationListResponse(BaseModel):
     """Publication 列表响应"""
+
     publications: List[PublicationResponse]
     total: int
 
@@ -59,8 +62,7 @@ class PublicationListResponse(BaseModel):
 
 @router.get("", response_model=PublicationListResponse)
 def list_publications(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取当前用户的所有发表"""
     publications = (
@@ -116,10 +118,7 @@ def get_publication(
     )
 
     if not publication:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Publication not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publication not found")
 
     return PublicationResponse.model_validate(publication)
 
@@ -142,10 +141,7 @@ def update_publication(
     )
 
     if not publication:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Publication not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publication not found")
 
     # 更新字段
     update_data = request.model_dump(exclude_unset=True)
@@ -175,10 +171,7 @@ def delete_publication(
     )
 
     if not publication:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Publication not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Publication not found")
 
     db.delete(publication)
     db.commit()

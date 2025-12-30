@@ -20,8 +20,12 @@ from src.fuckwork.database import User, UserResume, get_db
 router = APIRouter(prefix="/api/users/me/resumes", tags=["profile", "resumes"])
 
 # S3 Configuration
-S3_BUCKET = settings.S3_UPLOADS_BUCKET if hasattr(settings, 'S3_UPLOADS_BUCKET') else "fuckwork-dev-uploads-302222527269"
-S3_REGION = settings.AWS_REGION if hasattr(settings, 'AWS_REGION') else "us-east-1"
+S3_BUCKET = (
+    settings.S3_UPLOADS_BUCKET
+    if hasattr(settings, "S3_UPLOADS_BUCKET")
+    else "fuckwork-dev-uploads-302222527269"
+)
+S3_REGION = settings.AWS_REGION if hasattr(settings, "AWS_REGION") else "us-east-1"
 
 # Initialize S3 client
 s3_client = boto3.client(
@@ -121,10 +125,10 @@ def get_file_url(key: str) -> str:
 def list_resumes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get all resumes and cover letters for current user."""
     all_files = db.query(UserResume).filter(UserResume.user_id == current_user.id).all()
-    
+
     resumes = [r for r in all_files if not r.is_cover_letter]
     cover_letters = [r for r in all_files if r.is_cover_letter]
-    
+
     return ResumeListResponse(
         resumes=[ResumeResponse.model_validate(r) for r in resumes],
         cover_letters=[ResumeResponse.model_validate(c) for c in cover_letters],
@@ -237,9 +241,7 @@ def set_default_resume(
     )
 
     if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
 
     if resume.is_cover_letter:
         raise HTTPException(
@@ -279,9 +281,7 @@ def get_resume(
     )
 
     if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
 
     return ResumeResponse.model_validate(resume)
 
@@ -303,9 +303,7 @@ def get_download_url(
     )
 
     if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
 
     # Extract key from URL
     file_key = resume.file_url.split(f"{S3_BUCKET}.s3.{S3_REGION}.amazonaws.com/")[-1]
@@ -344,9 +342,7 @@ def delete_resume(
     )
 
     if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
 
     # Extract key from URL and delete from S3
     try:

@@ -22,23 +22,25 @@ router = APIRouter(prefix="/api/users/me/education", tags=["profile", "education
 
 class EducationRequest(BaseModel):
     """Education 请求"""
+
     school_name: str
-    degree: Optional[str] = None           # "Bachelor's Degree", "Master's Degree", etc.
-    field_of_study: Optional[str] = None   # "Computer Science"
-    location: Optional[str] = None         # "Stanford, CA"
-    start_month: Optional[str] = None      # "January", "February", etc.
+    degree: Optional[str] = None  # "Bachelor's Degree", "Master's Degree", etc.
+    field_of_study: Optional[str] = None  # "Computer Science"
+    location: Optional[str] = None  # "Stanford, CA"
+    start_month: Optional[str] = None  # "January", "February", etc.
     start_year: Optional[int] = None
     end_month: Optional[str] = None
     end_year: Optional[int] = None
-    is_current: bool = False               # "I am currently studying here"
-    gpa: Optional[str] = None              # "3.8/4.0" - 字符串格式
-    honors: Optional[str] = None           # "Cum Laude, Dean's List"
-    coursework: Optional[str] = None       # "Data Structures, Algorithms, ..."
-    activities: Optional[str] = None       # "Computer Science Club, Hackathon Team, ..."
+    is_current: bool = False  # "I am currently studying here"
+    gpa: Optional[str] = None  # "3.8/4.0" - 字符串格式
+    honors: Optional[str] = None  # "Cum Laude, Dean's List"
+    coursework: Optional[str] = None  # "Data Structures, Algorithms, ..."
+    activities: Optional[str] = None  # "Computer Science Club, Hackathon Team, ..."
 
 
 class EducationResponse(BaseModel):
     """Education 响应"""
+
     id: int
     school_name: str
     degree: Optional[str] = None
@@ -60,6 +62,7 @@ class EducationResponse(BaseModel):
 
 class EducationListResponse(BaseModel):
     """Education 列表响应"""
+
     education: List[EducationResponse]
     total: int
 
@@ -70,10 +73,7 @@ class EducationListResponse(BaseModel):
 
 
 @router.get("", response_model=EducationListResponse)
-def list_education(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
+def list_education(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """获取当前用户的所有教育经历"""
     education = (
         db.query(UserEducation)
@@ -126,17 +126,13 @@ def get_education(
     """获取指定的教育经历"""
     education = (
         db.query(UserEducation)
-        .filter(
-            UserEducation.id == education_id,
-            UserEducation.user_id == current_user.id
-        )
+        .filter(UserEducation.id == education_id, UserEducation.user_id == current_user.id)
         .first()
     )
 
     if not education:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Education entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Education entry not found"
         )
 
     return EducationResponse.model_validate(education)
@@ -152,17 +148,13 @@ def update_education(
     """更新教育经历"""
     education = (
         db.query(UserEducation)
-        .filter(
-            UserEducation.id == education_id,
-            UserEducation.user_id == current_user.id
-        )
+        .filter(UserEducation.id == education_id, UserEducation.user_id == current_user.id)
         .first()
     )
 
     if not education:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Education entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Education entry not found"
         )
 
     # 更新字段
@@ -185,17 +177,13 @@ def delete_education(
     """删除教育经历"""
     education = (
         db.query(UserEducation)
-        .filter(
-            UserEducation.id == education_id,
-            UserEducation.user_id == current_user.id
-        )
+        .filter(UserEducation.id == education_id, UserEducation.user_id == current_user.id)
         .first()
     )
 
     if not education:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Education entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Education entry not found"
         )
 
     db.delete(education)

@@ -22,19 +22,21 @@ router = APIRouter(prefix="/api/users/me/certifications", tags=["profile", "cert
 
 class CertificationRequest(BaseModel):
     """Certification 请求"""
-    name: str                                    # "AWS Solutions Architect"
-    issuing_organization: Optional[str] = None   # "Amazon Web Services"
-    issue_month: Optional[str] = None            # "January", etc.
+
+    name: str  # "AWS Solutions Architect"
+    issuing_organization: Optional[str] = None  # "Amazon Web Services"
+    issue_month: Optional[str] = None  # "January", etc.
     issue_year: Optional[int] = None
     expiration_month: Optional[str] = None
     expiration_year: Optional[int] = None
-    no_expiration: bool = False                  # "This credential does not expire"
-    credential_id: Optional[str] = None          # "ABC123XYZ"
-    credential_url: Optional[str] = None         # "https://verify.example.com/..."
+    no_expiration: bool = False  # "This credential does not expire"
+    credential_id: Optional[str] = None  # "ABC123XYZ"
+    credential_url: Optional[str] = None  # "https://verify.example.com/..."
 
 
 class CertificationResponse(BaseModel):
     """Certification 响应"""
+
     id: int
     name: str
     issuing_organization: Optional[str] = None
@@ -52,6 +54,7 @@ class CertificationResponse(BaseModel):
 
 class CertificationListResponse(BaseModel):
     """Certification 列表响应"""
+
     certifications: List[CertificationResponse]
     total: int
 
@@ -63,8 +66,7 @@ class CertificationListResponse(BaseModel):
 
 @router.get("", response_model=CertificationListResponse)
 def list_certifications(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取当前用户的所有证书"""
     certifications = (
@@ -122,10 +124,7 @@ def get_certification(
     )
 
     if not certification:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Certification not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certification not found")
 
     return CertificationResponse.model_validate(certification)
 
@@ -148,10 +147,7 @@ def update_certification(
     )
 
     if not certification:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Certification not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certification not found")
 
     # 更新字段
     update_data = request.model_dump(exclude_unset=True)
@@ -181,10 +177,7 @@ def delete_certification(
     )
 
     if not certification:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Certification not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Certification not found")
 
     db.delete(certification)
     db.commit()

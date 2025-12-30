@@ -22,33 +22,35 @@ router = APIRouter(prefix="/api/users/me/job-preferences", tags=["profile", "job
 
 class JobPreferencesRequest(BaseModel):
     """Job Preferences 请求"""
-    
+
     # JOB PREFERENCES section
-    desired_titles: Optional[List[str]] = None           # ["Software Engineer", "Product Manager"]
-    desired_industries: Optional[List[str]] = None       # ["Technology", "Finance"]
-    desired_company_sizes: Optional[List[str]] = None    # ["Startup", "Small", "Medium", "Large", "Enterprise"]
+    desired_titles: Optional[List[str]] = None  # ["Software Engineer", "Product Manager"]
+    desired_industries: Optional[List[str]] = None  # ["Technology", "Finance"]
+    desired_company_sizes: Optional[List[str]] = (
+        None  # ["Startup", "Small", "Medium", "Large", "Enterprise"]
+    )
 
     # COMPENSATION section
     min_salary: Optional[int] = None
     max_salary: Optional[int] = None
     salary_currency: Optional[str] = "USD"
-    salary_period: Optional[str] = "yearly"              # "yearly", "monthly", "hourly"
+    salary_period: Optional[str] = "yearly"  # "yearly", "monthly", "hourly"
     salary_negotiable: Optional[bool] = True
 
     # LOCATION & WORK MODE section
-    preferred_locations: Optional[List[str]] = None      # ["San Francisco", "New York", "Remote"]
-    work_modes: Optional[List[str]] = None               # ["Remote", "Hybrid", "On-site"]
-    willing_to_relocate: Optional[str] = None            # "yes", "no", "for_the_right_opportunity"
-    relocation_locations: Optional[List[str]] = None     # ["Seattle", "Austin"]
+    preferred_locations: Optional[List[str]] = None  # ["San Francisco", "New York", "Remote"]
+    work_modes: Optional[List[str]] = None  # ["Remote", "Hybrid", "On-site"]
+    willing_to_relocate: Optional[str] = None  # "yes", "no", "for_the_right_opportunity"
+    relocation_locations: Optional[List[str]] = None  # ["Seattle", "Austin"]
 
     # EMPLOYMENT DETAILS section
-    employment_types: Optional[List[str]] = None         # ["Full-time", "Part-time", "Contract", etc.]
-    available_start_date: Optional[str] = None           # "immediately", "2_weeks", "1_month", etc.
-    travel_percentage: Optional[str] = None              # "no_travel", "up_to_25", "up_to_50", etc.
+    employment_types: Optional[List[str]] = None  # ["Full-time", "Part-time", "Contract", etc.]
+    available_start_date: Optional[str] = None  # "immediately", "2_weeks", "1_month", etc.
+    travel_percentage: Optional[str] = None  # "no_travel", "up_to_25", "up_to_50", etc.
 
     # WORK AUTHORIZATION section
-    work_auth_countries: Optional[List[str]] = None      # ["United States", "Canada"]
-    requires_sponsorship: Optional[str] = None           # "yes", "no", "not_applicable"
+    work_auth_countries: Optional[List[str]] = None  # ["United States", "Canada"]
+    requires_sponsorship: Optional[str] = None  # "yes", "no", "not_applicable"
 
     # APPLICATION QUESTIONS section
     age_over_18: Optional[bool] = None
@@ -58,15 +60,16 @@ class JobPreferencesRequest(BaseModel):
     drug_test_consent: Optional[bool] = None
 
     # EQUAL EMPLOYMENT OPPORTUNITY section
-    eeo_gender: Optional[str] = None                     # "Male", "Female", "Non-binary", etc.
-    eeo_sexual_orientation: Optional[str] = None         # "Heterosexual", "Gay", etc.
-    eeo_veteran_status: Optional[str] = None             # "Not a veteran", "Disabled Veteran", etc.
-    eeo_disability_status: Optional[str] = None          # "Yes", "No", "Prefer not to disclose"
-    eeo_race_ethnicity: Optional[List[str]] = None       # ["Asian", "White", etc.] - 多选
+    eeo_gender: Optional[str] = None  # "Male", "Female", "Non-binary", etc.
+    eeo_sexual_orientation: Optional[str] = None  # "Heterosexual", "Gay", etc.
+    eeo_veteran_status: Optional[str] = None  # "Not a veteran", "Disabled Veteran", etc.
+    eeo_disability_status: Optional[str] = None  # "Yes", "No", "Prefer not to disclose"
+    eeo_race_ethnicity: Optional[List[str]] = None  # ["Asian", "White", etc.] - 多选
 
 
 class JobPreferencesResponse(BaseModel):
     """Job Preferences 响应"""
+
     id: int
     user_id: int
 
@@ -122,14 +125,11 @@ class JobPreferencesResponse(BaseModel):
 
 @router.get("", response_model=JobPreferencesResponse)
 def get_job_preferences(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取当前用户的求职偏好"""
     preferences = (
-        db.query(UserJobPreferences)
-        .filter(UserJobPreferences.user_id == current_user.id)
-        .first()
+        db.query(UserJobPreferences).filter(UserJobPreferences.user_id == current_user.id).first()
     )
 
     if not preferences:
@@ -150,9 +150,7 @@ def update_job_preferences(
 ):
     """更新当前用户的求职偏好（支持部分更新）"""
     preferences = (
-        db.query(UserJobPreferences)
-        .filter(UserJobPreferences.user_id == current_user.id)
-        .first()
+        db.query(UserJobPreferences).filter(UserJobPreferences.user_id == current_user.id).first()
     )
 
     if not preferences:
@@ -177,9 +175,7 @@ def delete_job_preferences(
 ):
     """删除/重置所有求职偏好"""
     preferences = (
-        db.query(UserJobPreferences)
-        .filter(UserJobPreferences.user_id == current_user.id)
-        .first()
+        db.query(UserJobPreferences).filter(UserJobPreferences.user_id == current_user.id).first()
     )
 
     if preferences:
@@ -206,9 +202,7 @@ def update_compensation(
 ):
     """更新薪资偏好"""
     preferences = (
-        db.query(UserJobPreferences)
-        .filter(UserJobPreferences.user_id == current_user.id)
-        .first()
+        db.query(UserJobPreferences).filter(UserJobPreferences.user_id == current_user.id).first()
     )
 
     if not preferences:
@@ -247,9 +241,7 @@ def update_work_authorization(
 ):
     """更新工作授权偏好"""
     preferences = (
-        db.query(UserJobPreferences)
-        .filter(UserJobPreferences.user_id == current_user.id)
-        .first()
+        db.query(UserJobPreferences).filter(UserJobPreferences.user_id == current_user.id).first()
     )
 
     if not preferences:
@@ -282,9 +274,7 @@ def update_eeo(
 ):
     """更新 EEO 数据"""
     preferences = (
-        db.query(UserJobPreferences)
-        .filter(UserJobPreferences.user_id == current_user.id)
-        .first()
+        db.query(UserJobPreferences).filter(UserJobPreferences.user_id == current_user.id).first()
     )
 
     if not preferences:
@@ -326,9 +316,7 @@ def update_application_questions(
 ):
     """更新常见申请问题答案"""
     preferences = (
-        db.query(UserJobPreferences)
-        .filter(UserJobPreferences.user_id == current_user.id)
-        .first()
+        db.query(UserJobPreferences).filter(UserJobPreferences.user_id == current_user.id).first()
     )
 
     if not preferences:

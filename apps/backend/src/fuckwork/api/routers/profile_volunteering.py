@@ -22,19 +22,21 @@ router = APIRouter(prefix="/api/users/me/volunteering", tags=["profile", "volunt
 
 class VolunteeringRequest(BaseModel):
     """Volunteering 请求"""
-    organization: str                        # "Red Cross"
-    role: Optional[str] = None               # "Volunteer Coordinator"
-    cause: Optional[str] = None              # 下拉选择: "Education", "Health", etc.
-    start_month: Optional[str] = None        # "January", etc.
+
+    organization: str  # "Red Cross"
+    role: Optional[str] = None  # "Volunteer Coordinator"
+    cause: Optional[str] = None  # 下拉选择: "Education", "Health", etc.
+    start_month: Optional[str] = None  # "January", etc.
     start_year: Optional[int] = None
     end_month: Optional[str] = None
     end_year: Optional[int] = None
-    is_current: bool = False                 # "I am currently volunteering here"
+    is_current: bool = False  # "I am currently volunteering here"
     description: Optional[str] = None
 
 
 class VolunteeringResponse(BaseModel):
     """Volunteering 响应"""
+
     id: int
     organization: str
     role: Optional[str] = None
@@ -52,6 +54,7 @@ class VolunteeringResponse(BaseModel):
 
 class VolunteeringListResponse(BaseModel):
     """Volunteering 列表响应"""
+
     volunteering: List[VolunteeringResponse]
     total: int
 
@@ -63,8 +66,7 @@ class VolunteeringListResponse(BaseModel):
 
 @router.get("", response_model=VolunteeringListResponse)
 def list_volunteering(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """获取当前用户的所有志愿者经历"""
     volunteering = (
@@ -123,8 +125,7 @@ def get_volunteering(
 
     if not volunteering:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Volunteering entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Volunteering entry not found"
         )
 
     return VolunteeringResponse.model_validate(volunteering)
@@ -149,8 +150,7 @@ def update_volunteering(
 
     if not volunteering:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Volunteering entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Volunteering entry not found"
         )
 
     # 更新字段
@@ -182,8 +182,7 @@ def delete_volunteering(
 
     if not volunteering:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Volunteering entry not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Volunteering entry not found"
         )
 
     db.delete(volunteering)
