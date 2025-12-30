@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Country, State, City, ICountry, IState, ICity } from 'country-state-city'
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import profileApi from '../../services/profileApi'
+import type { ProfilePersonalInfo, OtherUrl } from '../../types/profile'
 
 // ============================================================================
 // Social Link Icons (Brand Icons)
@@ -69,7 +71,7 @@ function SectionTitle({ children, first = false }: SectionTitleProps) {
 }
 
 // ============================================================================
-// Form Field Components (No Icons)
+// Form Field Components
 // ============================================================================
 
 interface TextFieldProps {
@@ -222,6 +224,7 @@ interface SocialLink {
   id: string
   platform: SocialPlatform
   url: string
+  label?: string // For 'other' links
 }
 
 const PLATFORM_CONFIG: Record<
@@ -260,32 +263,137 @@ const PLATFORM_CONFIG: Record<
 }
 
 // ============================================================================
+// Form Data Interface
+// ============================================================================
+
+interface FormData {
+  first_name: string
+  last_name: string
+  preferred_name: string
+  email: string
+  phone_country_code: string
+  phone_number: string
+  country: string
+  state: string
+  city: string
+  street_address: string
+  apartment: string
+  postal_code: string
+  professional_summary: string
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+// Convert API response to form data
+function apiToFormData(profile: ProfilePersonalInfo): FormData {
+  return {
+    first_name: profile.first_name || '',
+    last_name: profile.last_name || '',
+    preferred_name: profile.preferred_name || '',
+    email: profile.email || '',
+    phone_country_code: profile.phone_country_code || '+1',
+    phone_number: profile.phone_number || '',
+    country: profile.country || '',
+    state: profile.state || '',
+    city: profile.city || '',
+    street_address: profile.street_address || '',
+    apartment: profile.apartment || '',
+    postal_code: profile.postal_code || '',
+    professional_summary: profile.professional_summary || '',
+  }
+}
+
+// Convert API response to social links
+function apiToSocialLinks(profile: ProfilePersonalInfo): SocialLink[] {
+  const links: SocialLink[] = [
+    { id: 'linkedin', platform: 'linkedin', url: profile.linkedin_url || '' },
+    { id: 'github', platform: 'github', url: profile.github_url || '' },
+    { id: 'website', platform: 'website', url: profile.website_url || '' },
+  ]
+
+  // Add other_urls
+  if (profile.other_urls && Array.isArray(profile.other_urls)) {
+    profile.other_urls.forEach((item: OtherUrl, index: number) => {
+      links.push({
+        id: `other-${index}`,
+        platform: 'other',
+        url: item.url || '',
+        label: item.label || '',
+      })
+    })
+  }
+
+  return links
+}
+
+// Convert form data and social links to API format
+function formToApiData(
+  formData: FormData,
+  socialLinks: SocialLink[]
+): Partial<Omit<ProfilePersonalInfo, 'id' | 'user_id'>> {
+  const linkedinLink = socialLinks.find((l) => l.platform === 'linkedin')
+  const githubLink = socialLinks.find((l) => l.platform === 'github')
+  const websiteLink = socialLinks.find((l) => l.platform === 'website')
+  const otherLinks = socialLinks
+    .filter((l) => l.platform === 'other' && l.url)
+    .map((l) => ({ label: l.label || 'Link', url: l.url }))
+
+  return {
+    first_name: formData.first_name || null,
+    last_name: formData.last_name || null,
+    preferred_name: formData.preferred_name || null,
+    email: formData.email || null,
+    phone_country_code: formData.phone_country_code || null,
+    phone_number: formData.phone_number || null,
+    country: formData.country || null,
+    state: formData.state || null,
+    city: formData.city || null,
+    street_address: formData.street_address || null,
+    apartment: formData.apartment || null,
+    postal_code: formData.postal_code || null,
+    professional_summary: formData.professional_summary || null,
+    linkedin_url: linkedinLink?.url || null,
+    github_url: githubLink?.url || null,
+    website_url: websiteLink?.url || null,
+    other_urls: otherLinks.length > 0 ? otherLinks : null,
+  }
+}
+
+// ============================================================================
 // Main Component
 // ============================================================================
 
 export default function PersonalInfoTab() {
+  // Loading and error states
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+
   // Form state
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     first_name: '',
     last_name: '',
     preferred_name: '',
     email: '',
     phone_country_code: '+1',
-    phone: '',
+    phone_number: '',
     country: '',
     state: '',
     city: '',
     street_address: '',
     apartment: '',
-    zip_code: '',
+    postal_code: '',
     professional_summary: '',
   })
 
   // Social links state
   const [socialLinks, setSocialLinks] = useState<SocialLink[]>([
-    { id: '1', platform: 'linkedin', url: '' },
-    { id: '2', platform: 'github', url: '' },
-    { id: '3', platform: 'website', url: '' },
+    { id: 'linkedin', platform: 'linkedin', url: '' },
+    { id: 'github', platform: 'github', url: '' },
+    { id: 'website', platform: 'website', url: '' },
   ])
 
   // Location state
@@ -293,41 +401,98 @@ export default function PersonalInfoTab() {
   const [states, setStates] = useState<IState[]>([])
   const [cities, setCities] = useState<ICity[]>([])
 
+  // Track if data was loaded from API (to avoid resetting location dropdowns)
+  const [initialLoadDone, setInitialLoadDone] = useState(false)
+
   // Load countries on mount
   useEffect(() => {
     const allCountries = Country.getAllCountries()
     setCountries(allCountries)
   }, [])
 
-  // Load states when country changes
+  // Load profile data from API
+  const loadProfile = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const profile = await profileApi.getFullProfile()
+
+      // Convert API data to form data
+      const newFormData = apiToFormData(profile)
+      setFormData(newFormData)
+
+      // Convert API data to social links
+      const newSocialLinks = apiToSocialLinks(profile)
+      setSocialLinks(newSocialLinks)
+
+      // Load states if country exists
+      if (newFormData.country) {
+        const countryStates = State.getStatesOfCountry(newFormData.country)
+        setStates(countryStates)
+
+        // Load cities if state exists
+        if (newFormData.state) {
+          const stateCities = City.getCitiesOfState(
+            newFormData.country,
+            newFormData.state
+          )
+          setCities(stateCities)
+        }
+      }
+
+      setInitialLoadDone(true)
+    } catch (err) {
+      console.error('Failed to load profile:', err)
+      setError('Failed to load profile data. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
+    loadProfile()
+  }, [loadProfile])
+
+  // Load states when country changes (after initial load)
+  useEffect(() => {
+    if (!initialLoadDone) return
+
     if (formData.country) {
       const countryStates = State.getStatesOfCountry(formData.country)
       setStates(countryStates)
-      // Reset state and city when country changes
-      setFormData((prev) => ({ ...prev, state: '', city: '' }))
       setCities([])
     } else {
       setStates([])
       setCities([])
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.country])
+  }, [formData.country, initialLoadDone])
 
-  // Load cities when state changes
+  // Load cities when state changes (after initial load)
   useEffect(() => {
+    if (!initialLoadDone) return
+
     if (formData.country && formData.state) {
       const stateCities = City.getCitiesOfState(formData.country, formData.state)
       setCities(stateCities)
-      setFormData((prev) => ({ ...prev, city: '' }))
     } else {
       setCities([])
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.state])
+  }, [formData.state, formData.country, initialLoadDone])
 
-  const updateField = (field: string, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+  const updateField = (field: keyof FormData, value: string) => {
+    setFormData((prev) => {
+      const newData = { ...prev, [field]: value }
+
+      // Reset dependent fields when country/state changes
+      if (field === 'country') {
+        newData.state = ''
+        newData.city = ''
+      } else if (field === 'state') {
+        newData.city = ''
+      }
+
+      return newData
+    })
   }
 
   const updateSocialLink = (id: string, url: string) => {
@@ -336,10 +501,16 @@ export default function PersonalInfoTab() {
     )
   }
 
+  const updateSocialLinkLabel = (id: string, label: string) => {
+    setSocialLinks((prev) =>
+      prev.map((link) => (link.id === id ? { ...link, label } : link))
+    )
+  }
+
   const addSocialLink = () => {
     setSocialLinks((prev) => [
       ...prev,
-      { id: Date.now().toString(), platform: 'other', url: '' },
+      { id: `other-${Date.now()}`, platform: 'other', url: '', label: '' },
     ])
   }
 
@@ -347,9 +518,43 @@ export default function PersonalInfoTab() {
     setSocialLinks((prev) => prev.filter((link) => link.id !== id))
   }
 
-  const handleSave = () => {
-    console.log('Saving personal info:', { ...formData, socialLinks })
-    alert('Changes saved! (API integration coming soon)')
+  const handleSave = async () => {
+    try {
+      setIsSaving(true)
+      setError(null)
+      setSaveMessage(null)
+
+      const apiData = formToApiData(formData, socialLinks)
+      await profileApi.updatePersonalInfo(apiData)
+
+      setSaveMessage('Changes saved successfully!')
+      setTimeout(() => setSaveMessage(null), 3000)
+    } catch (err) {
+      console.error('Failed to save profile:', err)
+      setError('Failed to save changes. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="card p-xl">
+        <div className="animate-pulse space-y-lg">
+          <div className="h-8 bg-bg-tertiary rounded w-1/3" />
+          <div className="h-4 bg-bg-tertiary rounded w-1/2" />
+          <div className="grid grid-cols-2 gap-md mt-xl">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i}>
+                <div className="h-4 bg-bg-tertiary rounded w-1/3 mb-sm" />
+                <div className="h-10 bg-bg-tertiary rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -363,6 +568,20 @@ export default function PersonalInfoTab() {
           Complete your profile to improve job matching accuracy
         </p>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="mb-lg p-md bg-accent-red/10 border border-accent-red/20 rounded-lg">
+          <p className="text-body-small text-accent-red">{error}</p>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {saveMessage && (
+        <div className="mb-lg p-md bg-accent-green/10 border border-accent-green/20 rounded-lg">
+          <p className="text-body-small text-accent-green">{saveMessage}</p>
+        </div>
+      )}
 
       {/* ================================================================== */}
       {/* SECTION: Basic Information */}
@@ -428,8 +647,8 @@ export default function PersonalInfoTab() {
             label="Phone Number"
             type="tel"
             required
-            value={formData.phone}
-            onChange={(v) => updateField('phone', v)}
+            value={formData.phone_number}
+            onChange={(v) => updateField('phone_number', v)}
             placeholder="(234) 567-8900"
           />
         </div>
@@ -499,8 +718,8 @@ export default function PersonalInfoTab() {
           />
           <TextField
             label="ZIP / Postal Code"
-            value={formData.zip_code}
-            onChange={(v) => updateField('zip_code', v)}
+            value={formData.postal_code}
+            onChange={(v) => updateField('postal_code', v)}
             placeholder="94102"
           />
         </div>
@@ -516,9 +735,7 @@ export default function PersonalInfoTab() {
           const config = PLATFORM_CONFIG[link.platform]
           const Icon = config.icon
           const isLast = index === socialLinks.length - 1
-          const canDelete =
-            link.platform === 'other' ||
-            socialLinks.filter((l) => l.platform === link.platform).length > 1
+          const canDelete = link.platform === 'other'
 
           return (
             <div
@@ -532,11 +749,21 @@ export default function PersonalInfoTab() {
                 <Icon className="w-5 h-5" />
               </div>
 
-              {/* Platform Label */}
+              {/* Platform Label or Custom Label Input */}
               <div className="w-24 flex-shrink-0">
-                <span className="text-body-small text-text-primary font-medium">
-                  {config.label}
-                </span>
+                {link.platform === 'other' ? (
+                  <input
+                    type="text"
+                    value={link.label || ''}
+                    onChange={(e) => updateSocialLinkLabel(link.id, e.target.value)}
+                    placeholder="Label"
+                    className="input w-full text-body-small"
+                  />
+                ) : (
+                  <span className="text-body-small text-text-primary font-medium">
+                    {config.label}
+                  </span>
+                )}
               </div>
 
               {/* URL Input */}
@@ -550,7 +777,7 @@ export default function PersonalInfoTab() {
                 />
               </div>
 
-              {/* Delete Button (only for deletable links) */}
+              {/* Delete Button (only for 'other' links) */}
               {canDelete && (
                 <button
                   onClick={() => removeSocialLink(link.id)}
@@ -596,8 +823,12 @@ export default function PersonalInfoTab() {
       {/* Save Button */}
       {/* ================================================================== */}
       <div className="mt-xl pt-lg border-t border-border-light flex justify-end">
-        <button onClick={handleSave} className="btn-primary">
-          Save Changes
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSaving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
     </div>

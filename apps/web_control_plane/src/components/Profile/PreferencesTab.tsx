@@ -1,70 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   LightBulbIcon,
   InformationCircleIcon,
 } from '@heroicons/react/24/outline'
 import { XMarkIcon } from '@heroicons/react/24/solid'
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface Preferences {
-  // Job Preferences
-  desiredJobTitles: string[]
-  preferredIndustries: string[]
-  companySizes: string[]
-
-  // Compensation
-  minSalary: string
-  maxSalary: string
-  currency: string
-  salaryPeriod: string
-  salaryNegotiable: boolean
-
-  // Location & Work Mode
-  preferredLocations: string[]
-  workModes: string[]
-  willingToRelocate: string
-  relocationLocations: string[]
-
-  // Employment Details
-  employmentTypes: string[]
-  availableStartDate: string
-  willingToTravel: string
-
-  // Work Authorization
-  authorizedCountries: string[]
-  usAuthorizationStatus: string
-  requireSponsorship: string
-  euAuthorizationStatus: string
-
-  // Application Questions
-  isOver18: boolean
-  hasDriversLicense: boolean
-  hasReliableTransportation: boolean
-  consentBackgroundCheck: boolean
-  consentDrugTest: boolean
-
-  // EEO Information
-  genderIdentity: string
-  sexualOrientation: string
-  veteranStatus: string
-  disabilityStatus: string
-  raceEthnicity: string[]
-}
+import profileApi from '../../services/profileApi'
+import type { JobPreferences } from '../../types/profile'
+import {
+  COMPANY_SIZES,
+  WORK_MODES,
+  EMPLOYMENT_TYPES,
+  AVAILABLE_START_DATES,
+  TRAVEL_PERCENTAGES,
+  WILLING_TO_RELOCATE_OPTIONS,
+  REQUIRES_SPONSORSHIP_OPTIONS,
+} from '../../types/profile'
 
 // ============================================================================
 // Constants
 // ============================================================================
-
-const COMPANY_SIZES = [
-  { value: 'startup', label: 'Startup (1-50 employees)' },
-  { value: 'small', label: 'Small (51-200 employees)' },
-  { value: 'medium', label: 'Medium (201-1000 employees)' },
-  { value: 'large', label: 'Large (1001-5000 employees)' },
-  { value: 'enterprise', label: 'Enterprise (5000+ employees)' },
-]
 
 const CURRENCIES = [
   { value: 'USD', label: 'USD ($)' },
@@ -82,46 +36,9 @@ const CURRENCIES = [
 ]
 
 const SALARY_PERIODS = [
-  { value: 'year', label: 'Per Year' },
-  { value: 'month', label: 'Per Month' },
-  { value: 'hour', label: 'Per Hour' },
-]
-
-const WORK_MODES = [
-  { value: 'remote', label: 'Remote' },
-  { value: 'hybrid', label: 'Hybrid' },
-  { value: 'onsite', label: 'On-site' },
-]
-
-const RELOCATION_OPTIONS = [
-  { value: 'yes', label: 'Yes' },
-  { value: 'no', label: 'No' },
-  { value: 'for_right_opportunity', label: 'For the right opportunity' },
-]
-
-const EMPLOYMENT_TYPES = [
-  { value: 'full_time', label: 'Full-time' },
-  { value: 'part_time', label: 'Part-time' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'internship', label: 'Internship' },
-  { value: 'freelance', label: 'Freelance' },
-  { value: 'temporary', label: 'Temporary' },
-]
-
-const START_DATE_OPTIONS = [
-  { value: 'immediately', label: 'Immediately' },
-  { value: '2_weeks', label: '2 weeks' },
-  { value: '1_month', label: '1 month' },
-  { value: '2_months', label: '2 months' },
-  { value: '3_months', label: '3+ months' },
-]
-
-const TRAVEL_OPTIONS = [
-  { value: 'no_travel', label: 'No travel' },
-  { value: 'up_to_25', label: 'Up to 25%' },
-  { value: 'up_to_50', label: 'Up to 50%' },
-  { value: 'up_to_75', label: 'Up to 75%' },
-  { value: 'up_to_100', label: '100% travel' },
+  { value: 'yearly', label: 'Per Year' },
+  { value: 'monthly', label: 'Per Month' },
+  { value: 'hourly', label: 'Per Hour' },
 ]
 
 const COMMON_COUNTRIES = [
@@ -147,95 +64,61 @@ const COMMON_COUNTRIES = [
   'Mexico',
 ]
 
-const US_AUTHORIZATION_STATUS = [
-  { value: 'us_citizen', label: 'US Citizen' },
-  { value: 'permanent_resident', label: 'Permanent Resident (Green Card)' },
-  { value: 'opt', label: 'OPT (F-1 Student Visa)' },
-  { value: 'opt_stem', label: 'OPT STEM Extension' },
-  { value: 'cpt', label: 'CPT (F-1 Student Visa)' },
-  { value: 'h1b', label: 'H-1B' },
-  { value: 'h1b_transfer', label: 'H-1B (Transfer)' },
-  { value: 'h4_ead', label: 'H-4 EAD' },
-  { value: 'l1', label: 'L-1' },
-  { value: 'l2_ead', label: 'L-2 EAD' },
-  { value: 'tn', label: 'TN (NAFTA)' },
-  { value: 'e2', label: 'E-2 Treaty Investor' },
-  { value: 'e3', label: 'E-3 (Australian)' },
-  { value: 'o1', label: 'O-1 Extraordinary Ability' },
-  { value: 'j1', label: 'J-1' },
-  { value: 'asylum_refugee', label: 'Asylee / Refugee' },
-  { value: 'daca', label: 'DACA' },
-  { value: 'other', label: 'Other' },
-]
-
-const EU_AUTHORIZATION_STATUS = [
-  { value: 'eu_citizen', label: 'EU/EEA Citizen' },
-  { value: 'uk_citizen', label: 'UK Citizen' },
-  { value: 'permanent_resident', label: 'Permanent Resident' },
-  { value: 'work_permit', label: 'Work Permit / Visa' },
-  { value: 'blue_card', label: 'EU Blue Card' },
-  { value: 'student_visa', label: 'Student Visa with Work Rights' },
-  { value: 'other', label: 'Other' },
-]
-
-const SPONSORSHIP_OPTIONS = [
-  { value: 'yes', label: 'Yes, I will require sponsorship' },
-  { value: 'no', label: 'No, I will not require sponsorship' },
-  { value: 'not_applicable', label: 'Not applicable' },
-]
-
 // EEO Options
 const GENDER_IDENTITY_OPTIONS = [
-  { value: 'male', label: 'Male' },
-  { value: 'female', label: 'Female' },
-  { value: 'non_binary', label: 'Non-binary' },
-  { value: 'transgender_male', label: 'Transgender Male' },
-  { value: 'transgender_female', label: 'Transgender Female' },
-  { value: 'genderqueer', label: 'Genderqueer / Gender Non-conforming' },
-  { value: 'other', label: 'Other' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to disclose' },
+  { value: 'Male', label: 'Male' },
+  { value: 'Female', label: 'Female' },
+  { value: 'Non-binary', label: 'Non-binary' },
+  { value: 'Transgender Male', label: 'Transgender Male' },
+  { value: 'Transgender Female', label: 'Transgender Female' },
+  { value: 'Genderqueer / Gender Non-conforming', label: 'Genderqueer / Gender Non-conforming' },
+  { value: 'Other', label: 'Other' },
+  { value: 'Prefer not to disclose', label: 'Prefer not to disclose' },
 ]
 
+// Sexual Orientation
 const SEXUAL_ORIENTATION_OPTIONS = [
-  { value: 'heterosexual', label: 'Heterosexual / Straight' },
-  { value: 'gay', label: 'Gay' },
-  { value: 'lesbian', label: 'Lesbian' },
-  { value: 'bisexual', label: 'Bisexual' },
-  { value: 'pansexual', label: 'Pansexual' },
-  { value: 'asexual', label: 'Asexual' },
-  { value: 'queer', label: 'Queer' },
-  { value: 'other', label: 'Other' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to disclose' },
+  { value: 'Heterosexual / Straight', label: 'Heterosexual / Straight' },
+  { value: 'Gay', label: 'Gay' },
+  { value: 'Lesbian', label: 'Lesbian' },
+  { value: 'Bisexual', label: 'Bisexual' },
+  { value: 'Pansexual', label: 'Pansexual' },
+  { value: 'Asexual', label: 'Asexual' },
+  { value: 'Queer', label: 'Queer' },
+  { value: 'Other', label: 'Other' },
+  { value: 'Prefer not to disclose', label: 'Prefer not to disclose' },
 ]
 
+// Veteran Status
 const VETERAN_STATUS_OPTIONS = [
-  { value: 'not_veteran', label: 'I am not a protected veteran' },
-  { value: 'disabled_veteran', label: 'Disabled Veteran' },
-  { value: 'recently_separated', label: 'Recently Separated Veteran' },
-  { value: 'active_wartime', label: 'Active Duty Wartime or Campaign Badge Veteran' },
-  { value: 'armed_forces', label: 'Armed Forces Service Medal Veteran' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to disclose' },
+  { value: 'Not a veteran', label: 'I am not a protected veteran' },
+  { value: 'Disabled Veteran', label: 'Disabled Veteran' },
+  { value: 'Recently Separated Veteran', label: 'Recently Separated Veteran' },
+  { value: 'Active Duty Wartime or Campaign Badge Veteran', label: 'Active Duty Wartime or Campaign Badge Veteran' },
+  { value: 'Armed Forces Service Medal Veteran', label: 'Armed Forces Service Medal Veteran' },
+  { value: 'Prefer not to disclose', label: 'Prefer not to disclose' },
 ]
 
+// Disability Status
 const DISABILITY_STATUS_OPTIONS = [
-  { value: 'yes', label: 'Yes, I have a disability (or previously had a disability)' },
-  { value: 'no', label: 'No, I do not have a disability' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to disclose' },
+  { value: 'Yes', label: 'Yes, I have a disability (or previously had a disability)' },
+  { value: 'No', label: 'No, I do not have a disability' },
+  { value: 'Prefer not to disclose', label: 'Prefer not to disclose' },
 ]
 
+// Race/Ethnicity
 const RACE_ETHNICITY_OPTIONS = [
-  { value: 'american_indian', label: 'American Indian or Alaska Native' },
-  { value: 'asian', label: 'Asian' },
-  { value: 'black', label: 'Black or African American' },
-  { value: 'hispanic', label: 'Hispanic or Latino' },
-  { value: 'middle_eastern', label: 'Middle Eastern or North African' },
-  { value: 'native_hawaiian', label: 'Native Hawaiian or Pacific Islander' },
-  { value: 'white', label: 'White' },
-  { value: 'two_or_more', label: 'Two or more races' },
-  { value: 'prefer_not_to_say', label: 'Prefer not to disclose' },
+  { value: 'American Indian or Alaska Native', label: 'American Indian or Alaska Native' },
+  { value: 'Asian', label: 'Asian' },
+  { value: 'Black or African American', label: 'Black or African American' },
+  { value: 'Hispanic or Latino', label: 'Hispanic or Latino' },
+  { value: 'Middle Eastern or North African', label: 'Middle Eastern or North African' },
+  { value: 'Native Hawaiian or Pacific Islander', label: 'Native Hawaiian or Pacific Islander' },
+  { value: 'White', label: 'White' },
+  { value: 'Two or more races', label: 'Two or more races' },
+  { value: 'Prefer not to disclose', label: 'Prefer not to disclose' },
 ]
 
-// Industry suggestions
 const INDUSTRY_SUGGESTIONS = [
   'Technology',
   'Finance',
@@ -254,7 +137,6 @@ const INDUSTRY_SUGGESTIONS = [
   'Non-profit',
 ]
 
-// Location suggestions
 const LOCATION_SUGGESTIONS = [
   'Remote',
   'San Francisco, CA',
@@ -269,48 +151,178 @@ const LOCATION_SUGGESTIONS = [
 ]
 
 // ============================================================================
+// Form Data Type (matches frontend state)
+// ============================================================================
+
+interface PreferencesFormData {
+  // Job Preferences
+  desired_titles: string[]
+  desired_industries: string[]
+  desired_company_sizes: string[]
+
+  // Compensation
+  min_salary: string
+  max_salary: string
+  salary_currency: string
+  salary_period: string
+  salary_negotiable: boolean
+
+  // Location & Work Mode
+  preferred_locations: string[]
+  work_modes: string[]
+  willing_to_relocate: string
+  relocation_locations: string[]
+
+  // Employment Details
+  employment_types: string[]
+  available_start_date: string
+  travel_percentage: string
+
+  // Work Authorization
+  work_auth_countries: string[]
+  requires_sponsorship: string
+
+  // Application Questions
+  age_over_18: boolean
+  has_drivers_license: boolean
+  has_reliable_transportation: boolean
+  background_check_consent: boolean
+  drug_test_consent: boolean
+
+  // EEO Information
+  eeo_gender: string
+  eeo_sexual_orientation: string
+  eeo_veteran_status: string
+  eeo_disability_status: string
+  eeo_race_ethnicity: string[]
+}
+
+// ============================================================================
 // Initial State
 // ============================================================================
 
-const initialPreferences: Preferences = {
-  desiredJobTitles: [],
-  preferredIndustries: [],
-  companySizes: [],
-  minSalary: '',
-  maxSalary: '',
-  currency: 'USD',
-  salaryPeriod: 'year',
-  salaryNegotiable: true,
-  preferredLocations: [],
-  workModes: [],
-  willingToRelocate: 'for_right_opportunity',
-  relocationLocations: [],
-  employmentTypes: ['full_time'],
-  availableStartDate: 'immediately',
-  willingToTravel: 'no_travel',
-  authorizedCountries: [],
-  usAuthorizationStatus: '',
-  requireSponsorship: 'no',
-  euAuthorizationStatus: '',
-  isOver18: true,
-  hasDriversLicense: false,
-  hasReliableTransportation: true,
-  consentBackgroundCheck: true,
-  consentDrugTest: true,
-  genderIdentity: '',
-  sexualOrientation: '',
-  veteranStatus: '',
-  disabilityStatus: '',
-  raceEthnicity: [],
+const initialFormData: PreferencesFormData = {
+  desired_titles: [],
+  desired_industries: [],
+  desired_company_sizes: [],
+  min_salary: '',
+  max_salary: '',
+  salary_currency: 'USD',
+  salary_period: 'yearly',
+  salary_negotiable: true,
+  preferred_locations: [],
+  work_modes: [],
+  willing_to_relocate: 'for_the_right_opportunity',
+  relocation_locations: [],
+  employment_types: ['Full-time'],
+  available_start_date: 'immediately',
+  travel_percentage: 'no_travel',
+  work_auth_countries: [],
+  requires_sponsorship: 'no',
+  age_over_18: true,
+  has_drivers_license: false,
+  has_reliable_transportation: true,
+  background_check_consent: true,
+  drug_test_consent: true,
+  eeo_gender: '',
+  eeo_sexual_orientation: '',
+  eeo_veteran_status: '',
+  eeo_disability_status: '',
+  eeo_race_ethnicity: [],
+}
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function apiToFormData(prefs: JobPreferences): PreferencesFormData {
+  return {
+    desired_titles: prefs.desired_titles || [],
+    desired_industries: prefs.desired_industries || [],
+    desired_company_sizes: prefs.desired_company_sizes || [],
+    min_salary: prefs.min_salary?.toString() || '',
+    max_salary: prefs.max_salary?.toString() || '',
+    salary_currency: prefs.salary_currency || 'USD',
+    salary_period: prefs.salary_period || 'yearly',
+    salary_negotiable: prefs.salary_negotiable ?? true,
+    preferred_locations: prefs.preferred_locations || [],
+    work_modes: prefs.work_modes || [],
+    willing_to_relocate: prefs.willing_to_relocate || 'for_the_right_opportunity',
+    relocation_locations: prefs.relocation_locations || [],
+    employment_types: prefs.employment_types || ['Full-time'],
+    available_start_date: prefs.available_start_date || 'immediately',
+    travel_percentage: prefs.travel_percentage || 'no_travel',
+    work_auth_countries: prefs.work_auth_countries || [],
+    requires_sponsorship: prefs.requires_sponsorship || 'no',
+    age_over_18: prefs.age_over_18 ?? true,
+    has_drivers_license: prefs.has_drivers_license ?? false,
+    has_reliable_transportation: prefs.has_reliable_transportation ?? true,
+    background_check_consent: prefs.background_check_consent ?? true,
+    drug_test_consent: prefs.drug_test_consent ?? true,
+    eeo_gender: prefs.eeo_gender || '',
+    eeo_sexual_orientation: prefs.eeo_sexual_orientation || '',
+    eeo_veteran_status: prefs.eeo_veteran_status || '',
+    eeo_disability_status: prefs.eeo_disability_status || '',
+    eeo_race_ethnicity: prefs.eeo_race_ethnicity || [],
+  }
+}
+
+function formToApiData(
+  form: PreferencesFormData
+): Partial<Omit<JobPreferences, 'id' | 'user_id'>> {
+  return {
+    desired_titles: form.desired_titles.length > 0 ? form.desired_titles : null,
+    desired_industries:
+      form.desired_industries.length > 0 ? form.desired_industries : null,
+    desired_company_sizes:
+      form.desired_company_sizes.length > 0 ? form.desired_company_sizes : null,
+    min_salary: form.min_salary ? parseInt(form.min_salary) : null,
+    max_salary: form.max_salary ? parseInt(form.max_salary) : null,
+    salary_currency: form.salary_currency,
+    salary_period: form.salary_period,
+    salary_negotiable: form.salary_negotiable,
+    preferred_locations:
+      form.preferred_locations.length > 0 ? form.preferred_locations : null,
+    work_modes: form.work_modes.length > 0 ? form.work_modes : null,
+    willing_to_relocate: form.willing_to_relocate || null,
+    relocation_locations:
+      form.relocation_locations.length > 0 ? form.relocation_locations : null,
+    employment_types:
+      form.employment_types.length > 0 ? form.employment_types : null,
+    available_start_date: form.available_start_date || null,
+    travel_percentage: form.travel_percentage || null,
+    work_auth_countries:
+      form.work_auth_countries.length > 0 ? form.work_auth_countries : null,
+    requires_sponsorship: form.requires_sponsorship || null,
+    age_over_18: form.age_over_18,
+    has_drivers_license: form.has_drivers_license,
+    has_reliable_transportation: form.has_reliable_transportation,
+    background_check_consent: form.background_check_consent,
+    drug_test_consent: form.drug_test_consent,
+    eeo_gender: form.eeo_gender || null,
+    eeo_sexual_orientation: form.eeo_sexual_orientation || null,
+    eeo_veteran_status: form.eeo_veteran_status || null,
+    eeo_disability_status: form.eeo_disability_status || null,
+    eeo_race_ethnicity:
+      form.eeo_race_ethnicity.length > 0 ? form.eeo_race_ethnicity : null,
+  }
 }
 
 // ============================================================================
 // Section Title Component
 // ============================================================================
 
-function SectionTitle({ children, first = false }: { children: React.ReactNode; first?: boolean }) {
+function SectionTitle({
+  children,
+  first = false,
+}: {
+  children: React.ReactNode
+  first?: boolean
+}) {
   return (
-    <div className={`${first ? '' : 'mt-xl pt-xl border-t border-border-light'}`}>
+    <div
+      className={`${first ? '' : 'mt-xl pt-xl border-t border-border-light'}`}
+    >
       <h3 className="text-label text-text-tertiary uppercase tracking-wider mb-lg">
         {children}
       </h3>
@@ -353,17 +365,22 @@ function TagInput({
   onChange,
   placeholder = 'Type and press Enter...',
   suggestions = [],
+  disabled = false,
 }: {
   value: string[]
   onChange: (value: string[]) => void
   placeholder?: string
   suggestions?: string[]
+  disabled?: boolean
 }) {
   const [inputValue, setInputValue] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
 
   const filteredSuggestions = suggestions
-    .filter((s) => s.toLowerCase().includes(inputValue.toLowerCase()) && !value.includes(s))
+    .filter(
+      (s) =>
+        s.toLowerCase().includes(inputValue.toLowerCase()) && !value.includes(s)
+    )
     .slice(0, 5)
 
   const addTag = (tag: string) => {
@@ -381,14 +398,21 @@ function TagInput({
 
   return (
     <div className="relative">
-      <div className="min-h-[48px] px-sm py-xs border border-border-default rounded-md flex flex-wrap items-center gap-sm bg-bg-primary transition-colors focus-within:border-accent-blue">
+      <div
+        className={`min-h-[48px] px-sm py-xs border border-border-default rounded-md flex flex-wrap items-center gap-sm bg-bg-primary transition-colors focus-within:border-accent-blue ${disabled ? 'opacity-50' : ''}`}
+      >
         {value.map((tag) => (
           <span
             key={tag}
             className="inline-flex items-center gap-1 px-sm py-1 bg-accent-blue/10 text-accent-blue rounded-full text-body-small leading-none"
           >
             {tag}
-            <button type="button" onClick={() => removeTag(tag)} className="hover:bg-accent-blue/20 rounded-full p-0.5">
+            <button
+              type="button"
+              onClick={() => removeTag(tag)}
+              disabled={disabled}
+              className="hover:bg-accent-blue/20 rounded-full p-0.5"
+            >
               <XMarkIcon className="w-3 h-3" />
             </button>
           </span>
@@ -404,14 +428,19 @@ function TagInput({
             if (e.key === 'Enter') {
               e.preventDefault()
               if (inputValue.trim()) addTag(inputValue)
-            } else if (e.key === 'Backspace' && !inputValue && value.length > 0) {
+            } else if (
+              e.key === 'Backspace' &&
+              !inputValue &&
+              value.length > 0
+            ) {
               removeTag(value[value.length - 1])
             }
           }}
           onFocus={() => inputValue && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
           placeholder={value.length === 0 ? placeholder : ''}
-          className="flex-1 min-w-[150px] h-[30px] border-0 p-0 focus:ring-0 focus:outline-none text-body-small bg-transparent placeholder:text-text-tertiary"
+          disabled={disabled}
+          className="flex-1 min-w-[150px] h-[30px] border-0 p-0 focus:ring-0 focus:outline-none text-body-small bg-transparent placeholder:text-text-tertiary disabled:cursor-not-allowed"
         />
       </div>
       {showSuggestions && filteredSuggestions.length > 0 && (
@@ -440,11 +469,18 @@ function CheckboxGroup({
   options,
   value,
   onChange,
+  disabled = false,
 }: {
-  options: { value: string; label: string }[]
+  options: { value: string; label: string }[] | readonly string[]
   value: string[]
   onChange: (value: string[]) => void
+  disabled?: boolean
 }) {
+  // Normalize options to always be { value, label } objects
+  const normalizedOptions = options.map((opt) =>
+    typeof opt === 'string' ? { value: opt, label: opt } : opt
+  )
+
   const toggle = (optionValue: string) => {
     if (value.includes(optionValue)) {
       onChange(value.filter((v) => v !== optionValue))
@@ -455,15 +491,21 @@ function CheckboxGroup({
 
   return (
     <div className="space-y-sm">
-      {options.map((option) => (
-        <label key={option.value} className="flex items-center gap-sm cursor-pointer">
+      {normalizedOptions.map((option) => (
+        <label
+          key={option.value}
+          className="flex items-center gap-sm cursor-pointer"
+        >
           <input
             type="checkbox"
             checked={value.includes(option.value)}
             onChange={() => toggle(option.value)}
-            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
+            disabled={disabled}
+            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue disabled:opacity-50"
           />
-          <span className="text-body-small text-text-primary">{option.label}</span>
+          <span className="text-body-small text-text-primary">
+            {option.label}
+          </span>
         </label>
       ))}
     </div>
@@ -479,25 +521,33 @@ function RadioGroup({
   options,
   value,
   onChange,
+  disabled = false,
 }: {
   name: string
-  options: { value: string; label: string }[]
+  options: { value: string; label: string }[] | readonly { value: string; label: string }[]
   value: string
   onChange: (value: string) => void
+  disabled?: boolean
 }) {
   return (
     <div className="space-y-sm">
       {options.map((option) => (
-        <label key={option.value} className="flex items-center gap-sm cursor-pointer">
+        <label
+          key={option.value}
+          className="flex items-center gap-sm cursor-pointer"
+        >
           <input
             type="radio"
             name={name}
             value={option.value}
             checked={value === option.value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-5 h-5 border-border-default text-accent-blue focus:ring-accent-blue"
+            disabled={disabled}
+            className="w-5 h-5 border-border-default text-accent-blue focus:ring-accent-blue disabled:opacity-50"
           />
-          <span className="text-body-small text-text-primary">{option.label}</span>
+          <span className="text-body-small text-text-primary">
+            {option.label}
+          </span>
         </label>
       ))}
     </div>
@@ -509,16 +559,74 @@ function RadioGroup({
 // ============================================================================
 
 export default function PreferencesTab() {
-  const [preferences, setPreferences] = useState<Preferences>(initialPreferences)
+  // State
+  const [formData, setFormData] = useState<PreferencesFormData>(initialFormData)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
 
-  const updateField = <K extends keyof Preferences>(field: K, value: Preferences[K]) => {
-    setPreferences((prev) => ({ ...prev, [field]: value }))
+  // Load preferences from API
+  const loadPreferences = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const prefs = await profileApi.getJobPreferences()
+      if (prefs) {
+        setFormData(apiToFormData(prefs))
+      }
+    } catch (err) {
+      console.error('Failed to load preferences:', err)
+      setError('Failed to load preferences. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadPreferences()
+  }, [loadPreferences])
+
+  const updateField = <K extends keyof PreferencesFormData>(
+    field: K,
+    value: PreferencesFormData[K]
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const hasUSAuthorization = preferences.authorizedCountries.includes('United States')
-  const hasEUAuthorization = preferences.authorizedCountries.some((c) =>
-    ['Germany', 'France', 'Netherlands', 'Ireland', 'Spain', 'Italy', 'Sweden', 'United Kingdom'].includes(c)
-  )
+  const handleSave = async () => {
+    try {
+      setIsSaving(true)
+      setError(null)
+      setSaveMessage(null)
+
+      const apiData = formToApiData(formData)
+      await profileApi.updateJobPreferences(apiData)
+
+      setSaveMessage('Preferences saved successfully!')
+      setTimeout(() => setSaveMessage(null), 3000)
+    } catch (err) {
+      console.error('Failed to save preferences:', err)
+      setError('Failed to save preferences. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="card p-xl">
+        <div className="animate-pulse space-y-lg">
+          <div className="h-8 bg-bg-tertiary rounded w-1/3" />
+          <div className="h-4 bg-bg-tertiary rounded w-1/2" />
+          <div className="h-12 bg-bg-tertiary rounded mt-xl" />
+          <div className="h-12 bg-bg-tertiary rounded" />
+          <div className="h-12 bg-bg-tertiary rounded" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="card p-xl">
@@ -526,79 +634,116 @@ export default function PreferencesTab() {
       <div className="mb-xl">
         <h2 className="text-section-title text-text-primary">Preferences</h2>
         <p className="text-body-small text-text-secondary mt-xs">
-          Set your job preferences to help us find the best matches and auto-fill applications
+          Set your job preferences to help us find the best matches and auto-fill
+          applications
         </p>
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-lg p-md bg-accent-red/10 border border-accent-red/20 rounded-lg">
+          <p className="text-body-small text-accent-red">{error}</p>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {saveMessage && (
+        <div className="mb-lg p-md bg-accent-green/10 border border-accent-green/20 rounded-lg">
+          <p className="text-body-small text-accent-green">{saveMessage}</p>
+        </div>
+      )}
+
       {/* JOB PREFERENCES Section */}
       <SectionTitle first>Job Preferences</SectionTitle>
-      <p className="text-body-small text-text-secondary mb-md">What kind of jobs are you looking for?</p>
+      <p className="text-body-small text-text-secondary mb-md">
+        What kind of jobs are you looking for?
+      </p>
 
       <div className="space-y-md">
         <div>
-          <label className="block text-body-small text-text-primary mb-xs">Desired Job Titles</label>
+          <label className="block text-body-small text-text-primary mb-xs">
+            Desired Job Titles
+          </label>
           <TagInput
-            value={preferences.desiredJobTitles}
-            onChange={(v) => updateField('desiredJobTitles', v)}
+            value={formData.desired_titles}
+            onChange={(v) => updateField('desired_titles', v)}
             placeholder="e.g., Software Engineer, Product Manager..."
+            disabled={isSaving}
           />
         </div>
 
         <div>
-          <label className="block text-body-small text-text-primary mb-xs">Preferred Industries</label>
+          <label className="block text-body-small text-text-primary mb-xs">
+            Preferred Industries
+          </label>
           <TagInput
-            value={preferences.preferredIndustries}
-            onChange={(v) => updateField('preferredIndustries', v)}
+            value={formData.desired_industries}
+            onChange={(v) => updateField('desired_industries', v)}
             placeholder="e.g., Technology, Finance, Healthcare..."
             suggestions={INDUSTRY_SUGGESTIONS}
+            disabled={isSaving}
           />
         </div>
 
         <div>
-          <label className="block text-body-small text-text-primary mb-sm">Company Size Preference</label>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Company Size Preference
+          </label>
           <CheckboxGroup
-            options={COMPANY_SIZES}
-            value={preferences.companySizes}
-            onChange={(v) => updateField('companySizes', v)}
+            options={[...COMPANY_SIZES]}
+            value={formData.desired_company_sizes}
+            onChange={(v) => updateField('desired_company_sizes', v)}
+            disabled={isSaving}
           />
         </div>
       </div>
 
       {/* COMPENSATION Section */}
       <SectionTitle>Compensation</SectionTitle>
-      <p className="text-body-small text-text-secondary mb-md">Your expected compensation range</p>
+      <p className="text-body-small text-text-secondary mb-md">
+        Your expected compensation range
+      </p>
 
       <div className="space-y-md">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div>
-            <label className="block text-body-small text-text-primary mb-xs">Minimum Salary</label>
+            <label className="block text-body-small text-text-primary mb-xs">
+              Minimum Salary
+            </label>
             <input
               type="number"
-              value={preferences.minSalary}
-              onChange={(e) => updateField('minSalary', e.target.value)}
+              value={formData.min_salary}
+              onChange={(e) => updateField('min_salary', e.target.value)}
               placeholder="80000"
-              className="input w-full"
+              disabled={isSaving}
+              className="input w-full disabled:opacity-50"
             />
           </div>
           <div>
-            <label className="block text-body-small text-text-primary mb-xs">Maximum Salary</label>
+            <label className="block text-body-small text-text-primary mb-xs">
+              Maximum Salary
+            </label>
             <input
               type="number"
-              value={preferences.maxSalary}
-              onChange={(e) => updateField('maxSalary', e.target.value)}
+              value={formData.max_salary}
+              onChange={(e) => updateField('max_salary', e.target.value)}
               placeholder="120000"
-              className="input w-full"
+              disabled={isSaving}
+              className="input w-full disabled:opacity-50"
             />
           </div>
         </div>
 
         <div className="flex flex-wrap gap-md">
           <div>
-            <label className="block text-body-small text-text-primary mb-xs">Currency</label>
+            <label className="block text-body-small text-text-primary mb-xs">
+              Currency
+            </label>
             <select
-              value={preferences.currency}
-              onChange={(e) => updateField('currency', e.target.value)}
-              className="input"
+              value={formData.salary_currency}
+              onChange={(e) => updateField('salary_currency', e.target.value)}
+              disabled={isSaving}
+              className="input disabled:opacity-50"
             >
               {CURRENCIES.map((c) => (
                 <option key={c.value} value={c.value}>
@@ -608,11 +753,14 @@ export default function PreferencesTab() {
             </select>
           </div>
           <div>
-            <label className="block text-body-small text-text-primary mb-xs">Period</label>
+            <label className="block text-body-small text-text-primary mb-xs">
+              Period
+            </label>
             <select
-              value={preferences.salaryPeriod}
-              onChange={(e) => updateField('salaryPeriod', e.target.value)}
-              className="input"
+              value={formData.salary_period}
+              onChange={(e) => updateField('salary_period', e.target.value)}
+              disabled={isSaving}
+              className="input disabled:opacity-50"
             >
               {SALARY_PERIODS.map((p) => (
                 <option key={p.value} value={p.value}>
@@ -626,51 +774,72 @@ export default function PreferencesTab() {
         <label className="flex items-center gap-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={preferences.salaryNegotiable}
-            onChange={(e) => updateField('salaryNegotiable', e.target.checked)}
-            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
+            checked={formData.salary_negotiable}
+            onChange={(e) => updateField('salary_negotiable', e.target.checked)}
+            disabled={isSaving}
+            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue disabled:opacity-50"
           />
-          <span className="text-body-small text-text-primary">Salary is negotiable</span>
+          <span className="text-body-small text-text-primary">
+            Salary is negotiable
+          </span>
         </label>
       </div>
 
       {/* LOCATION & WORK MODE Section */}
       <SectionTitle>Location & Work Mode</SectionTitle>
-      <p className="text-body-small text-text-secondary mb-md">Where would you like to work?</p>
+      <p className="text-body-small text-text-secondary mb-md">
+        Where would you like to work?
+      </p>
 
       <div className="space-y-md">
         <div>
-          <label className="block text-body-small text-text-primary mb-xs">Preferred Locations</label>
+          <label className="block text-body-small text-text-primary mb-xs">
+            Preferred Locations
+          </label>
           <TagInput
-            value={preferences.preferredLocations}
-            onChange={(v) => updateField('preferredLocations', v)}
+            value={formData.preferred_locations}
+            onChange={(v) => updateField('preferred_locations', v)}
             placeholder="e.g., San Francisco, New York, Remote..."
             suggestions={LOCATION_SUGGESTIONS}
+            disabled={isSaving}
           />
         </div>
 
         <div>
-          <label className="block text-body-small text-text-primary mb-sm">Work Mode</label>
-          <CheckboxGroup options={WORK_MODES} value={preferences.workModes} onChange={(v) => updateField('workModes', v)} />
+          <label className="block text-body-small text-text-primary mb-sm">
+            Work Mode
+          </label>
+          <CheckboxGroup
+            options={[...WORK_MODES]}
+            value={formData.work_modes}
+            onChange={(v) => updateField('work_modes', v)}
+            disabled={isSaving}
+          />
         </div>
 
         <div>
-          <label className="block text-body-small text-text-primary mb-sm">Willing to Relocate</label>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Willing to Relocate
+          </label>
           <RadioGroup
             name="relocate"
-            options={RELOCATION_OPTIONS}
-            value={preferences.willingToRelocate}
-            onChange={(v) => updateField('willingToRelocate', v)}
+            options={[...WILLING_TO_RELOCATE_OPTIONS]}
+            value={formData.willing_to_relocate}
+            onChange={(v) => updateField('willing_to_relocate', v)}
+            disabled={isSaving}
           />
         </div>
 
-        {preferences.willingToRelocate !== 'no' && (
+        {formData.willing_to_relocate !== 'no' && (
           <div>
-            <label className="block text-body-small text-text-primary mb-xs">Locations You'd Relocate To</label>
+            <label className="block text-body-small text-text-primary mb-xs">
+              Locations You'd Relocate To
+            </label>
             <TagInput
-              value={preferences.relocationLocations}
-              onChange={(v) => updateField('relocationLocations', v)}
+              value={formData.relocation_locations}
+              onChange={(v) => updateField('relocation_locations', v)}
               placeholder="e.g., Seattle, Austin..."
+              disabled={isSaving}
             />
           </div>
         )}
@@ -678,229 +847,254 @@ export default function PreferencesTab() {
 
       {/* EMPLOYMENT DETAILS Section */}
       <SectionTitle>Employment Details</SectionTitle>
-      <p className="text-body-small text-text-secondary mb-md">Your availability and preferences</p>
+      <p className="text-body-small text-text-secondary mb-md">
+        Your availability and preferences
+      </p>
 
       <div className="space-y-md">
         <div>
-          <label className="block text-body-small text-text-primary mb-sm">Employment Type</label>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Employment Type
+          </label>
           <CheckboxGroup
-            options={EMPLOYMENT_TYPES}
-            value={preferences.employmentTypes}
-            onChange={(v) => updateField('employmentTypes', v)}
+            options={[...EMPLOYMENT_TYPES]}
+            value={formData.employment_types}
+            onChange={(v) => updateField('employment_types', v)}
+            disabled={isSaving}
           />
         </div>
 
         <div>
-          <label className="block text-body-small text-text-primary mb-sm">Available Start Date</label>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Available Start Date
+          </label>
           <RadioGroup
             name="startDate"
-            options={START_DATE_OPTIONS}
-            value={preferences.availableStartDate}
-            onChange={(v) => updateField('availableStartDate', v)}
+            options={[...AVAILABLE_START_DATES]}
+            value={formData.available_start_date}
+            onChange={(v) => updateField('available_start_date', v)}
+            disabled={isSaving}
           />
         </div>
 
         <div>
-          <label className="block text-body-small text-text-primary mb-sm">Willing to Travel</label>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Willing to Travel
+          </label>
           <RadioGroup
             name="travel"
-            options={TRAVEL_OPTIONS}
-            value={preferences.willingToTravel}
-            onChange={(v) => updateField('willingToTravel', v)}
+            options={[...TRAVEL_PERCENTAGES]}
+            value={formData.travel_percentage}
+            onChange={(v) => updateField('travel_percentage', v)}
+            disabled={isSaving}
           />
         </div>
       </div>
 
       {/* WORK AUTHORIZATION Section */}
       <SectionTitle>Work Authorization</SectionTitle>
-      <p className="text-body-small text-text-secondary mb-md">Your work authorization status</p>
+      <p className="text-body-small text-text-secondary mb-md">
+        Your work authorization status
+      </p>
 
       <div className="space-y-md">
         <div>
-          <label className="block text-body-small text-text-primary mb-xs">Countries Authorized to Work In</label>
+          <label className="block text-body-small text-text-primary mb-xs">
+            Countries Authorized to Work In
+          </label>
           <TagInput
-            value={preferences.authorizedCountries}
-            onChange={(v) => updateField('authorizedCountries', v)}
+            value={formData.work_auth_countries}
+            onChange={(v) => updateField('work_auth_countries', v)}
             placeholder="Select countries..."
             suggestions={COMMON_COUNTRIES}
+            disabled={isSaving}
           />
         </div>
 
-        {hasUSAuthorization && (
-          <div>
-            <label className="block text-body-small text-text-primary mb-xs">US Work Authorization Status</label>
-            <select
-              value={preferences.usAuthorizationStatus}
-              onChange={(e) => updateField('usAuthorizationStatus', e.target.value)}
-              className="input w-full"
-            >
-              <option value="">Select your status...</option>
-              {US_AUTHORIZATION_STATUS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {hasEUAuthorization && (
-          <div>
-            <label className="block text-body-small text-text-primary mb-xs">EU/UK Work Authorization Status</label>
-            <select
-              value={preferences.euAuthorizationStatus}
-              onChange={(e) => updateField('euAuthorizationStatus', e.target.value)}
-              className="input w-full"
-            >
-              <option value="">Select your status...</option>
-              {EU_AUTHORIZATION_STATUS.map((s) => (
-                <option key={s.value} value={s.value}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
         <div>
-          <label className="block text-body-small text-text-primary mb-sm">Do you require visa sponsorship?</label>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Do you require visa sponsorship?
+          </label>
           <RadioGroup
             name="sponsorship"
-            options={SPONSORSHIP_OPTIONS}
-            value={preferences.requireSponsorship}
-            onChange={(v) => updateField('requireSponsorship', v)}
+            options={[...REQUIRES_SPONSORSHIP_OPTIONS]}
+            value={formData.requires_sponsorship}
+            onChange={(v) => updateField('requires_sponsorship', v)}
+            disabled={isSaving}
           />
         </div>
       </div>
 
       {/* APPLICATION QUESTIONS Section */}
       <SectionTitle>Application Questions</SectionTitle>
-      <p className="text-body-small text-text-secondary mb-md">Pre-fill answers to frequently asked questions</p>
+      <p className="text-body-small text-text-secondary mb-md">
+        Pre-fill answers to frequently asked questions
+      </p>
 
       <div className="space-y-sm">
         <label className="flex items-center gap-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={preferences.isOver18}
-            onChange={(e) => updateField('isOver18', e.target.checked)}
-            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
+            checked={formData.age_over_18}
+            onChange={(e) => updateField('age_over_18', e.target.checked)}
+            disabled={isSaving}
+            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue disabled:opacity-50"
           />
-          <span className="text-body-small text-text-primary">I am 18 years of age or older</span>
+          <span className="text-body-small text-text-primary">
+            I am 18 years of age or older
+          </span>
         </label>
 
         <label className="flex items-center gap-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={preferences.hasDriversLicense}
-            onChange={(e) => updateField('hasDriversLicense', e.target.checked)}
-            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
+            checked={formData.has_drivers_license}
+            onChange={(e) => updateField('has_drivers_license', e.target.checked)}
+            disabled={isSaving}
+            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue disabled:opacity-50"
           />
-          <span className="text-body-small text-text-primary">I have a valid driver's license</span>
+          <span className="text-body-small text-text-primary">
+            I have a valid driver's license
+          </span>
         </label>
 
         <label className="flex items-center gap-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={preferences.hasReliableTransportation}
-            onChange={(e) => updateField('hasReliableTransportation', e.target.checked)}
-            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
+            checked={formData.has_reliable_transportation}
+            onChange={(e) =>
+              updateField('has_reliable_transportation', e.target.checked)
+            }
+            disabled={isSaving}
+            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue disabled:opacity-50"
           />
-          <span className="text-body-small text-text-primary">I have reliable transportation</span>
+          <span className="text-body-small text-text-primary">
+            I have reliable transportation
+          </span>
         </label>
 
         <label className="flex items-center gap-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={preferences.consentBackgroundCheck}
-            onChange={(e) => updateField('consentBackgroundCheck', e.target.checked)}
-            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
+            checked={formData.background_check_consent}
+            onChange={(e) =>
+              updateField('background_check_consent', e.target.checked)
+            }
+            disabled={isSaving}
+            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue disabled:opacity-50"
           />
-          <span className="text-body-small text-text-primary">I am willing to undergo a background check</span>
+          <span className="text-body-small text-text-primary">
+            I am willing to undergo a background check
+          </span>
         </label>
 
         <label className="flex items-center gap-sm cursor-pointer">
           <input
             type="checkbox"
-            checked={preferences.consentDrugTest}
-            onChange={(e) => updateField('consentDrugTest', e.target.checked)}
-            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
+            checked={formData.drug_test_consent}
+            onChange={(e) => updateField('drug_test_consent', e.target.checked)}
+            disabled={isSaving}
+            className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue disabled:opacity-50"
           />
-          <span className="text-body-small text-text-primary">I am willing to undergo a drug test</span>
+          <span className="text-body-small text-text-primary">
+            I am willing to undergo a drug test
+          </span>
         </label>
       </div>
 
       {/* EEO INFORMATION Section */}
       <SectionTitle>Equal Employment Opportunity</SectionTitle>
       <InfoBox>
-        This information is collected for compliance with federal Equal Employment Opportunity (EEO)
-        requirements. Your responses are voluntary, confidential, and will not affect your application.
-        This data helps employers track their diversity and inclusion efforts.
+        This information is collected for compliance with federal Equal
+        Employment Opportunity (EEO) requirements. Your responses are voluntary,
+        confidential, and will not affect your application. This data helps
+        employers track their diversity and inclusion efforts.
       </InfoBox>
 
       <div className="space-y-lg">
         <div>
-          <label className="block text-body-small text-text-primary mb-sm">Gender Identity</label>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Gender Identity
+          </label>
           <RadioGroup
             name="gender"
             options={GENDER_IDENTITY_OPTIONS}
-            value={preferences.genderIdentity}
-            onChange={(v) => updateField('genderIdentity', v)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-body-small text-text-primary mb-sm">Sexual Orientation</label>
-          <RadioGroup
-            name="orientation"
-            options={SEXUAL_ORIENTATION_OPTIONS}
-            value={preferences.sexualOrientation}
-            onChange={(v) => updateField('sexualOrientation', v)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-body-small text-text-primary mb-sm">Veteran Status</label>
-          <RadioGroup
-            name="veteran"
-            options={VETERAN_STATUS_OPTIONS}
-            value={preferences.veteranStatus}
-            onChange={(v) => updateField('veteranStatus', v)}
-          />
-        </div>
-
-        <div>
-          <label className="block text-body-small text-text-primary mb-sm">Disability Status</label>
-          <RadioGroup
-            name="disability"
-            options={DISABILITY_STATUS_OPTIONS}
-            value={preferences.disabilityStatus}
-            onChange={(v) => updateField('disabilityStatus', v)}
+            value={formData.eeo_gender}
+            onChange={(v) => updateField('eeo_gender', v)}
+            disabled={isSaving}
           />
         </div>
 
         <div>
           <label className="block text-body-small text-text-primary mb-sm">
-            Race / Ethnicity <span className="text-text-tertiary">(select all that apply)</span>
+            Sexual Orientation
+          </label>
+          <RadioGroup
+            name="orientation"
+            options={SEXUAL_ORIENTATION_OPTIONS}
+            value={formData.eeo_sexual_orientation}
+            onChange={(v) => updateField('eeo_sexual_orientation', v)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Veteran Status
+          </label>
+          <RadioGroup
+            name="veteran"
+            options={VETERAN_STATUS_OPTIONS}
+            value={formData.eeo_veteran_status}
+            onChange={(v) => updateField('eeo_veteran_status', v)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Disability Status
+          </label>
+          <RadioGroup
+            name="disability"
+            options={DISABILITY_STATUS_OPTIONS}
+            value={formData.eeo_disability_status}
+            onChange={(v) => updateField('eeo_disability_status', v)}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div>
+          <label className="block text-body-small text-text-primary mb-sm">
+            Race / Ethnicity{' '}
+            <span className="text-text-tertiary">(select all that apply)</span>
           </label>
           <CheckboxGroup
             options={RACE_ETHNICITY_OPTIONS}
-            value={preferences.raceEthnicity}
-            onChange={(v) => updateField('raceEthnicity', v)}
+            value={formData.eeo_race_ethnicity}
+            onChange={(v) => updateField('eeo_race_ethnicity', v)}
+            disabled={isSaving}
           />
         </div>
       </div>
 
       {/* Tip */}
       <Tip>
-        Complete your preferences to enable auto-fill for job applications. The more information you provide, the faster
-        and more accurate your applications will be. EEO information is optional but helps employers meet diversity
-        reporting requirements.
+        Complete your preferences to enable auto-fill for job applications. The
+        more information you provide, the faster and more accurate your
+        applications will be. EEO information is optional but helps employers
+        meet diversity reporting requirements.
       </Tip>
 
       {/* Save Button */}
       <div className="flex justify-end mt-xl pt-lg border-t border-border-light">
-        <button type="button" className="btn-primary">
-          Save Changes
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="btn-primary disabled:opacity-50"
+        >
+          {isSaving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   PlusIcon,
   PencilIcon,
@@ -10,63 +10,29 @@ import {
   LightBulbIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface Experience {
-  id: string
-  job_title: string
-  company_name: string
-  employment_type: string
-  location_type: string
-  location: string
-  start_month: string
-  start_year: string
-  end_month: string
-  end_year: string
-  is_current: boolean
-  description: string
-  skills_used: string[]
-}
+import profileApi from '../../services/profileApi'
+import type { Experience, ExperienceFormData } from '../../types/profile'
+import { MONTHS, EMPLOYMENT_TYPES, LOCATION_TYPES } from '../../types/profile'
 
 // ============================================================================
 // Constants
 // ============================================================================
 
-const EMPLOYMENT_TYPES = [
-  { value: 'full-time', label: 'Full-time' },
-  { value: 'part-time', label: 'Part-time' },
-  { value: 'contract', label: 'Contract' },
-  { value: 'internship', label: 'Internship' },
-  { value: 'freelance', label: 'Freelance' },
-]
+const MONTH_OPTIONS = MONTHS.map((m) => ({ value: m, label: m }))
 
-const LOCATION_TYPES = [
-  { value: 'on-site', label: 'On-site' },
-  { value: 'remote', label: 'Remote' },
-  { value: 'hybrid', label: 'Hybrid' },
-]
+const EMPLOYMENT_TYPE_OPTIONS = EMPLOYMENT_TYPES.map((t) => ({
+  value: t,
+  label: t,
+}))
 
-const MONTHS = [
-  { value: '01', label: 'January' },
-  { value: '02', label: 'February' },
-  { value: '03', label: 'March' },
-  { value: '04', label: 'April' },
-  { value: '05', label: 'May' },
-  { value: '06', label: 'June' },
-  { value: '07', label: 'July' },
-  { value: '08', label: 'August' },
-  { value: '09', label: 'September' },
-  { value: '10', label: 'October' },
-  { value: '11', label: 'November' },
-  { value: '12', label: 'December' },
-]
+const LOCATION_TYPE_OPTIONS = LOCATION_TYPES.map((t) => ({
+  value: t,
+  label: t,
+}))
 
 const YEARS = Array.from({ length: 50 }, (_, i) => {
   const year = new Date().getFullYear() - i
-  return { value: year.toString(), label: year.toString() }
+  return { value: year, label: year.toString() }
 })
 
 const SKILL_SUGGESTIONS = [
@@ -104,16 +70,16 @@ const SKILL_SUGGESTIONS = [
 // Empty Experience Template
 // ============================================================================
 
-const emptyExperience: Omit<Experience, 'id'> = {
+const emptyExperience: ExperienceFormData = {
   job_title: '',
   company_name: '',
-  employment_type: 'full-time',
-  location_type: 'on-site',
+  employment_type: 'Full-time',
+  location_type: 'On-site',
   location: '',
   start_month: '',
-  start_year: '',
+  start_year: null,
   end_month: '',
-  end_year: '',
+  end_year: null,
   is_current: false,
   description: '',
   skills_used: [],
@@ -277,27 +243,23 @@ interface ExperienceCardProps {
   experience: Experience
   onEdit: () => void
   onDelete: () => void
+  isDeleting?: boolean
 }
 
-function ExperienceCard({ experience, onEdit, onDelete }: ExperienceCardProps) {
-  const getEmploymentTypeLabel = (value: string) => {
-    return EMPLOYMENT_TYPES.find((t) => t.value === value)?.label || value
-  }
-
-  const getLocationTypeLabel = (value: string) => {
-    return LOCATION_TYPES.find((t) => t.value === value)?.label || value
-  }
-
-  const getMonthLabel = (value: string) => {
-    return MONTHS.find((m) => m.value === value)?.label?.slice(0, 3) || value
-  }
-
+function ExperienceCard({
+  experience,
+  onEdit,
+  onDelete,
+  isDeleting,
+}: ExperienceCardProps) {
   const formatDateRange = () => {
-    const start = `${getMonthLabel(experience.start_month)} ${experience.start_year}`
+    const startMonth = experience.start_month?.slice(0, 3) || ''
+    const start = `${startMonth} ${experience.start_year || ''}`
     if (experience.is_current) {
       return `${start} - Present`
     }
-    const end = `${getMonthLabel(experience.end_month)} ${experience.end_year}`
+    const endMonth = experience.end_month?.slice(0, 3) || ''
+    const end = `${endMonth} ${experience.end_year || ''}`
     return `${start} - ${end}`
   }
 
@@ -326,17 +288,19 @@ function ExperienceCard({ experience, onEdit, onDelete }: ExperienceCardProps) {
             {/* Meta Info */}
             <div className="flex flex-wrap items-center gap-x-md gap-y-xs mt-sm text-label text-text-tertiary">
               {/* Employment Type */}
-              <span className="flex items-center gap-1">
-                <BriefcaseIcon className="w-3.5 h-3.5" />
-                {getEmploymentTypeLabel(experience.employment_type)}
-              </span>
+              {experience.employment_type && (
+                <span className="flex items-center gap-1">
+                  <BriefcaseIcon className="w-3.5 h-3.5" />
+                  {experience.employment_type}
+                </span>
+              )}
 
               {/* Location */}
               {experience.location && (
                 <span className="flex items-center gap-1">
                   <MapPinIcon className="w-3.5 h-3.5" />
-                  {experience.location} ·{' '}
-                  {getLocationTypeLabel(experience.location_type)}
+                  {experience.location}
+                  {experience.location_type && ` · ${experience.location_type}`}
                 </span>
               )}
 
@@ -355,7 +319,7 @@ function ExperienceCard({ experience, onEdit, onDelete }: ExperienceCardProps) {
             )}
 
             {/* Skills */}
-            {experience.skills_used.length > 0 && (
+            {experience.skills_used && experience.skills_used.length > 0 && (
               <div className="flex flex-wrap gap-xs mt-md">
                 {experience.skills_used.map((skill) => (
                   <span
@@ -374,14 +338,16 @@ function ExperienceCard({ experience, onEdit, onDelete }: ExperienceCardProps) {
         <div className="flex items-center gap-xs flex-shrink-0">
           <button
             onClick={onEdit}
-            className="p-2 text-text-tertiary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors"
+            disabled={isDeleting}
+            className="p-2 text-text-tertiary hover:text-text-primary hover:bg-bg-tertiary rounded-lg transition-colors disabled:opacity-50"
             title="Edit"
           >
             <PencilIcon className="w-5 h-5" />
           </button>
           <button
             onClick={onDelete}
-            className="p-2 text-text-tertiary hover:text-accent-red hover:bg-accent-red/10 rounded-lg transition-colors"
+            disabled={isDeleting}
+            className="p-2 text-text-tertiary hover:text-accent-red hover:bg-accent-red/10 rounded-lg transition-colors disabled:opacity-50"
             title="Delete"
           >
             <TrashIcon className="w-5 h-5" />
@@ -397,10 +363,11 @@ function ExperienceCard({ experience, onEdit, onDelete }: ExperienceCardProps) {
 // ============================================================================
 
 interface ExperienceFormProps {
-  initialData: Omit<Experience, 'id'>
-  onSave: (data: Omit<Experience, 'id'>) => void
+  initialData: ExperienceFormData
+  onSave: (data: ExperienceFormData) => void
   onCancel: () => void
   isEditing: boolean
+  isSaving?: boolean
 }
 
 function ExperienceForm({
@@ -408,10 +375,14 @@ function ExperienceForm({
   onSave,
   onCancel,
   isEditing,
+  isSaving,
 }: ExperienceFormProps) {
-  const [formData, setFormData] = useState(initialData)
+  const [formData, setFormData] = useState<ExperienceFormData>(initialData)
 
-  const updateField = (field: string, value: string | boolean | string[]) => {
+  const updateField = (
+    field: keyof ExperienceFormData,
+    value: string | number | boolean | string[] | null
+  ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
@@ -461,15 +432,15 @@ function ExperienceForm({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-md">
           <div>
             <label className="block text-body-small text-text-primary mb-xs">
-              Employment Type <span className="text-accent-red">*</span>
+              Employment Type
             </label>
             <select
-              value={formData.employment_type}
-              onChange={(e) => updateField('employment_type', e.target.value)}
+              value={formData.employment_type || ''}
+              onChange={(e) => updateField('employment_type', e.target.value || null)}
               className="input w-full"
-              required
             >
-              {EMPLOYMENT_TYPES.map((type) => (
+              <option value="">Select type</option>
+              {EMPLOYMENT_TYPE_OPTIONS.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
@@ -481,11 +452,12 @@ function ExperienceForm({
               Location Type
             </label>
             <select
-              value={formData.location_type}
-              onChange={(e) => updateField('location_type', e.target.value)}
+              value={formData.location_type || ''}
+              onChange={(e) => updateField('location_type', e.target.value || null)}
               className="input w-full"
             >
-              {LOCATION_TYPES.map((type) => (
+              <option value="">Select type</option>
+              {LOCATION_TYPE_OPTIONS.map((type) => (
                 <option key={type.value} value={type.value}>
                   {type.label}
                 </option>
@@ -501,8 +473,8 @@ function ExperienceForm({
           </label>
           <input
             type="text"
-            value={formData.location}
-            onChange={(e) => updateField('location', e.target.value)}
+            value={formData.location || ''}
+            onChange={(e) => updateField('location', e.target.value || null)}
             placeholder="San Francisco, CA"
             className="input w-full"
           />
@@ -517,21 +489,26 @@ function ExperienceForm({
             </label>
             <div className="flex gap-sm">
               <select
-                value={formData.start_month}
-                onChange={(e) => updateField('start_month', e.target.value)}
+                value={formData.start_month || ''}
+                onChange={(e) => updateField('start_month', e.target.value || null)}
                 className="input flex-1"
                 required
               >
                 <option value="">Month</option>
-                {MONTHS.map((month) => (
+                {MONTH_OPTIONS.map((month) => (
                   <option key={month.value} value={month.value}>
                     {month.label}
                   </option>
                 ))}
               </select>
               <select
-                value={formData.start_year}
-                onChange={(e) => updateField('start_year', e.target.value)}
+                value={formData.start_year || ''}
+                onChange={(e) =>
+                  updateField(
+                    'start_year',
+                    e.target.value ? parseInt(e.target.value) : null
+                  )
+                }
                 className="input w-28"
                 required
               >
@@ -553,22 +530,27 @@ function ExperienceForm({
             </label>
             <div className="flex gap-sm">
               <select
-                value={formData.end_month}
-                onChange={(e) => updateField('end_month', e.target.value)}
+                value={formData.end_month || ''}
+                onChange={(e) => updateField('end_month', e.target.value || null)}
                 className="input flex-1"
                 disabled={formData.is_current}
                 required={!formData.is_current}
               >
                 <option value="">Month</option>
-                {MONTHS.map((month) => (
+                {MONTH_OPTIONS.map((month) => (
                   <option key={month.value} value={month.value}>
                     {month.label}
                   </option>
                 ))}
               </select>
               <select
-                value={formData.end_year}
-                onChange={(e) => updateField('end_year', e.target.value)}
+                value={formData.end_year || ''}
+                onChange={(e) =>
+                  updateField(
+                    'end_year',
+                    e.target.value ? parseInt(e.target.value) : null
+                  )
+                }
                 className="input w-28"
                 disabled={formData.is_current}
                 required={!formData.is_current}
@@ -593,8 +575,8 @@ function ExperienceForm({
               onChange={(e) => {
                 updateField('is_current', e.target.checked)
                 if (e.target.checked) {
-                  updateField('end_month', '')
-                  updateField('end_year', '')
+                  updateField('end_month', null)
+                  updateField('end_year', null)
                 }
               }}
               className="w-5 h-5 rounded border-border-default text-accent-blue focus:ring-accent-blue"
@@ -611,8 +593,8 @@ function ExperienceForm({
             Description
           </label>
           <textarea
-            value={formData.description}
-            onChange={(e) => updateField('description', e.target.value)}
+            value={formData.description || ''}
+            onChange={(e) => updateField('description', e.target.value || null)}
             placeholder="Describe your responsibilities, achievements, and impact..."
             rows={4}
             className="input w-full resize-y min-h-[100px]"
@@ -622,8 +604,8 @@ function ExperienceForm({
         {/* Skills Used */}
         <TagInput
           label="Skills Used"
-          value={formData.skills_used}
-          onChange={(value) => updateField('skills_used', value)}
+          value={formData.skills_used || []}
+          onChange={(value) => updateField('skills_used', value.length > 0 ? value : null)}
           suggestions={SKILL_SUGGESTIONS}
           placeholder="Add skills you used in this role..."
         />
@@ -631,11 +613,20 @@ function ExperienceForm({
 
       {/* Actions */}
       <div className="flex justify-end gap-sm mt-lg pt-lg border-t border-border-light">
-        <button type="button" onClick={onCancel} className="btn-secondary">
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSaving}
+          className="btn-secondary"
+        >
           Cancel
         </button>
-        <button type="submit" className="btn-primary">
-          {isEditing ? 'Save Changes' : 'Add Experience'}
+        <button
+          type="submit"
+          disabled={isSaving}
+          className="btn-primary disabled:opacity-50"
+        >
+          {isSaving ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Experience'}
         </button>
       </div>
     </form>
@@ -674,11 +665,35 @@ function EmptyState({ onAdd }: EmptyStateProps) {
 // ============================================================================
 
 export default function ExperienceTab() {
+  // State
   const [experiences, setExperiences] = useState<Experience[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Form state
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [formData, setFormData] =
-    useState<Omit<Experience, 'id'>>(emptyExperience)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [formData, setFormData] = useState<ExperienceFormData>(emptyExperience)
+
+  // Load experiences from API
+  const loadExperiences = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await profileApi.getExperience()
+      setExperiences(response.experience || [])
+    } catch (err) {
+      console.error('Failed to load experiences:', err)
+      setError('Failed to load experiences. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadExperiences()
+  }, [loadExperiences])
 
   const handleAdd = () => {
     setEditingId(null)
@@ -688,7 +703,9 @@ export default function ExperienceTab() {
 
   const handleEdit = (experience: Experience) => {
     setEditingId(experience.id)
-    setFormData(experience)
+    // Convert Experience to ExperienceFormData (remove id)
+    const { id, ...formData } = experience
+    setFormData(formData)
     setIsFormOpen(true)
   }
 
@@ -698,29 +715,57 @@ export default function ExperienceTab() {
     setFormData(emptyExperience)
   }
 
-  const handleSave = (data: Omit<Experience, 'id'>) => {
-    if (editingId) {
-      // Update existing
-      setExperiences((prev) =>
-        prev.map((exp) =>
-          exp.id === editingId ? { ...data, id: editingId } : exp
-        )
-      )
-    } else {
-      // Add new
-      const newExperience: Experience = {
-        ...data,
-        id: Date.now().toString(),
+  const handleSave = async (data: ExperienceFormData) => {
+    try {
+      setIsSaving(true)
+      setError(null)
+
+      if (editingId) {
+        // Update existing
+        await profileApi.updateExperience(editingId, data)
+      } else {
+        // Create new
+        await profileApi.createExperience(data)
       }
-      setExperiences((prev) => [newExperience, ...prev])
+
+      // Reload list
+      await loadExperiences()
+      handleCancel()
+    } catch (err) {
+      console.error('Failed to save experience:', err)
+      setError('Failed to save experience. Please try again.')
+    } finally {
+      setIsSaving(false)
     }
-    handleCancel()
   }
 
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this experience?')) {
-      setExperiences((prev) => prev.filter((exp) => exp.id !== id))
+  const handleDelete = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this experience?')) {
+      return
     }
+
+    try {
+      setError(null)
+      await profileApi.deleteExperience(id)
+      setExperiences((prev) => prev.filter((exp) => exp.id !== id))
+    } catch (err) {
+      console.error('Failed to delete experience:', err)
+      setError('Failed to delete experience. Please try again.')
+    }
+  }
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="card p-xl">
+        <div className="animate-pulse space-y-lg">
+          <div className="h-8 bg-bg-tertiary rounded w-1/3" />
+          <div className="h-4 bg-bg-tertiary rounded w-1/2" />
+          <div className="h-32 bg-bg-tertiary rounded mt-xl" />
+          <div className="h-32 bg-bg-tertiary rounded" />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -746,6 +791,13 @@ export default function ExperienceTab() {
         )}
       </div>
 
+      {/* Error Message */}
+      {error && (
+        <div className="mb-lg p-md bg-accent-red/10 border border-accent-red/20 rounded-lg">
+          <p className="text-body-small text-accent-red">{error}</p>
+        </div>
+      )}
+
       {/* Form */}
       {isFormOpen && (
         <div className="mb-xl">
@@ -754,6 +806,7 @@ export default function ExperienceTab() {
             onSave={handleSave}
             onCancel={handleCancel}
             isEditing={!!editingId}
+            isSaving={isSaving}
           />
         </div>
       )}
@@ -769,6 +822,7 @@ export default function ExperienceTab() {
                 experience={experience}
                 onEdit={() => handleEdit(experience)}
                 onDelete={() => handleDelete(experience.id)}
+                isDeleting={isSaving}
               />
             ))}
           </div>

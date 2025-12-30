@@ -248,7 +248,9 @@ function ApplicationCard({
   const jobTitle = application.task_metadata?.title || 'Unknown Position'
   const company =
     application.task_metadata?.company || application.company || 'Unknown Company'
-  const location = application.task_metadata?.location || ''
+  const location = typeof application.task_metadata?.location === 'string' 
+    ? application.task_metadata.location 
+    : ''
   const jobUrl = application.task_metadata?.url || ''
   const appliedDate = formatDate(application.created_at)
 
