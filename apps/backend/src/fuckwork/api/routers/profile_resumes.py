@@ -203,8 +203,8 @@ def create_resume(
     if request.is_default and not request.is_cover_letter:
         db.query(UserResume).filter(
             UserResume.user_id == current_user.id,
-            UserResume.is_cover_letter == False,
-            UserResume.is_default == True,
+            UserResume.is_cover_letter is False,
+            UserResume.is_default is True,
         ).update({"is_default": False})
 
     resume = UserResume(
@@ -252,8 +252,8 @@ def set_default_resume(
     # Unset other defaults
     db.query(UserResume).filter(
         UserResume.user_id == current_user.id,
-        UserResume.is_cover_letter == False,
-        UserResume.is_default == True,
+        UserResume.is_cover_letter is False,
+        UserResume.is_default is True,
     ).update({"is_default": False})
 
     # Set this one as default

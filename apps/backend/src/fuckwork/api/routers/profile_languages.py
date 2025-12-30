@@ -61,7 +61,7 @@ def list_languages(current_user: User = Depends(get_current_user), db: Session =
     """Get all language entries for current user."""
     languages = db.query(UserLanguage).filter(UserLanguage.user_id == current_user.id).all()
     return LanguageListResponse(
-        languages=[LanguageResponse.model_validate(l) for l in languages],
+        languages=[LanguageResponse.model_validate(lang) for lang in languages],
         total=len(languages),
     )
 
@@ -131,7 +131,7 @@ def bulk_update_languages(
         db.refresh(lang)
 
     return LanguageListResponse(
-        languages=[LanguageResponse.model_validate(l) for l in new_languages],
+        languages=[LanguageResponse.model_validate(lang) for lang in new_languages],
         total=len(new_languages),
     )
 

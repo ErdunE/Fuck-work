@@ -364,7 +364,7 @@ def get_profile(current_user: User = Depends(get_current_user), db: Session = De
         education=[EducationItem.model_validate(e) for e in education],
         experience=[ExperienceItem.model_validate(e) for e in experience],
         skills=[SkillItem.model_validate(s) for s in skills],
-        languages=[LanguageItem.model_validate(l) for l in languages],
+        languages=[LanguageItem.model_validate(lang) for lang in languages],
         projects=[ProjectItem.model_validate(p) for p in projects],
         certifications=[CertificationItem.model_validate(c) for c in certifications],
         awards=[AwardItem.model_validate(a) for a in awards],
